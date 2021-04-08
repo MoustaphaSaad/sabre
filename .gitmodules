@@ -1,0 +1,3 @@
+[submodule "external/mn"]
+	path = external/mn
+	url = git@github.com:MoustaphaSaad/mn.git
