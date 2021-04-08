@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 # list the header files
 set(HEADER_FILES
 	include/sabre/Dummy.h
+	include/sabre/Tkn.h
+	include/sabre/Token_List.h
 )
 
 # list the source files
