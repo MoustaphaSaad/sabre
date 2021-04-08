@@ -18,6 +18,8 @@ option(SABRE_UNITY_BUILD       "Combine all sabre source files into one jumbo bu
 
 add_subdirectory(external/mn EXCLUDE_FROM_ALL)
 
+add_subdirectory(sabre)
+
 if (SABRE_BUILD_EXAMPLES)
 	add_subdirectory(playground)
 endif (SABRE_BUILD_EXAMPLES)
