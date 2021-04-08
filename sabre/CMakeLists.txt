@@ -5,11 +5,13 @@ set(HEADER_FILES
 	include/sabre/Dummy.h
 	include/sabre/Tkn.h
 	include/sabre/Token_List.h
+	include/sabre/Unit.h
 )
 
 # list the source files
 set(SOURCE_FILES
 	src/sabre/Dummy.cpp
+	src/sabre/Unit.cpp
 )
 
 add_library(sabre)
