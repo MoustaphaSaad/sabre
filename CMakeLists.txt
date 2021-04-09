@@ -16,6 +16,8 @@ option(SABRE_BUILD_EXAMPLES    "Build example applications and playgrounds that 
 option(SABRE_BUILD_TESTS       "Build sabre unit tests."                                                     ON)
 option(SABRE_UNITY_BUILD       "Combine all sabre source files into one jumbo build."                        ON)
 
+option(MN_BUILD_EXAMPLES OFF)
+option(MN_BUILD_TESTS OFF)
 add_subdirectory(external/mn EXCLUDE_FROM_ALL)
 
 add_subdirectory(sabre)

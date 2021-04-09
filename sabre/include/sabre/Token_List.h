@@ -2,6 +2,7 @@
 
 #define TOKEN_LIST(TOKEN) \
 	TOKEN(NONE, "<NONE>"), \
+	TOKEN(EOF, "<EOF>"), \
 	TOKEN(ID, "<ID>"), \
 	TOKEN(COMMENT, "<COMMENT>"), \
 	TOKEN(INTEGER, "<INTEGER>"), \

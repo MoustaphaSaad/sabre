@@ -39,3 +39,4 @@ namespace sabre
 		inline operator bool() const { return kind != KIND_NONE; }
 	};
 }
+#undef TOKEN_LIST

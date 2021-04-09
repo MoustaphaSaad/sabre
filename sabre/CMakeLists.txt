@@ -6,11 +6,13 @@ set(HEADER_FILES
 	include/sabre/Token_List.h
 	include/sabre/Unit.h
 	include/sabre/Err.h
+	include/sabre/Scan.h
 )
 
 # list the source files
 set(SOURCE_FILES
 	src/sabre/Unit.cpp
+	src/sabre/Scan.cpp
 )
 
 add_library(sabre)
