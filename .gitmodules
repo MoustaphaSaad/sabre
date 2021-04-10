@@ -1,3 +1,6 @@
 [submodule "external/mn"]
 	path = external/mn
 	url = git@github.com:MoustaphaSaad/mn.git
+[submodule "external/doctest"]
+	path = external/doctest
+	url = https://github.com/onqtam/doctest.git

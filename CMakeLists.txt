@@ -26,3 +26,8 @@ add_subdirectory(sabrec)
 if (SABRE_BUILD_EXAMPLES)
 	add_subdirectory(playground)
 endif (SABRE_BUILD_EXAMPLES)
+
+if (SABRE_BUILD_TESTS)
+	add_subdirectory(external/doctest EXCLUDE_FROM_ALL)
+	add_subdirectory(unittest)
+endif (SABRE_BUILD_TESTS)
