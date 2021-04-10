@@ -7,12 +7,14 @@ set(HEADER_FILES
 	include/sabre/Unit.h
 	include/sabre/Err.h
 	include/sabre/Scan.h
+	include/sabre/Utils.h
 )
 
 # list the source files
 set(SOURCE_FILES
 	src/sabre/Unit.cpp
 	src/sabre/Scan.cpp
+	src/sabre/Utils.cpp
 )
 
 add_library(sabre)

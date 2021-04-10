@@ -19,6 +19,7 @@ namespace sabre
 		mn::Buf<Rng> lines;
 		mn::Str_Intern str_interner;
 		mn::Buf<Err> errs;
+		mn::Buf<Tkn> tkns;
 	};
 
 	SABRE_EXPORT Unit*
@@ -38,6 +39,18 @@ namespace sabre
 	{
 		unit_free(self);
 	}
+
+	// scans the given unit and returns whether it finished correctly
+	SABRE_EXPORT bool
+	unit_scan(Unit* self);
+
+	// dumps all the scanned tokens to a string
+	SABRE_EXPORT mn::Str
+	unit_dump_tokens(Unit* self, mn::Allocator allocator = mn::allocator_top());
+
+	// dumps all the errors to a string
+	SABRE_EXPORT mn::Str
+	unit_dump_errors(Unit* self, mn::Allocator allocator = mn::allocator_top());
 
 	inline static const char*
 	unit_intern(Unit* self, const char* begin_it, const char* end_it)

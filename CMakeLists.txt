@@ -21,6 +21,7 @@ option(MN_BUILD_TESTS OFF)
 add_subdirectory(external/mn EXCLUDE_FROM_ALL)
 
 add_subdirectory(sabre)
+add_subdirectory(sabrec)
 
 if (SABRE_BUILD_EXAMPLES)
 	add_subdirectory(playground)
