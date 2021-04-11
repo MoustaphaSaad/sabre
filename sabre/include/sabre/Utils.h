@@ -10,4 +10,9 @@ namespace sabre
 	// when you want to make the path uniform across testing environment
 	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
 	scan_file(const mn::Str& filepath, const mn::Str& fake_path);
+
+	// loads and parses an expression from the given file, fake_path is used for testing
+	// when you want to make the path uniform across testing environment
+	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
+	parse_expr_from_file(const mn::Str& filepath, const mn::Str& fake_path);
 }

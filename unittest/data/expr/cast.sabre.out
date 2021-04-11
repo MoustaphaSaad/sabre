@@ -1,0 +1,6 @@
+(cast
+  (unary '++'
+    (atom 'x')
+  )
+  (type-sign float32)
+)

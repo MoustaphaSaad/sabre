@@ -203,4 +203,50 @@ namespace sabre
 		self->atom = atom;
 		return self;
 	}
+
+	// frees the given expression
+	inline static void
+	expr_free(Expr* self)
+	{
+		switch(self->kind)
+		{
+		case Expr::KIND_ATOM:
+			break;
+		case Expr::KIND_BINARY:
+			expr_free(self->binary.left);
+			expr_free(self->binary.right);
+			break;
+		case Expr::KIND_UNARY:
+			expr_free(self->unary.base);
+			break;
+		case Expr::KIND_CALL:
+			expr_free(self->call.base);
+			for (auto e: self->call.args)
+				expr_free(e);
+			mn::buf_free(self->call.args);
+			break;
+		case Expr::KIND_CAST:
+			expr_free(self->cast.base);
+			type_sign_free(self->cast.type);
+			break;
+		case Expr::KIND_DOT:
+			expr_free(self->dot.lhs);
+			expr_free(self->dot.rhs);
+			break;
+		case Expr::KIND_INDEXED:
+			expr_free(self->indexed.base);
+			expr_free(self->indexed.index);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+		mn::free(self);
+	}
+
+	inline static void
+	destruct(Expr* self)
+	{
+		expr_free(self);
+	}
 }

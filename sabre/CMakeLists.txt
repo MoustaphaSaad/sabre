@@ -9,6 +9,7 @@ set(HEADER_FILES
 	include/sabre/Scan.h
 	include/sabre/Utils.h
 	include/sabre/AST.h
+	include/sabre/AST_Printer.h
 )
 
 # list the source files
@@ -17,6 +18,7 @@ set(SOURCE_FILES
 	src/sabre/Scan.cpp
 	src/sabre/Utils.cpp
 	src/sabre/Parse.cpp
+	src/sabre/AST_Printer.cpp
 )
 
 add_library(sabre)
