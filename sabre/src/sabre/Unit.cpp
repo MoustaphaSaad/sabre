@@ -98,16 +98,16 @@ namespace sabre
 						}
 					}
 					mn::str_push(res, '\n');
-					res = mn::strf("Error[{}:{}:{}]: {}", self->filepath, err.pos.line, err.pos.col, err.msg);
+					res = mn::strf(res, "Error[{}:{}:{}]: {}", self->filepath, err.pos.line, err.pos.col, err.msg);
 				}
 				else
 				{
-					res = mn::strf("Error[{}:{}:{}]: {}", self->filepath, err.pos.line, err.pos.col, err.msg);
+					res = mn::strf(res, "Error[{}:{}:{}]: {}", self->filepath, err.pos.line, err.pos.col, err.msg);
 				}
 			}
 			else
 			{
-				res = mn::strf("Error[{}]: {}", self->filepath, err.msg);
+				res = mn::strf(res, "Error[{}]: {}", self->filepath, err.msg);
 			}
 		}
 		return res;

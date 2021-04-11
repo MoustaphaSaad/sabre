@@ -11,7 +11,7 @@ namespace sabre
 {
 	// API
 	mn::Result<mn::Str, mn::Err>
-	scan_file(const mn::Str& filepath, const mn::Str& fake_path)
+	scan_file(const mn::Str& filepath, const mn::Str&)
 	{
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
@@ -34,6 +34,9 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
+		mn::str_free(unit->filepath);
+		unit->filepath = mn::str_clone(fake_path);
+
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
@@ -44,6 +47,9 @@ namespace sabre
 		if (expr == nullptr)
 			return unit_dump_errors(unit);
 		mn_defer(expr_free(expr));
+
+		if (unit->errs.count > 0)
+			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
 		mn_defer(ast_printer_free(printer));

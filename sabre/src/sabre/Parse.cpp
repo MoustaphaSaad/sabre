@@ -17,7 +17,9 @@ namespace sabre
 	{
 		if (self.it + k < self.tokens.count)
 			return self.tokens[self.it + k];
-		return Tkn{};
+		Tkn tkn{};
+		tkn.kind = Tkn::KIND_EOF;
+		return tkn;
 	}
 
 	inline static Tkn
@@ -39,7 +41,11 @@ namespace sabre
 	_parser_eat(Parser& self)
 	{
 		if (self.it >= self.tokens.count)
-			return Tkn{};
+		{
+			Tkn tkn{};
+			tkn.kind = Tkn::KIND_EOF;
+			return tkn;
+		}
 		auto tkn = self.tokens[self.it];
 		self.prev_it = self.it;
 		++self.it;
@@ -63,7 +69,9 @@ namespace sabre
 			Err err{};
 			err.msg = mn::strf("expected '{}' but found 'EOF'", Tkn::NAMES[kind]);
 			unit_err(self.unit, err);
-			return Tkn{};
+			Tkn tkn{};
+			tkn.kind = Tkn::KIND_EOF;
+			return tkn;
 		}
 
 		auto tkn = _parser_eat(self);
@@ -132,7 +140,7 @@ namespace sabre
 				expr->in_parens = true;
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -191,7 +199,7 @@ namespace sabre
 			}
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -215,7 +223,7 @@ namespace sabre
 			expr = _parser_parse_expr_base(self);
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -231,7 +239,7 @@ namespace sabre
 		if (_parser_eat_kind(self, Tkn::KIND_COLON))
 			expr = expr_cast_new(expr, _parser_parse_type(self));
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -260,7 +268,7 @@ namespace sabre
 			expr = expr_binary_new(expr, op, rhs);
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -289,7 +297,7 @@ namespace sabre
 			expr = expr_binary_new(expr, op, rhs);
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -320,7 +328,7 @@ namespace sabre
 			}
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -356,7 +364,7 @@ namespace sabre
 			}
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
@@ -392,7 +400,7 @@ namespace sabre
 			}
 		}
 
-		if (expr == nullptr)
+		if (expr != nullptr)
 		{
 			expr->pos = tkn.pos;
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};

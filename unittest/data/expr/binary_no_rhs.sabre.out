@@ -1,0 +1,4 @@
+Error[binary_no_rhs.sabre]: expected an expression but found '<EOF>'
+>> foo(1, 2, 4) + 3 *
+>>                  ^
+Error[binary_no_rhs.sabre:1:17]: missing right handside
