@@ -87,14 +87,14 @@ namespace sabre
 	inline static Type_Sign
 	_parser_parse_type(Parser& self)
 	{
-		auto type = type_sign_new();
+		auto type = type_sign_new(self.unit->ast_arena);
 		while (true)
 		{
 			auto tkn = _parser_look(self);
 			if (tkn.kind == Tkn::KIND_ID)
 			{
 				// if we end up with a named type signature token this means that we finished the type signature parsing
-				type_sign_push(type, type_sign_atom_named_new(_parser_eat(self)));
+				type_sign_push(type, type_sign_atom_named(_parser_eat(self)));
 				break;
 			}
 			else
@@ -112,24 +112,24 @@ namespace sabre
 		Expr* expr = nullptr;
 		if (tkn.kind == Tkn::KIND_INTEGER)
 		{
-			expr = expr_atom_new(_parser_eat(self));
+			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
 		else if (tkn.kind == Tkn::KIND_FLOAT)
 		{
-			expr = expr_atom_new(_parser_eat(self));
+			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
 		else if (tkn.kind == Tkn::KIND_ID)
 		{
 			// TODO(Moustapha): handle composite literals later
-			expr = expr_atom_new(_parser_eat(self));
+			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_TRUE)
 		{
-			expr = expr_atom_new(_parser_eat(self));
+			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_FALSE)
 		{
-			expr = expr_atom_new(_parser_eat(self));
+			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
 		else if (tkn.kind == Tkn::KIND_OPEN_PAREN)
 		{
@@ -166,7 +166,7 @@ namespace sabre
 		{
 			if (_parser_eat_kind(self, Tkn::KIND_OPEN_PAREN))
 			{
-				auto args = mn::buf_new<Expr*>();
+				auto args = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
 				if (_parser_eat_kind(self, Tkn::KIND_CLOSE_PAREN) == false)
 				{
 					while (true)
@@ -179,19 +179,19 @@ namespace sabre
 					}
 					_parser_eat_must(self, Tkn::KIND_CLOSE_PAREN);
 				}
-				expr = expr_call_new(expr, args);
+				expr = expr_call_new(self.unit->ast_arena, expr, args);
 			}
 			else if (_parser_eat_kind(self, Tkn::KIND_OPEN_BRACKET))
 			{
 				auto index = parser_parse_expr(self);
 				_parser_eat_must(self, Tkn::KIND_CLOSE_BRACKET);
-				expr = expr_indexed_new(expr, index);
+				expr = expr_indexed_new(self.unit->ast_arena, expr, index);
 			}
 			else if (_parser_eat_kind(self, Tkn::KIND_DOT))
 			{
 				auto rhs = parser_parse_expr(self);
 				if (rhs != nullptr)
-					expr = expr_dot_new(expr, rhs);
+					expr = expr_dot_new(self.unit->ast_arena, expr, rhs);
 			}
 			else
 			{
@@ -216,7 +216,7 @@ namespace sabre
 		if (tkn_is_unary(_parser_look(self).kind))
 		{
 			auto op = _parser_eat(self);
-			expr = expr_unary_new(op, _parser_parse_expr_unary(self));
+			expr = expr_unary_new(self.unit->ast_arena, op, _parser_parse_expr_unary(self));
 		}
 		else
 		{
@@ -237,7 +237,7 @@ namespace sabre
 		auto tkn = _parser_look(self);
 		auto expr = _parser_parse_expr_unary(self);
 		if (_parser_eat_kind(self, Tkn::KIND_COLON))
-			expr = expr_cast_new(expr, _parser_parse_type(self));
+			expr = expr_cast_new(self.unit->ast_arena, expr, _parser_parse_type(self));
 
 		if (expr != nullptr)
 		{
@@ -265,7 +265,7 @@ namespace sabre
 				unit_err(self.unit, err);
 				break;
 			}
-			expr = expr_binary_new(expr, op, rhs);
+			expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
 		}
 
 		if (expr != nullptr)
@@ -294,7 +294,7 @@ namespace sabre
 				unit_err(self.unit, err);
 				break;
 			}
-			expr = expr_binary_new(expr, op, rhs);
+			expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
 		}
 
 		if (expr != nullptr)
@@ -324,7 +324,7 @@ namespace sabre
 			}
 			else
 			{
-				expr = expr_binary_new(expr, op, rhs);
+				expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
 			}
 		}
 
@@ -356,7 +356,7 @@ namespace sabre
 					unit_err(self.unit, err);
 					break;
 				}
-				expr = expr_binary_new(expr, tkn, rhs);
+				expr = expr_binary_new(self.unit->ast_arena, expr, tkn, rhs);
 			}
 			else
 			{
@@ -392,7 +392,7 @@ namespace sabre
 					unit_err(self.unit, err);
 					break;
 				}
-				expr = expr_binary_new(expr, tkn, rhs);
+				expr = expr_binary_new(self.unit->ast_arena, expr, tkn, rhs);
 			}
 			else
 			{
@@ -406,6 +406,107 @@ namespace sabre
 			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
 		}
 		return expr;
+	}
+
+	inline static Stmt*
+	_parser_parse_stmt_internal(Parser& self, bool accept_semicolon)
+	{
+		return nullptr;
+
+		// auto tkn = _parser_look(self);
+		// Stmt* res = nullptr;
+		// bool expect_semicolon = true;
+
+		// if (tkn.kind == Tkn::KIND_KEYWORD_BREAK)
+		// {
+		// 	res = stmt_break_new(_parser_eat(self));
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_CONTINUE)
+		// {
+		// 	res = stmt_continue_new(_parser_eat(self));
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_RETURN)
+		// {
+		// 	_parser_eat(self); // for the return keyword
+		// 	auto expr = parser_parse_expr(self);
+		// 	if (expr == nullptr)
+		// 		return nullptr;
+		// 	res = stmt_return_new(expr);
+		// }
+		// else if (tkn.kind == Tkn::KIND_OPEN_CURLY)
+		// {
+		// 	expect_semicolon = false;
+		// 	res = _parser_parse_stmt_block(self);
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_IF)
+		// {
+		// 	expect_semicolon = false;
+		// 	res = _parser_parse_stmt_if(self);
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_FOR)
+		// {
+		// 	expect_semicolon = false;
+		// 	res = _parser_parse_stmt_for(self);
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_VAR)
+		// {
+		// 	auto decl = _parser_parse_decl_var(self, false);
+		// 	if (decl == nullptr)
+		// 		return nullptr;
+		// 	res = stmt_decl_new(decl);
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_CONST)
+		// {
+		// 	auto decl = _parser_parse_decl_const(self, false);
+		// 	if (decl == nullptr)
+		// 		return nullptr;
+		// 	res = stmt_decl_new(decl);
+		// }
+		// else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
+		// {
+		// 	auto decl = _parser_parse_decl_func(self);
+		// 	if (decl == nullptr)
+		// 		return nullptr;
+		// 	decl->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+		// 	decl->pos = tkn.pos;
+		// 	res = stmt_decl_new(decl);
+		// }
+		// else
+		// {
+		// 	res = _parser_parse_stmt_simple(self);
+		// }
+
+		// // there should be a semicolon here if we don't find it we skip to it
+		// if (accept_semicolon && expect_semicolon)
+		// {
+		// 	if (auto tkn = _parser_look(self); tkn.kind == Tkn::KIND_SEMICOLON)
+		// 	{
+		// 		_parser_eat(self); // eat the semicolon
+		// 	}
+		// 	else
+		// 	{
+		// 		// we didn't find the semicolon issue an error and skip till we find one
+		// 		Err err{};
+		// 		err.pos = tkn.pos;
+		// 		err.rng = tkn.rng;
+		// 		err.msg = mn::strf("Expected a semicolon at the end of the statement");
+		// 		unit_err(self.unit, err);
+
+		// 		while (true)
+		// 		{
+		// 			auto tkn = _parser_eat(self);
+		// 			if (parser_eof(self) || tkn.kind == Tkn::KIND_SEMICOLON)
+		// 				break;
+		// 		}
+		// 	}
+		// }
+
+		// if (res != nullptr)
+		// {
+		// 	res->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+		// 	res->pos = tkn.pos;
+		// }
+		// return res;
 	}
 
 	// API
@@ -431,5 +532,11 @@ namespace sabre
 	parser_parse_expr(Parser& self)
 	{
 		return _parser_parse_expr_or(self);
+	}
+
+	Stmt*
+	parser_parse_stmt(Parser& self)
+	{
+		return _parser_parse_stmt_internal(self, true);
 	}
 }

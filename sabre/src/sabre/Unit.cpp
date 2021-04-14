@@ -3,6 +3,7 @@
 
 #include <mn/Path.h>
 #include <mn/IO.h>
+#include <mn/Log.h>
 
 namespace sabre
 {
@@ -13,18 +14,22 @@ namespace sabre
 		self->filepath = clone(filepath);
 		self->content = mn::file_content_str(filepath);
 		self->str_interner = mn::str_intern_new();
+		self->ast_arena = mn::allocator_arena_new();
 		return self;
 	}
 
 	void
 	unit_free(Unit* self)
 	{
+		mn::log_debug("AST memory(used/reserved): {}/{} bytes for compilation unit '{}'", self->ast_arena->used_mem, self->ast_arena->total_mem, self->filepath);
+
 		mn::str_free(self->filepath);
 		mn::str_free(self->content);
 		mn::buf_free(self->lines);
 		mn::str_intern_free(self->str_interner);
 		destruct(self->errs);
 		mn::buf_free(self->tkns);
+		mn::allocator_free(self->ast_arena);
 		mn::free(self);
 	}
 

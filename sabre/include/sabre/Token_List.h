@@ -41,6 +41,8 @@
 	TOKEN(COMMA, ","), \
 	TOKEN(AT, "@"), \
 	TOKEN(KEYWORDS__BEGIN, ""), \
+	TOKEN(KEYWORD_CONST, "const"), \
+	TOKEN(KEYWORD_VAR, "var"), \
 	TOKEN(KEYWORD_TYPE, "type"), \
 	TOKEN(KEYWORD_STRUCT, "struct"), \
 	TOKEN(KEYWORD_FUNC, "func"), \

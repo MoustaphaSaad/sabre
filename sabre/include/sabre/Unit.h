@@ -17,9 +17,15 @@ namespace sabre
 		mn::Str content;
 		// line ranges
 		mn::Buf<Rng> lines;
+		// used to intern strings, usually token strings
 		mn::Str_Intern str_interner;
+		// errors emitted in this unit of compilation
 		mn::Buf<Err> errs;
+		// tokens scanned in this unit
 		mn::Buf<Tkn> tkns;
+		// all the AST values are allocated from this arena, so we don't need to manage
+		// memory for AST on a node by node basis
+		mn::memory::Arena* ast_arena;
 	};
 
 	SABRE_EXPORT Unit*

@@ -16,6 +16,8 @@ load_out_data(const mn::Str& filepath)
 
 TEST_CASE("[sabre]: lex")
 {
+	mn_defer(mn::memory::tmp()->clear_all());
+
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "lex");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
 	for (auto f: files)
@@ -47,6 +49,8 @@ TEST_CASE("[sabre]: lex")
 
 TEST_CASE("[sabre]: parse-expr")
 {
+	mn_defer(mn::memory::tmp()->clear_all());
+
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "expr");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
 	for (auto f: files)

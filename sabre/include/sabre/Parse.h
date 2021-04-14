@@ -9,6 +9,7 @@ namespace sabre
 {
 	struct Unit;
 	struct Expr;
+	struct Stmt;
 
 	// contains the parser state
 	struct Parser
@@ -33,7 +34,18 @@ namespace sabre
 		parser_free(self);
 	}
 
+	// returns whether the parser reached the end of file or not
+	inline static bool
+	parser_eof(const Parser& self)
+	{
+		return self.it >= self.tokens.count;
+	}
+
 	// parses an expression
 	SABRE_EXPORT Expr*
 	parser_parse_expr(Parser& self);
+
+	// parses a statment
+	SABRE_EXPORT Stmt*
+	parser_parse_stmt(Parser& self);
 }

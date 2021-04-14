@@ -24,7 +24,7 @@ namespace sabre
 
 	// creates a new type sign atom with the given token
 	inline static Type_Sign_Atom
-	type_sign_atom_named_new(Tkn tkn)
+	type_sign_atom_named(Tkn tkn)
 	{
 		Type_Sign_Atom self{};
 		self.kind = Type_Sign_Atom::KIND_NAMED;
@@ -40,22 +40,11 @@ namespace sabre
 
 	// creates a new type signature
 	inline static Type_Sign
-	type_sign_new()
+	type_sign_new(mn::Allocator arena)
 	{
-		return Type_Sign{};
-	}
-
-	// frees a type signature
-	inline static void
-	type_sign_free(Type_Sign& self)
-	{
-		mn::buf_free(self.atoms);
-	}
-
-	inline static void
-	destruct(Type_Sign& self)
-	{
-		type_sign_free(self);
+		Type_Sign self{};
+		self.atoms = mn::buf_with_allocator<Type_Sign_Atom>(arena);
+		return self;
 	}
 
 	// pushes a new type sign atom to a type signature
@@ -129,9 +118,9 @@ namespace sabre
 
 	// creates a new binary expression
 	inline static Expr*
-	expr_binary_new(Expr* lhs, Tkn op, Expr* rhs)
+	expr_binary_new(mn::Allocator arena, Expr* lhs, Tkn op, Expr* rhs)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_BINARY;
 		self->binary.left = lhs;
 		self->binary.op = op;
@@ -141,9 +130,9 @@ namespace sabre
 
 	// creates a new cast expression
 	inline static Expr*
-	expr_cast_new(Expr* base, Type_Sign type)
+	expr_cast_new(mn::Allocator arena, Expr* base, Type_Sign type)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_CAST;
 		self->cast.base = base;
 		self->cast.type = type;
@@ -152,9 +141,9 @@ namespace sabre
 
 	// creates a new unary expression
 	inline static Expr*
-	expr_unary_new(Tkn op, Expr* base)
+	expr_unary_new(mn::Allocator arena, Tkn op, Expr* base)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_UNARY;
 		self->unary.op = op;
 		self->unary.base = base;
@@ -163,9 +152,9 @@ namespace sabre
 
 	// creates a new call expression
 	inline static Expr*
-	expr_call_new(Expr* base, mn::Buf<Expr*> args)
+	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_CALL;
 		self->call.base = base;
 		self->call.args = args;
@@ -174,9 +163,9 @@ namespace sabre
 
 	// creates a new indexed expression
 	inline static Expr*
-	expr_indexed_new(Expr* base, Expr* index)
+	expr_indexed_new(mn::Allocator arena, Expr* base, Expr* index)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_INDEXED;
 		self->indexed.base = base;
 		self->indexed.index = index;
@@ -185,9 +174,9 @@ namespace sabre
 
 	// creates new dot access expression
 	inline static Expr*
-	expr_dot_new(Expr* lhs, Expr* rhs)
+	expr_dot_new(mn::Allocator arena, Expr* lhs, Expr* rhs)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_DOT;
 		self->dot.lhs = lhs;
 		self->dot.rhs = rhs;
@@ -196,57 +185,155 @@ namespace sabre
 
 	// creates a new atom expression
 	inline static Expr*
-	expr_atom_new(Tkn atom)
+	expr_atom_new(mn::Allocator arena, Tkn atom)
 	{
-		auto self = mn::alloc_zerod<Expr>();
+		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_ATOM;
 		self->atom = atom;
 		return self;
 	}
 
-	// frees the given expression
-	inline static void
-	expr_free(Expr* self)
+	struct Decl;
+
+	// Stmt
+	struct Stmt
 	{
-		switch(self->kind)
+		enum KIND
 		{
-		case Expr::KIND_ATOM:
-			break;
-		case Expr::KIND_BINARY:
-			expr_free(self->binary.left);
-			expr_free(self->binary.right);
-			break;
-		case Expr::KIND_UNARY:
-			expr_free(self->unary.base);
-			break;
-		case Expr::KIND_CALL:
-			expr_free(self->call.base);
-			for (auto e: self->call.args)
-				expr_free(e);
-			mn::buf_free(self->call.args);
-			break;
-		case Expr::KIND_CAST:
-			expr_free(self->cast.base);
-			type_sign_free(self->cast.type);
-			break;
-		case Expr::KIND_DOT:
-			expr_free(self->dot.lhs);
-			expr_free(self->dot.rhs);
-			break;
-		case Expr::KIND_INDEXED:
-			expr_free(self->indexed.base);
-			expr_free(self->indexed.index);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-		}
-		mn::free(self);
+			KIND_BREAK,
+			KIND_CONTINUE,
+			KIND_RETURN,
+			KIND_IF,
+			KIND_FOR,
+			KIND_ASSIGN,
+			KIND_EXPR,
+			KIND_BLOCK,
+			KIND_DECL,
+		};
+
+		KIND kind;
+		Pos pos;
+		Rng rng;
+		union
+		{
+			Tkn break_stmt;
+
+			Tkn continue_stmt;
+
+			Expr* return_stmt;
+
+			struct
+			{
+				mn::Buf<Expr*> cond;
+				mn::Buf<Stmt*> body;
+				Stmt* else_body;
+			} if_stmt;
+
+			struct
+			{
+				Stmt* init;
+				Expr* cond;
+				Stmt* post;
+				Stmt* body;
+			} for_stmt;
+
+			struct
+			{
+				mn::Buf<Expr*> lhs;
+				mn::Buf<Expr*> rhs;
+				Tkn op;
+			} assign_stmt;
+
+			Expr* expr_stmt;
+
+			mn::Buf<Stmt*> block_stmt;
+
+			Decl* decl_stmt;
+		};
+	};
+
+	// creates a new break stmt
+	inline static Stmt*
+	stmt_break_new(mn::Allocator arena, Tkn tkn)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_BREAK;
+		self->break_stmt = tkn;
+		return self;
 	}
 
-	inline static void
-	destruct(Expr* self)
+	// creates a new continue stmt
+	inline static Stmt*
+	stmt_continue_new(mn::Allocator arena, Tkn tkn)
 	{
-		expr_free(self);
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_CONTINUE;
+		self->continue_stmt = tkn;
+		return self;
 	}
+
+	// creates a new return stmt
+	inline static Stmt*
+	stmt_return_new(mn::Allocator arena, Expr* expr)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_RETURN;
+		self->return_stmt = expr;
+		return self;
+	}
+
+	struct Arg
+	{
+		mn::Buf<Tkn> names;
+		Type_Sign type;
+	};
+
+	// creates a new argument
+	inline static Arg
+	arg_new(mn::Allocator arena)
+	{
+		Arg self{};
+		self.names = mn::buf_with_allocator<Tkn>(arena);
+		self.type = type_sign_new(arena);
+		return self;
+	}
+
+	// Decl
+	struct Decl
+	{
+		enum KIND
+		{
+			KIND_CONST,
+			KIND_VAR,
+			KIND_FUNC,
+		};
+
+		KIND kind;
+		Pos pos;
+		Rng rng;
+		Tkn name;
+		union
+		{
+			struct
+			{
+				mn::Buf<Tkn> names;
+				mn::Buf<Expr*> values;
+				Type_Sign type;
+			} const_decl;
+
+			struct
+			{
+				mn::Buf<Tkn> names;
+				mn::Buf<Expr*> values;
+				Type_Sign type;
+			} var_decl;
+
+			struct
+			{
+				mn::Buf<Arg> args;
+				Type_Sign return_type;
+				Stmt* body;
+			} func_decl;
+		};
+	};
 }

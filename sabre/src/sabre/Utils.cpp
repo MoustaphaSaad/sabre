@@ -46,7 +46,6 @@ namespace sabre
 		auto expr = parser_parse_expr(parser);
 		if (expr == nullptr)
 			return unit_dump_errors(unit);
-		mn_defer(expr_free(expr));
 
 		if (unit->errs.count > 0)
 			return unit_dump_errors(unit);
