@@ -1,0 +1,6 @@
+(return-stmt
+  (binary '+'
+    (atom 'x')
+    (atom '23')
+  )
+)

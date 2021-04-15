@@ -139,4 +139,339 @@ namespace sabre
 			break;
 		}
 	}
+
+	void
+	ast_printer_print_stmt(AST_Printer& self, Stmt* stmt)
+	{
+		switch (stmt->kind)
+		{
+		case Stmt::KIND_BREAK:
+			mn::print_to(self.out, "(break-stmt)");
+			break;
+		case Stmt::KIND_CONTINUE:
+			mn::print_to(self.out, "(continue-stmt)");
+			break;
+		case Stmt::KIND_RETURN:
+			mn::print_to(self.out, "(return-stmt");
+			_ast_printer_enter_scope(self);
+			{
+				_ast_printer_newline(self);
+				ast_printer_print_expr(self, stmt->return_stmt);
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Stmt::KIND_IF:
+			mn::print_to(self.out, "(if-stmt");
+			_ast_printer_enter_scope(self);
+			{
+				auto max_count = stmt->if_stmt.cond.count;
+				if (stmt->if_stmt.body.count > max_count)
+					max_count = stmt->if_stmt.body.count;
+
+				for (size_t i = 0; i < max_count; ++i)
+				{
+					if (i < stmt->if_stmt.cond.count)
+					{
+						_ast_printer_newline(self);
+						mn::print_to(self.out, "(if-cond");
+						_ast_printer_enter_scope(self);
+						{
+							_ast_printer_newline(self);
+							ast_printer_print_expr(self, stmt->if_stmt.cond[i]);
+						}
+						_ast_printer_leave_scope(self);
+						_ast_printer_newline(self);
+						mn::print_to(self.out, ")");
+					}
+
+					if (i < stmt->if_stmt.body.count)
+					{
+						_ast_printer_newline(self);
+						mn::print_to(self.out, "(if-body");
+						_ast_printer_enter_scope(self);
+						{
+							_ast_printer_newline(self);
+							ast_printer_print_stmt(self, stmt->if_stmt.body[i]);
+						}
+						_ast_printer_leave_scope(self);
+						_ast_printer_newline(self);
+						mn::print_to(self.out, ")");
+					}
+				}
+
+				if (stmt->if_stmt.else_body != nullptr)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(else-body");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_stmt(self, stmt->if_stmt.else_body);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Stmt::KIND_FOR:
+			mn::print_to(self.out, "(for-stmt");
+			_ast_printer_enter_scope(self);
+			{
+				if (stmt->for_stmt.init != nullptr)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(init-stmt");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_stmt(self, stmt->for_stmt.init);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
+				if (stmt->for_stmt.cond != nullptr)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(cond-expr");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_expr(self, stmt->for_stmt.cond);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
+				if (stmt->for_stmt.post != nullptr)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(post-stmt");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_stmt(self, stmt->for_stmt.post);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
+				if (stmt->for_stmt.body != nullptr)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(body-stmt");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_stmt(self, stmt->for_stmt.body);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Stmt::KIND_ASSIGN:
+			mn::print_to(self.out, "(assign-stmt '{}'", stmt->assign_stmt.op.str);
+			_ast_printer_enter_scope(self);
+			{
+				for (auto e: stmt->assign_stmt.lhs)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(LHS");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_expr(self, e);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
+				for (auto e: stmt->assign_stmt.rhs)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(RHS");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						ast_printer_print_expr(self, e);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Stmt::KIND_EXPR:
+			mn::print_to(self.out, "(expr-stmt");
+			_ast_printer_enter_scope(self);
+			{
+				_ast_printer_newline(self);
+				ast_printer_print_expr(self, stmt->expr_stmt);
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Stmt::KIND_BLOCK:
+			mn::print_to(self.out, "(block-stmt");
+			_ast_printer_enter_scope(self);
+			{
+				for (auto s: stmt->block_stmt)
+				{
+					_ast_printer_newline(self);
+					ast_printer_print_stmt(self, s);
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Stmt::KIND_DECL:
+			mn::print_to(self.out, "(decl-stmt");
+			_ast_printer_enter_scope(self);
+			{
+				_ast_printer_newline(self);
+				ast_printer_print_decl(self, stmt->decl_stmt);
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		default:
+			assert(false && "statement type is not handled");
+			break;
+		}
+	}
+
+	void
+	ast_printer_print_decl(AST_Printer& self, Decl* decl)
+	{
+		switch (decl->kind)
+		{
+		case Decl::KIND_CONST:
+			mn::print_to(self.out, "(const-decl");
+			_ast_printer_enter_scope(self);
+			{
+				for (auto name: decl->const_decl.names)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(const-name {})", name.str);
+				}
+
+				if (decl->const_decl.type.atoms.count > 0)
+				{
+					_ast_printer_newline(self);
+					_ast_printer_print_type(self, decl->const_decl.type);
+				}
+
+				for (auto value: decl->const_decl.values)
+				{
+					_ast_printer_newline(self);
+					ast_printer_print_expr(self, value);
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Decl::KIND_VAR:
+			mn::print_to(self.out, "(var-decl");
+			_ast_printer_enter_scope(self);
+			{
+				for (auto name: decl->var_decl.names)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(var-name {})", name.str);
+				}
+
+				if (decl->var_decl.type.atoms.count > 0)
+				{
+					_ast_printer_newline(self);
+					_ast_printer_print_type(self, decl->var_decl.type);
+				}
+
+				for (auto value: decl->var_decl.values)
+				{
+					_ast_printer_newline(self);
+					ast_printer_print_expr(self, value);
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		case Decl::KIND_FUNC:
+			mn::print_to(self.out, "(func-decl");
+			_ast_printer_enter_scope(self);
+			{
+				for (auto arg: decl->func_decl.args)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(arg");
+					_ast_printer_enter_scope(self);
+					{
+						for (auto name: arg.names)
+						{
+							_ast_printer_newline(self);
+							mn::print_to(self.out, "(arg-name '{}')", name.str);
+						}
+
+						if (arg.type.atoms.count > 0)
+						{
+							_ast_printer_newline(self);
+							_ast_printer_print_type(self, arg.type);
+						}
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
+				if (decl->func_decl.return_type.atoms.count > 0)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(return-type ");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						_ast_printer_print_type(self, decl->func_decl.return_type);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
+				if (decl->func_decl.body != nullptr)
+				{
+					_ast_printer_newline(self);
+					ast_printer_print_stmt(self, decl->func_decl.body);
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
+		default:
+			assert(false && "declaration type is not handled");
+			break;
+		}
+	}
 }

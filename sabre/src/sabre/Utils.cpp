@@ -34,8 +34,11 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
-		mn::str_free(unit->filepath);
-		unit->filepath = mn::str_clone(fake_path);
+		if (fake_path.count > 0)
+		{
+			mn::str_free(unit->filepath);
+			unit->filepath = mn::str_clone(fake_path);
+		}
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
@@ -54,6 +57,78 @@ namespace sabre
 		mn_defer(ast_printer_free(printer));
 
 		ast_printer_print_expr(printer, expr);
+
+		return ast_printer_str(printer);
+	}
+
+	mn::Result<mn::Str, mn::Err>
+	parse_stmt_from_file(const mn::Str& filepath, const mn::Str& fake_path)
+	{
+		if (mn::path_is_file(filepath) == false)
+			return mn::Err{ "file '{}' not found", filepath };
+
+		auto unit = unit_from_file(filepath);
+		mn_defer(unit_free(unit));
+
+		if (fake_path.count > 0)
+		{
+			mn::str_free(unit->filepath);
+			unit->filepath = mn::str_clone(fake_path);
+		}
+
+		if (unit_scan(unit) == false)
+			return unit_dump_errors(unit);
+
+		auto parser = parser_new(unit);
+		mn_defer(parser_free(parser));
+
+		auto stmt = parser_parse_stmt(parser);
+		if (stmt == nullptr)
+			return unit_dump_errors(unit);
+
+		if (unit->errs.count > 0)
+			return unit_dump_errors(unit);
+
+		auto printer = ast_printer_new();
+		mn_defer(ast_printer_free(printer));
+
+		ast_printer_print_stmt(printer, stmt);
+
+		return ast_printer_str(printer);
+	}
+
+	mn::Result<mn::Str, mn::Err>
+	parse_decl_from_file(const mn::Str& filepath, const mn::Str& fake_path)
+	{
+		if (mn::path_is_file(filepath) == false)
+			return mn::Err{ "file '{}' not found", filepath };
+
+		auto unit = unit_from_file(filepath);
+		mn_defer(unit_free(unit));
+
+		if (fake_path.count > 0)
+		{
+			mn::str_free(unit->filepath);
+			unit->filepath = mn::str_clone(fake_path);
+		}
+
+		if (unit_scan(unit) == false)
+			return unit_dump_errors(unit);
+
+		auto parser = parser_new(unit);
+		mn_defer(parser_free(parser));
+
+		auto decl = parser_parse_decl(parser);
+		if (decl == nullptr)
+			return unit_dump_errors(unit);
+
+		if (unit->errs.count > 0)
+			return unit_dump_errors(unit);
+
+		auto printer = ast_printer_new();
+		mn_defer(ast_printer_free(printer));
+
+		ast_printer_print_decl(printer, decl);
 
 		return ast_printer_str(printer);
 	}

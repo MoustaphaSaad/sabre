@@ -1,0 +1,61 @@
+(if-stmt
+  (if-cond
+    (binary '=='
+      (atom 'x')
+      (atom 'true')
+    )
+  )
+  (if-body
+    (block-stmt
+      (assign-stmt '='
+        (LHS
+          (atom 'a')
+        )
+        (LHS
+          (atom 'b')
+        )
+        (RHS
+          (atom 'b')
+        )
+        (RHS
+          (atom 'a')
+        )
+      )
+    )
+  )
+  (if-cond
+    (binary '=='
+      (atom 'y')
+      (atom 'false')
+    )
+  )
+  (if-body
+    (block-stmt
+      (expr-stmt
+        (unary '++'
+          (atom 'x')
+        )
+      )
+    )
+  )
+  (else-body
+    (block-stmt
+      (assign-stmt '='
+        (LHS
+          (atom 'k')
+        )
+        (RHS
+          (binary '+'
+            (binary '+'
+              (atom '3')
+              (atom '235')
+            )
+            (call (atom 'foo')
+              (atom '234')
+            )
+          )
+        )
+      )
+    )
+  )
+)

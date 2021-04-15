@@ -37,6 +37,30 @@ int main(int argc, char** argv)
 		mn::print("{}\n", answer);
 		return 0;
 	}
+	else if (cmd == "parse-stmt")
+	{
+		auto [answer, err] = sabre::parse_stmt_from_file(path, mn::str_lit(""));
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
+		return 0;
+	}
+	else if (cmd == "parse-decl")
+	{
+		auto [answer, err] = sabre::parse_decl_from_file(path, mn::str_lit(""));
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
+		return 0;
+	}
 	else
 	{
 		mn::printerr("invalid command line args\n");

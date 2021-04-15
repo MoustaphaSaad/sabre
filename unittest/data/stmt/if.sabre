@@ -1,0 +1,7 @@
+if x == true {
+	a, b = b, a;
+} else if y == false {
+	++x;
+} else {
+	k = 3 + 235 + foo(234);
+}

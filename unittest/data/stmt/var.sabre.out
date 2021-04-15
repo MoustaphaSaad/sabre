@@ -1,0 +1,6 @@
+(decl-stmt
+  (var-decl
+    (var-name x)
+    (atom '1')
+  )
+)

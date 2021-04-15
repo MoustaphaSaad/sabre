@@ -7,6 +7,8 @@
 namespace sabre
 {
 	struct Expr;
+	struct Stmt;
+	struct Decl;
 
 	struct AST_Printer
 	{
@@ -31,6 +33,14 @@ namespace sabre
 	// prints the given expression
 	SABRE_EXPORT void
 	ast_printer_print_expr(AST_Printer& self, Expr* expr);
+
+	// prints the given statement
+	SABRE_EXPORT void
+	ast_printer_print_stmt(AST_Printer& self, Stmt* stmt);
+
+	// prints the given declaration
+	SABRE_EXPORT void
+	ast_printer_print_decl(AST_Printer& self, Decl* decl);
 
 	inline static mn::Str
 	ast_printer_str(AST_Printer& self)
