@@ -409,104 +409,265 @@ namespace sabre
 	}
 
 	inline static Stmt*
+	_parser_parse_stmt_block(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
+
+		auto stmts = mn::buf_with_allocator<Stmt*>(self.unit->ast_arena);
+		while (_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+		{
+			if (auto s = parser_parse_stmt(self))
+				mn::buf_push(stmts, s);
+			else
+				break;
+		}
+		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
+		return stmt_block_new(self.unit->ast_arena, stmts);
+	}
+
+	inline static Stmt*
+	_parser_parse_stmt_if(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_IF);
+
+		auto cond = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+		auto body = mn::buf_with_allocator<Stmt*>(self.unit->ast_arena);
+		Stmt* else_body = nullptr;
+
+		mn::buf_push(cond, parser_parse_expr(self));
+		mn::buf_push(body, _parser_parse_stmt_block(self));
+
+		while (_parser_eat_kind(self, Tkn::KIND_KEYWORD_ELSE))
+		{
+			if (_parser_eat_kind(self, Tkn::KIND_KEYWORD_IF))
+			{
+				mn::buf_push(cond, parser_parse_expr(self));
+				mn::buf_push(body, _parser_parse_stmt_block(self));
+			}
+			else
+			{
+				else_body = _parser_parse_stmt_block(self);
+				break;
+			}
+		}
+
+		return stmt_if_new(self.unit->ast_arena, cond, body, else_body);
+	}
+
+	inline static Stmt*
+	_parser_parse_stmt_for(Parser& self)
+	{
+		auto for_keyword = _parser_eat_must(self, Tkn::KIND_KEYWORD_FOR);
+
+		Stmt* init = nullptr;
+		Expr* cond = nullptr;
+		Stmt* post = nullptr;
+		Stmt* body = nullptr;
+
+		if (_parser_look_kind(self, Tkn::KIND_OPEN_CURLY))
+		{
+			// for {}
+			body = _parser_parse_stmt_block(self);
+		}
+		else if (_parser_eat_kind(self, Tkn::KIND_SEMICOLON))
+		{
+			// for ;cond;post {}
+			cond = parser_parse_expr(self);
+			_parser_eat_must(self, Tkn::KIND_SEMICOLON);
+			if (_parser_look_kind(self, Tkn::KIND_OPEN_CURLY) == false)
+				post = _parser_parse_stmt_internal(self, false);
+			body = _parser_parse_stmt_block(self);
+		}
+		else
+		{
+			// for cond {}
+			// for init;cond;post {}
+			init = _parser_parse_stmt_internal(self, false);
+			if (_parser_eat_kind(self, Tkn::KIND_SEMICOLON))
+			{
+				if (_parser_eat_kind(self, Tkn::KIND_SEMICOLON) == false)
+				{
+					cond = parser_parse_expr(self);
+					_parser_eat_must(self, Tkn::KIND_SEMICOLON);
+				}
+				if (_parser_look_kind(self, Tkn::KIND_OPEN_CURLY) == false)
+				{
+					post = _parser_parse_stmt_internal(self, false);
+				}
+				body = _parser_parse_stmt_block(self);
+			}
+			else if (_parser_look_kind(self, Tkn::KIND_OPEN_CURLY))
+			{
+				if (init != nullptr && init->kind == Stmt::KIND_EXPR)
+				{
+					cond = init->expr_stmt;
+					init = nullptr;
+					body = _parser_parse_stmt_block(self);
+				}
+				else
+				{
+					Err err{};
+					err.pos = for_keyword.pos;
+					err.rng = for_keyword.rng;
+					err.msg = mn::strf("expected a condition expression in a for statement");
+					unit_err(self.unit, err);
+					return nullptr;
+				}
+			}
+		}
+
+		return stmt_for_new(self.unit->ast_arena, init, cond, post, body);
+	}
+
+	inline static Stmt*
+	_parser_parse_stmt_simple(Parser& self)
+	{
+		auto lhs = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+		while (true)
+		{
+			if (auto e = parser_parse_expr(self))
+				mn::buf_push(lhs, e);
+
+			if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+				break;
+		}
+
+		if (lhs.count == 0)
+		{
+			auto l = _parser_look(self);
+			Err err{};
+			err.pos = l.pos;
+			err.rng = l.rng;
+			err.msg = mn::strf("can't parse an assignment statement");
+			unit_err(self.unit, err);
+			return nullptr;
+		}
+
+		if (tkn_is_assign(_parser_look(self).kind))
+		{
+			auto op = _parser_eat(self);
+			auto rhs = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+			while (true)
+			{
+				if (auto e = parser_parse_expr(self))
+					mn::buf_push(rhs, e);
+
+				if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+					break;
+			}
+			return stmt_assign_new(self.unit->ast_arena, lhs, op, rhs);
+		}
+
+		// this is not an assignment statement so it must be an expression statement
+		if (lhs.count > 1)
+		{
+			Err err{};
+			err.pos = lhs[0]->pos;
+			err.rng = lhs[0]->rng;
+			err.msg = mn::strf("can't have multiple expression in the same statement");
+			unit_err(self.unit, err);
+		}
+
+		return stmt_expr_new(self.unit->ast_arena, lhs[0]);
+	}
+
+	inline static Stmt*
 	_parser_parse_stmt_internal(Parser& self, bool accept_semicolon)
 	{
-		return nullptr;
+		auto tkn = _parser_look(self);
+		Stmt* res = nullptr;
+		bool expect_semicolon = true;
 
-		// auto tkn = _parser_look(self);
-		// Stmt* res = nullptr;
-		// bool expect_semicolon = true;
+		if (tkn.kind == Tkn::KIND_KEYWORD_BREAK)
+		{
+			res = stmt_break_new(self.unit->ast_arena, _parser_eat(self));
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_CONTINUE)
+		{
+			res = stmt_continue_new(self.unit->ast_arena, _parser_eat(self));
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_RETURN)
+		{
+			_parser_eat(self); // for the return keyword
+			auto expr = parser_parse_expr(self);
+			if (expr == nullptr)
+				return nullptr;
+			res = stmt_return_new(self.unit->ast_arena, expr);
+		}
+		else if (tkn.kind == Tkn::KIND_OPEN_CURLY)
+		{
+			expect_semicolon = false;
+			res = _parser_parse_stmt_block(self);
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_IF)
+		{
+			expect_semicolon = false;
+			res = _parser_parse_stmt_if(self);
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_FOR)
+		{
+			expect_semicolon = false;
+			res = _parser_parse_stmt_for(self);
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_VAR)
+		{
+			auto decl = _parser_parse_decl_var(self, false);
+			if (decl == nullptr)
+				return nullptr;
+			res = stmt_decl_new(decl);
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_CONST)
+		{
+			auto decl = _parser_parse_decl_const(self, false);
+			if (decl == nullptr)
+				return nullptr;
+			res = stmt_decl_new(decl);
+		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
+		{
+			auto decl = _parser_parse_decl_func(self);
+			if (decl == nullptr)
+				return nullptr;
+			decl->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			decl->pos = tkn.pos;
+			res = stmt_decl_new(decl);
+		}
+		else
+		{
+			res = _parser_parse_stmt_simple(self);
+		}
 
-		// if (tkn.kind == Tkn::KIND_KEYWORD_BREAK)
-		// {
-		// 	res = stmt_break_new(_parser_eat(self));
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_CONTINUE)
-		// {
-		// 	res = stmt_continue_new(_parser_eat(self));
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_RETURN)
-		// {
-		// 	_parser_eat(self); // for the return keyword
-		// 	auto expr = parser_parse_expr(self);
-		// 	if (expr == nullptr)
-		// 		return nullptr;
-		// 	res = stmt_return_new(expr);
-		// }
-		// else if (tkn.kind == Tkn::KIND_OPEN_CURLY)
-		// {
-		// 	expect_semicolon = false;
-		// 	res = _parser_parse_stmt_block(self);
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_IF)
-		// {
-		// 	expect_semicolon = false;
-		// 	res = _parser_parse_stmt_if(self);
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_FOR)
-		// {
-		// 	expect_semicolon = false;
-		// 	res = _parser_parse_stmt_for(self);
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_VAR)
-		// {
-		// 	auto decl = _parser_parse_decl_var(self, false);
-		// 	if (decl == nullptr)
-		// 		return nullptr;
-		// 	res = stmt_decl_new(decl);
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_CONST)
-		// {
-		// 	auto decl = _parser_parse_decl_const(self, false);
-		// 	if (decl == nullptr)
-		// 		return nullptr;
-		// 	res = stmt_decl_new(decl);
-		// }
-		// else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
-		// {
-		// 	auto decl = _parser_parse_decl_func(self);
-		// 	if (decl == nullptr)
-		// 		return nullptr;
-		// 	decl->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
-		// 	decl->pos = tkn.pos;
-		// 	res = stmt_decl_new(decl);
-		// }
-		// else
-		// {
-		// 	res = _parser_parse_stmt_simple(self);
-		// }
+		// there should be a semicolon here if we don't find it we skip to it
+		if (accept_semicolon && expect_semicolon)
+		{
+			if (auto tkn = _parser_look(self); tkn.kind == Tkn::KIND_SEMICOLON)
+			{
+				_parser_eat(self); // eat the semicolon
+			}
+			else
+			{
+				// we didn't find the semicolon issue an error and skip till we find one
+				Err err{};
+				err.pos = tkn.pos;
+				err.rng = tkn.rng;
+				err.msg = mn::strf("Expected a semicolon at the end of the statement");
+				unit_err(self.unit, err);
 
-		// // there should be a semicolon here if we don't find it we skip to it
-		// if (accept_semicolon && expect_semicolon)
-		// {
-		// 	if (auto tkn = _parser_look(self); tkn.kind == Tkn::KIND_SEMICOLON)
-		// 	{
-		// 		_parser_eat(self); // eat the semicolon
-		// 	}
-		// 	else
-		// 	{
-		// 		// we didn't find the semicolon issue an error and skip till we find one
-		// 		Err err{};
-		// 		err.pos = tkn.pos;
-		// 		err.rng = tkn.rng;
-		// 		err.msg = mn::strf("Expected a semicolon at the end of the statement");
-		// 		unit_err(self.unit, err);
+				while (true)
+				{
+					auto tkn = _parser_eat(self);
+					if (parser_eof(self) || tkn.kind == Tkn::KIND_SEMICOLON)
+						break;
+				}
+			}
+		}
 
-		// 		while (true)
-		// 		{
-		// 			auto tkn = _parser_eat(self);
-		// 			if (parser_eof(self) || tkn.kind == Tkn::KIND_SEMICOLON)
-		// 				break;
-		// 		}
-		// 	}
-		// }
-
-		// if (res != nullptr)
-		// {
-		// 	res->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
-		// 	res->pos = tkn.pos;
-		// }
-		// return res;
+		if (res != nullptr)
+		{
+			res->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			res->pos = tkn.pos;
+		}
+		return res;
 	}
 
 	// API
@@ -538,5 +699,11 @@ namespace sabre
 	parser_parse_stmt(Parser& self)
 	{
 		return _parser_parse_stmt_internal(self, true);
+	}
+
+	Decl*
+	parser_parse_decl(Parser& self)
+	{
+		return nullptr;
 	}
 }

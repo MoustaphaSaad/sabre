@@ -282,6 +282,63 @@ namespace sabre
 		return self;
 	}
 
+	// creates a new block statement
+	inline static Stmt*
+	stmt_block_new(mn::Allocator arena, mn::Buf<Stmt*> stmts)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_BLOCK;
+		self->block_stmt = stmts;
+		return self;
+	}
+
+	// creates a new if statement
+	inline static Stmt*
+	stmt_if_new(mn::Allocator arena, mn::Buf<Expr*> cond, mn::Buf<Stmt*> body, Stmt* else_body)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_IF;
+		self->if_stmt.cond = cond;
+		self->if_stmt.body = body;
+		self->if_stmt.else_body = else_body;
+		return self;
+	}
+
+	// creates a new for statement
+	inline static Stmt*
+	stmt_for_new(mn::Allocator arena, Stmt* init, Expr* cond, Stmt* post, Stmt* body)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_FOR;
+		self->for_stmt.init = init;
+		self->for_stmt.cond = cond;
+		self->for_stmt.post = post;
+		self->for_stmt.body = body;
+		return self;
+	}
+
+	// creates a new assigment statement
+	inline static Stmt*
+	stmt_assign_new(mn::Allocator arena, mn::Buf<Expr*> lhs, Tkn op, mn::Buf<Expr*> rhs)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_ASSIGN;
+		self->assign_stmt.lhs = lhs;
+		self->assign_stmt.op = op;
+		self->assign_stmt.rhs = rhs;
+		return self;
+	}
+
+	// creates a new expression statement
+	inline static Stmt*
+	stmt_expr_new(mn::Allocator arena, Expr* expr)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_EXPR;
+		self->expr_stmt = expr;
+		return self;
+	}
+
 	struct Arg
 	{
 		mn::Buf<Tkn> names;

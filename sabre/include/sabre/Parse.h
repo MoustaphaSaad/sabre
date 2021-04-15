@@ -10,6 +10,7 @@ namespace sabre
 	struct Unit;
 	struct Expr;
 	struct Stmt;
+	struct Decl;
 
 	// contains the parser state
 	struct Parser
@@ -48,4 +49,8 @@ namespace sabre
 	// parses a statment
 	SABRE_EXPORT Stmt*
 	parser_parse_stmt(Parser& self);
+
+	// parses a declaration
+	SABRE_EXPORT Decl*
+	parser_parse_decl(Parser& self);
 }
