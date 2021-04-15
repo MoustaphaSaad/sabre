@@ -339,6 +339,16 @@ namespace sabre
 		return self;
 	}
 
+	// creates a new declaration statement
+	inline static Stmt*
+	stmt_decl_new(mn::Allocator arena, Decl* decl)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_DECL;
+		self->decl_stmt = decl;
+		return self;
+	}
+
 	struct Arg
 	{
 		mn::Buf<Tkn> names;
@@ -393,4 +403,41 @@ namespace sabre
 			} func_decl;
 		};
 	};
+
+	// creates a new variable declaration
+	inline static Decl*
+	decl_var_new(mn::Allocator arena, mn::Buf<Tkn> names, mn::Buf<Expr*> values, Type_Sign type)
+	{
+		auto self = mn::alloc_zerod_from<Decl>(arena);
+		self->kind = Decl::KIND_VAR;
+		self->var_decl.names = names;
+		self->var_decl.values = values;
+		self->var_decl.type = type;
+		return self;
+	}
+
+	// converts a given variable declaration to constant
+	inline static Decl*
+	decl_convert_var_to_const(Decl* var)
+	{
+		auto self = var;
+		self->kind = Decl::KIND_CONST;
+		self->const_decl.names = var->var_decl.names;
+		self->const_decl.values = var->var_decl.values;
+		self->const_decl.type = var->var_decl.type;
+		return self;
+	}
+
+	// creates a new function declaration
+	inline static Decl*
+	decl_func_new(mn::Allocator arena, Tkn name, mn::Buf<Arg> args, Type_Sign ret, Stmt* body)
+	{
+		auto self = mn::alloc_zerod_from<Decl>(arena);
+		self->kind = Decl::KIND_FUNC;
+		self->name = name;
+		self->func_decl.args = args;
+		self->func_decl.return_type = ret;
+		self->func_decl.body = body;
+		return self;
+	}
 }

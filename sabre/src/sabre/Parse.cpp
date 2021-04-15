@@ -455,6 +455,9 @@ namespace sabre
 	}
 
 	inline static Stmt*
+	_parser_parse_stmt_internal(Parser& self, bool accept_semicolon);
+
+	inline static Stmt*
 	_parser_parse_stmt_for(Parser& self)
 	{
 		auto for_keyword = _parser_eat_must(self, Tkn::KIND_KEYWORD_FOR);
@@ -571,6 +574,15 @@ namespace sabre
 		return stmt_expr_new(self.unit->ast_arena, lhs[0]);
 	}
 
+	inline static Decl*
+	_parser_parse_decl_var(Parser& self, bool expect_semicolon);
+
+	inline static Decl*
+	_parser_parse_decl_const(Parser& self, bool expect_semicolon);
+
+	inline static Decl*
+	_parser_parse_decl_func(Parser& self);
+
 	inline static Stmt*
 	_parser_parse_stmt_internal(Parser& self, bool accept_semicolon)
 	{
@@ -614,14 +626,14 @@ namespace sabre
 			auto decl = _parser_parse_decl_var(self, false);
 			if (decl == nullptr)
 				return nullptr;
-			res = stmt_decl_new(decl);
+			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_CONST)
 		{
 			auto decl = _parser_parse_decl_const(self, false);
 			if (decl == nullptr)
 				return nullptr;
-			res = stmt_decl_new(decl);
+			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
 		{
@@ -630,7 +642,7 @@ namespace sabre
 				return nullptr;
 			decl->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
 			decl->pos = tkn.pos;
-			res = stmt_decl_new(decl);
+			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else
 		{
@@ -670,6 +682,110 @@ namespace sabre
 		return res;
 	}
 
+	inline static Decl*
+	_parser_parse_decl_var_base(Parser& self, bool expect_semicolon, Tkn::KIND keyword)
+	{
+		_parser_eat_must(self, keyword);
+
+		auto names = mn::buf_with_allocator<Tkn>(self.unit->ast_arena);
+		auto values = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+		auto type = type_sign_new(self.unit->ast_arena);
+
+		while (true)
+		{
+			if (auto name = _parser_eat_must(self, Tkn::KIND_ID))
+				mn::buf_push(names, name);
+			else
+				break;
+
+			if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+				break;
+		}
+
+		if (_parser_eat_kind(self, Tkn::KIND_COLON))
+			type = _parser_parse_type(self);
+
+		if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
+		{
+			while (true)
+			{
+				if (auto value = parser_parse_expr(self))
+					mn::buf_push(values, value);
+				else
+					break;
+
+				if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+					break;
+			}
+		}
+
+		if (expect_semicolon)
+			_parser_eat_must(self, Tkn::KIND_SEMICOLON);
+
+		return decl_var_new(self.unit->ast_arena, names, values, type);
+	}
+
+	inline static Decl*
+	_parser_parse_decl_var(Parser& self, bool expect_semicolon)
+	{
+		return _parser_parse_decl_var_base(self, expect_semicolon, Tkn::KIND_KEYWORD_VAR);
+	}
+
+	inline static Decl*
+	_parser_parse_decl_const(Parser& self, bool expect_semicolon)
+	{
+		auto res = _parser_parse_decl_var_base(self, expect_semicolon, Tkn::KIND_KEYWORD_CONST);
+		if (res != nullptr)
+			res = decl_convert_var_to_const(res);
+		return res;
+	}
+
+	inline static Arg
+	_parser_parse_arg(Parser& self)
+	{
+		auto arg = arg_new(self.unit->ast_arena);
+		while (true)
+		{
+			if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))
+				mn::buf_push(arg.names, name);
+
+			if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+				break;
+		}
+		// arguments must have a type
+		_parser_eat_must(self, Tkn::KIND_COLON);
+		arg.type = _parser_parse_type(self);
+		return arg;
+	}
+
+	inline static Decl*
+	_parser_parse_decl_func(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_FUNC);
+		auto name = _parser_eat_must(self, Tkn::KIND_ID);
+
+		auto args = mn::buf_with_allocator<Arg>(self.unit->ast_arena);
+		_parser_eat_must(self, Tkn::KIND_OPEN_PAREN);
+		while (true)
+		{
+			if (_parser_look_kind(self, Tkn::KIND_CLOSE_PAREN) == false)
+				mn::buf_push(args, _parser_parse_arg(self));
+
+			if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+				break;
+		}
+		_parser_eat_must(self, Tkn::KIND_CLOSE_PAREN);
+
+		auto ret = type_sign_new(self.unit->ast_arena);
+		if (_parser_eat_kind(self, Tkn::KIND_COLON))
+			ret = _parser_parse_type(self);
+
+		Stmt* body = nullptr;
+		if (_parser_look_kind(self, Tkn::KIND_OPEN_CURLY))
+			body = _parser_parse_stmt_block(self);
+		return decl_func_new(self.unit->ast_arena, name, args, ret, body);
+	}
+
 	// API
 	Parser
 	parser_new(Unit* unit)
@@ -704,6 +820,21 @@ namespace sabre
 	Decl*
 	parser_parse_decl(Parser& self)
 	{
-		return nullptr;
+		auto tkn = _parser_look(self);
+		Decl* res = nullptr;
+
+		if (tkn.kind == Tkn::KIND_KEYWORD_VAR)
+			res = _parser_parse_decl_var(self, true);
+		else if (tkn.kind == Tkn::KIND_KEYWORD_CONST)
+			res = _parser_parse_decl_const(self, true);
+		else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
+			res = _parser_parse_decl_func(self);
+
+		if (res != nullptr)
+		{
+			res->pos = tkn.pos;
+			res->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+		}
+		return res;
 	}
 }
