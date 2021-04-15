@@ -1,0 +1,18 @@
+(func-decl
+  (arg
+    (arg-name 'a')
+    (arg-name 'b')
+    (type-sign int)
+  )
+  (return-type 
+    (type-sign int)
+  )
+  (block-stmt
+    (return-stmt
+      (binary '+'
+        (atom 'a')
+        (atom 'b')
+      )
+    )
+  )
+)

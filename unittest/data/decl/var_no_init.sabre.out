@@ -1,0 +1,6 @@
+(var-decl
+  (var-name a)
+  (var-name b)
+  (var-name c)
+  (type-sign int)
+)

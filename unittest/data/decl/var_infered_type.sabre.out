@@ -1,0 +1,4 @@
+(var-decl
+  (var-name x)
+  (atom '324')
+)

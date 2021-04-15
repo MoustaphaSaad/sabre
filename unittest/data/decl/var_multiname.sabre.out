@@ -1,0 +1,16 @@
+(var-decl
+  (var-name a)
+  (var-name b)
+  (var-name c)
+  (atom '1')
+  (binary '+'
+    (binary '*'
+      (atom '3')
+      (atom '2')
+    )
+    (atom '245')
+  )
+  (call (atom 'foo')
+    (atom '143')
+  )
+)
