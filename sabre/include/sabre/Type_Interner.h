@@ -1,6 +1,8 @@
 #pragma once
 
 #include "sabre/Exports.h"
+#include "sabre/Tkn.h"
+#include "sabre/AST.h"
 
 #include <mn/Memory.h>
 #include <mn/Buf.h>
@@ -122,4 +124,159 @@ namespace sabre
 	// interns a function signature into a type, it will consume the given function signature
 	SABRE_EXPORT Type*
 	type_interner_func(Type_Interner& self, Func_Sign sign);
+
+	// represents a symbol in the code
+	struct Symbol
+	{
+		enum KIND
+		{
+			KIND_CONST,
+			KIND_VAR,
+			KIND_FUNC,
+		};
+
+		enum STATE
+		{
+			STATE_UNRESOLVED,
+			STATE_RESOLVING,
+			STATE_RESOLVED,
+		};
+
+		KIND kind;
+		STATE state;
+		Type* type;
+		const char* name;
+
+		union
+		{
+			struct
+			{
+				Decl* decl;
+				Tkn name;
+				Type_Sign sign;
+				Expr* value;
+			} const_sym;
+
+			struct
+			{
+				Decl* decl;
+				Tkn name;
+				Type_Sign sign;
+				Expr* value;
+			} var_sym;
+
+			struct
+			{
+				Decl* decl;
+				Tkn name;
+			} func_sym;
+		};
+	};
+
+	// creates a new symbol for a constant declaration
+	inline static Symbol*
+	symbol_const_new(mn::Allocator arena, Tkn name, Decl* decl, Type_Sign sign, Expr* value)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_CONST;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->const_sym.decl = decl;
+		self->const_sym.name = name;
+		self->const_sym.sign = sign;
+		self->const_sym.value = value;
+		return self;
+	}
+
+	// creates a new symbol for a variable declaration
+	inline static Symbol*
+	symbol_var_new(mn::Allocator arena, Tkn name, Decl* decl, Type_Sign sign, Expr* value)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_VAR;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->var_sym.decl = decl;
+		self->var_sym.name = name;
+		self->var_sym.sign = sign;
+		self->var_sym.value = value;
+		return self;
+	}
+
+	// creates a new symbol for a function declaration
+	inline static Symbol*
+	symbol_func_new(mn::Allocator arena, Tkn name, Decl* decl)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_FUNC;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->func_sym.decl = decl;
+		self->func_sym.name = name;
+		return self;
+	}
+
+	// given a symbols it will return its location in compilation unit
+	inline static Location
+	symbol_location(const Symbol* self)
+	{
+		switch (self->kind)
+		{
+		case Symbol::KIND_CONST:
+			return self->const_sym.decl->loc;
+		case Symbol::KIND_VAR:
+			return self->var_sym.decl->loc;
+		case Symbol::KIND_FUNC:
+			return self->func_sym.decl->loc;
+		default:
+			assert(false && "unreachable");
+			return Location{};
+		}
+	}
+
+	// scope contains symbols inside a scope node in the AST (like a func)
+	struct Scope
+	{
+		Scope* parent;
+		const char* name;
+		mn::Buf<Symbol*> symbols;
+		mn::Map<const char*, Symbol*> symbol_table;
+	};
+
+	// creates a new scope
+	SABRE_EXPORT Scope*
+	scope_new(Scope* parent, const char* name);
+
+	// frees the given scope
+	SABRE_EXPORT void
+	scope_free(Scope* self);
+
+	inline static void
+	destruct(Scope* self)
+	{
+		scope_free(self);
+	}
+
+	// search the given scope only for a symbol with the given name
+	inline static Symbol*
+	scope_shallow_find(Scope* self, const char* name)
+	{
+		if (auto it = mn::map_lookup(self->symbol_table, name))
+			return it->value;
+		return nullptr;
+	}
+
+	inline static bool
+	scope_add(Scope* self, Symbol* symbol)
+	{
+		if (scope_shallow_find(self, symbol->name) != nullptr)
+			return false;
+
+		mn::map_insert(self->symbol_table, symbol->name, symbol);
+		mn::buf_push(self->symbols, symbol);
+		return true;
+	}
 }

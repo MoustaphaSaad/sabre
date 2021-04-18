@@ -144,8 +144,9 @@ namespace sabre
 				if (_scanner_scan_digits(self, base) == false)
 				{
 					Err err{};
-					err.pos = begin_pos;
-					err.rng = Rng{begin_it, self.it};
+					err.loc.pos = begin_pos;
+					err.loc.rng = Rng{begin_it, self.it};
+					err.loc.unit = self.unit;
 					err.msg = mn::strf("illegal int literal {:c}", self.c);
 					unit_err(self.unit, err);
 				}
@@ -164,8 +165,9 @@ namespace sabre
 		if (_scanner_scan_digits(self, 10) == false)
 		{
 			Err err{};
-			err.pos = begin_pos;
-			err.rng = Rng{begin_it, self.it};
+			err.loc.pos = begin_pos;
+			err.loc.rng = Rng{begin_it, self.it};
+			err.loc.unit = self.unit;
 			err.msg = mn::strf("illegal int literal {:c}", self.c);
 			unit_err(self.unit, err);
 		}
@@ -179,8 +181,9 @@ namespace sabre
 			if (_scanner_scan_digits(self, 10) == false)
 			{
 				Err err{};
-				err.pos = begin_pos;
-				err.rng = Rng{begin_it, self.it};
+				err.loc.pos = begin_pos;
+				err.loc.rng = Rng{begin_it, self.it};
+				err.loc.unit = self.unit;
 				err.msg = mn::strf("illegal float literal {:c}", self.c);
 				unit_err(self.unit, err);
 			}
@@ -196,8 +199,9 @@ namespace sabre
 			if (_scanner_scan_digits(self, 10) == false)
 			{
 				Err err{};
-				err.pos = begin_pos;
-				err.rng = Rng{begin_it, self.it};
+				err.loc.pos = begin_pos;
+				err.loc.rng = Rng{begin_it, self.it};
+				err.loc.unit = self.unit;
 				err.msg = mn::strf("illegal float literal {:c}", self.c);
 				unit_err(self.unit, err);
 			}
@@ -261,8 +265,9 @@ namespace sabre
 			return tkn;
 		}
 
-		tkn.pos = self.pos;
-		tkn.rng.begin = self.it;
+		tkn.loc.pos = self.pos;
+		tkn.loc.rng.begin = self.it;
+		tkn.loc.unit = self.unit;
 
 		if (mn::rune_is_letter(self.c))
 		{
@@ -423,7 +428,8 @@ namespace sabre
 			default:
 			{
 				Err err{};
-				err.pos = begin_pos;
+				err.loc.pos = begin_pos;
+				err.loc.unit = self.unit;
 				err.msg = mn::strf("illegal rune {:c}", c);
 				unit_err(self.unit, err);
 				break;
@@ -432,11 +438,11 @@ namespace sabre
 
 			if (no_intern == false)
 			{
-				tkn.str = unit_intern(self.unit, tkn.rng.begin, self.it);
+				tkn.str = unit_intern(self.unit, tkn.loc.rng.begin, self.it);
 			}
 		}
 
-		tkn.rng.end = self.it;
+		tkn.loc.rng.end = self.it;
 		return tkn;
 	}
 }

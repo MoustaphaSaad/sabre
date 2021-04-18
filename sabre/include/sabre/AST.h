@@ -69,8 +69,7 @@ namespace sabre
 		};
 
 		KIND kind;
-		Pos pos;
-		Rng rng;
+		Location loc;
 		bool in_parens;
 
 		union
@@ -212,8 +211,7 @@ namespace sabre
 		};
 
 		KIND kind;
-		Pos pos;
-		Rng rng;
+		Location loc;
 		union
 		{
 			Tkn break_stmt;
@@ -376,8 +374,7 @@ namespace sabre
 		};
 
 		KIND kind;
-		Pos pos;
-		Rng rng;
+		Location loc;
 		Tkn name;
 		union
 		{

@@ -11,6 +11,7 @@ set(HEADER_FILES
 	include/sabre/AST.h
 	include/sabre/AST_Printer.h
 	include/sabre/Type_Interner.h
+	include/sabre/Check.h
 )
 
 # list the source files
@@ -21,6 +22,7 @@ set(SOURCE_FILES
 	src/sabre/Parse.cpp
 	src/sabre/AST_Printer.cpp
 	src/sabre/Type_Interner.cpp
+	src/sabre/Check.cpp
 )
 
 add_library(sabre)

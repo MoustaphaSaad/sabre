@@ -3,13 +3,17 @@
 #include "sabre/Exports.h"
 #include "sabre/Tkn.h"
 #include "sabre/Err.h"
+#include "sabre/Type_Interner.h"
 
 #include <mn/Str.h>
 #include <mn/Buf.h>
 #include <mn/Str_Intern.h>
+#include <mn/Map.h>
 
 namespace sabre
 {
+	struct Scope;
+
 	struct Unit
 	{
 		// path of the given unit
@@ -26,6 +30,19 @@ namespace sabre
 		// all the AST values are allocated from this arena, so we don't need to manage
 		// memory for AST on a node by node basis
 		mn::memory::Arena* ast_arena;
+		// declarations parsed in this unit
+		mn::Buf<Decl*> decls;
+		// all the types live here, it makes it simple to manage this memory and compare types
+		// because it works just like string interning where pointer == pointer if
+		// the content is the same
+		Type_Interner type_interner;
+		// all the symbols are allocated from this arena, so we don't need to manage
+		// memory for the symbols on a symbol by symbol basis
+		mn::memory::Arena* symbols_arena;
+		// global scope of the unit
+		Scope* global_scope;
+		// maps from and AST node to a scope
+		mn::Map<void*, Scope*> scope_table;
 	};
 
 	SABRE_EXPORT Unit*
@@ -49,6 +66,10 @@ namespace sabre
 	// scans the given unit and returns whether it finished correctly
 	SABRE_EXPORT bool
 	unit_scan(Unit* self);
+
+	// parses the given unit and returns whether it finishes correctly
+	SABRE_EXPORT bool
+	unit_parse(Unit* self);
 
 	// dumps all the scanned tokens to a string
 	SABRE_EXPORT mn::Str

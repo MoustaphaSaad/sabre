@@ -16,6 +16,15 @@ namespace sabre
 		const char *begin, *end;
 	};
 
+	struct Unit;
+
+	struct Location
+	{
+		Pos pos;
+		Rng rng;
+		Unit* unit;
+	};
+
 	struct Tkn
 	{
 		enum KIND
@@ -33,8 +42,7 @@ namespace sabre
 
 		KIND kind;
 		const char* str;
-		Rng rng;
-		Pos pos;
+		Location loc;
 
 		inline operator bool() const { return kind != KIND_NONE; }
 	};

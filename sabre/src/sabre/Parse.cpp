@@ -142,14 +142,14 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		else
 		{
 			Err err{};
-			err.pos = tkn.pos;
-			err.rng = tkn.rng;
+			err.loc = tkn.loc;
 			err.msg = mn::strf("expected an expression but found '{}'", Tkn::NAMES[tkn.kind]);
 			unit_err(self.unit, err);
 		}
@@ -201,8 +201,9 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -225,8 +226,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -241,8 +242,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -259,8 +260,7 @@ namespace sabre
 			if (rhs == nullptr)
 			{
 				Err err{};
-				err.pos = op.pos;
-				err.rng = op.rng;
+				err.loc = op.loc;
 				err.msg = mn::strf("missing right handside");
 				unit_err(self.unit, err);
 				break;
@@ -270,8 +270,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -288,8 +288,7 @@ namespace sabre
 			if (rhs == nullptr)
 			{
 				Err err{};
-				err.pos = op.pos;
-				err.rng = op.rng;
+				err.loc = op.loc;
 				err.msg = mn::strf("missing right handside");
 				unit_err(self.unit, err);
 				break;
@@ -299,8 +298,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -317,8 +316,7 @@ namespace sabre
 			if (rhs == nullptr)
 			{
 				Err err{};
-				err.pos = tkn.pos;
-				err.rng = tkn.rng;
+				err.loc = tkn.loc;
 				err.msg = mn::strf("missing right handside");
 				unit_err(self.unit, err);
 			}
@@ -330,8 +328,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -350,8 +348,7 @@ namespace sabre
 				if (rhs == nullptr)
 				{
 					Err err{};
-					err.pos = tkn.pos;
-					err.rng = tkn.rng;
+					err.loc = tkn.loc;
 					err.msg = mn::strf("missing right handside");
 					unit_err(self.unit, err);
 					break;
@@ -366,8 +363,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -386,8 +383,7 @@ namespace sabre
 				if (rhs == nullptr)
 				{
 					Err err{};
-					err.pos = tkn.pos;
-					err.rng = tkn.rng;
+					err.loc = tkn.loc;
 					err.msg = mn::strf("missing right handside");
 					unit_err(self.unit, err);
 					break;
@@ -402,8 +398,8 @@ namespace sabre
 
 		if (expr != nullptr)
 		{
-			expr->pos = tkn.pos;
-			expr->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 		}
 		return expr;
 	}
@@ -510,8 +506,7 @@ namespace sabre
 				else
 				{
 					Err err{};
-					err.pos = for_keyword.pos;
-					err.rng = for_keyword.rng;
+					err.loc = for_keyword.loc;
 					err.msg = mn::strf("expected a condition expression in a for statement");
 					unit_err(self.unit, err);
 					return nullptr;
@@ -539,8 +534,7 @@ namespace sabre
 		{
 			auto l = _parser_look(self);
 			Err err{};
-			err.pos = l.pos;
-			err.rng = l.rng;
+			err.loc = l.loc;
 			err.msg = mn::strf("can't parse an assignment statement");
 			unit_err(self.unit, err);
 			return nullptr;
@@ -565,8 +559,7 @@ namespace sabre
 		if (lhs.count > 1)
 		{
 			Err err{};
-			err.pos = lhs[0]->pos;
-			err.rng = lhs[0]->rng;
+			err.loc = lhs[0]->loc;
 			err.msg = mn::strf("can't have multiple expression in the same statement");
 			unit_err(self.unit, err);
 		}
@@ -640,8 +633,9 @@ namespace sabre
 			auto decl = _parser_parse_decl_func(self);
 			if (decl == nullptr)
 				return nullptr;
-			decl->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
-			decl->pos = tkn.pos;
+			decl->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			decl->loc.pos = tkn.loc.pos;
+			decl->loc.unit = self.unit;
 			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else
@@ -660,8 +654,7 @@ namespace sabre
 			{
 				// we didn't find the semicolon issue an error and skip till we find one
 				Err err{};
-				err.pos = tkn.pos;
-				err.rng = tkn.rng;
+				err.loc = tkn.loc;
 				err.msg = mn::strf("Expected a semicolon at the end of the statement");
 				unit_err(self.unit, err);
 
@@ -676,8 +669,9 @@ namespace sabre
 
 		if (res != nullptr)
 		{
-			res->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
-			res->pos = tkn.pos;
+			res->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			res->loc.pos = tkn.loc.pos;
+			res->loc.unit = self.unit;
 		}
 		return res;
 	}
@@ -832,8 +826,9 @@ namespace sabre
 
 		if (res != nullptr)
 		{
-			res->pos = tkn.pos;
-			res->rng = Rng{tkn.rng.begin, _parser_last_token(self).rng.end};
+			res->loc.pos = tkn.loc.pos;
+			res->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			res->loc.unit = self.unit;
 		}
 		return res;
 	}

@@ -8,8 +8,7 @@ namespace sabre
 {
 	struct Err
 	{
-		Pos pos;
-		Rng rng;
+		Location loc;
 		mn::Str msg;
 	};
 
@@ -25,8 +24,7 @@ namespace sabre
 	err_tkn(const Tkn& tkn, mn::Str msg)
 	{
 		Err self{};
-		self.pos = tkn.pos;
-		self.rng = tkn.rng;
+		self.loc = tkn.loc;
 		self.msg = msg;
 		return self;
 	}

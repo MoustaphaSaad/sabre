@@ -1,9 +1,11 @@
 #include "sabre/Unit.h"
 #include "sabre/Scan.h"
+#include "sabre/Parse.h"
 
 #include <mn/Path.h>
 #include <mn/IO.h>
 #include <mn/Log.h>
+#include <mn/Defer.h>
 
 namespace sabre
 {
@@ -15,6 +17,11 @@ namespace sabre
 		self->content = mn::file_content_str(filepath);
 		self->str_interner = mn::str_intern_new();
 		self->ast_arena = mn::allocator_arena_new();
+		self->type_interner = type_interner_new();
+		self->symbols_arena = mn::allocator_arena_new();
+		self->global_scope = scope_new(nullptr, "global");
+
+		mn::map_insert(self->scope_table, (void*)nullptr, self->global_scope);
 		return self;
 	}
 
@@ -30,6 +37,9 @@ namespace sabre
 		destruct(self->errs);
 		mn::buf_free(self->tkns);
 		mn::allocator_free(self->ast_arena);
+		type_interner_free(self->type_interner);
+		mn::allocator_free(self->symbols_arena);
+		destruct(self->scope_table);
 		mn::free(self);
 	}
 
@@ -51,6 +61,21 @@ namespace sabre
 		return self->errs.count == 0;
 	}
 
+	bool
+	unit_parse(Unit* self)
+	{
+		auto parser = parser_new(self);
+		mn_defer(parser_free(parser));
+		while (true)
+		{
+			auto decl = parser_parse_decl(parser);
+			if (decl == nullptr)
+				break;
+			mn::buf_push(self->decls, decl);
+		}
+		return self->errs.count == 0;
+	}
+
 	mn::Str
 	unit_dump_tokens(Unit* self, mn::Allocator allocator)
 	{
@@ -59,8 +84,8 @@ namespace sabre
 		{
 			if (res.count > 0)
 				res = mn::strf(res, "\n");
-			auto tkn_str = mn::str_from_substr(tkn.rng.begin, tkn.rng.end, mn::memory::tmp());
-			res = mn::strf(res, "line: {}, col: {}, kind: {}, str: \"{}\"", tkn.pos.line, tkn.pos.col, Tkn::NAMES[tkn.kind], tkn_str);
+			auto tkn_str = mn::str_from_substr(tkn.loc.rng.begin, tkn.loc.rng.end, mn::memory::tmp());
+			res = mn::strf(res, "line: {}, col: {}, kind: {}, str: \"{}\"", tkn.loc.pos.line, tkn.loc.pos.col, Tkn::NAMES[tkn.kind], tkn_str);
 		}
 		return res;
 	}
@@ -74,10 +99,10 @@ namespace sabre
 			if (res.count > 0)
 				res = mn::strf(res, "\n");
 
-			if (err.pos.line > 0)
+			if (err.loc.pos.line > 0)
 			{
-				auto l = self->lines[err.pos.line - 1];
-				if (err.rng.end - err.rng.begin > 0)
+				auto l = self->lines[err.loc.pos.line - 1];
+				if (err.loc.rng.end - err.loc.rng.begin > 0)
 				{
 					auto line_str = mn::str_from_substr(l.begin, l.end, mn::memory::tmp());
 					res = mn::strf(res, ">> {}\n", line_str);
@@ -89,7 +114,7 @@ namespace sabre
 						{
 							// do nothing
 						}
-						else if (it >= err.rng.begin && it < err.rng.end)
+						else if (it >= err.loc.rng.begin && it < err.loc.rng.end)
 						{
 							mn::str_push(res, '^');
 						}
@@ -103,11 +128,11 @@ namespace sabre
 						}
 					}
 					mn::str_push(res, '\n');
-					res = mn::strf(res, "Error[{}:{}:{}]: {}", self->filepath, err.pos.line, err.pos.col, err.msg);
+					res = mn::strf(res, "Error[{}:{}:{}]: {}", self->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
 				}
 				else
 				{
-					res = mn::strf(res, "Error[{}:{}:{}]: {}", self->filepath, err.pos.line, err.pos.col, err.msg);
+					res = mn::strf(res, "Error[{}:{}:{}]: {}", self->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
 				}
 			}
 			else

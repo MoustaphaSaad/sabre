@@ -10,6 +10,23 @@ namespace sabre
 	static Type _type_float64 { Type::KIND_FLOAT64 };
 
 	// API
+	Scope*
+	scope_new(Scope* parent, const char* name)
+	{
+		auto self = mn::alloc_zerod<Scope>();
+		self->parent = parent;
+		self->name = name;
+		return self;
+	}
+
+	void
+	scope_free(Scope* self)
+	{
+		mn::buf_free(self->symbols);
+		mn::map_free(self->symbol_table);
+		mn::free(self);
+	}
+
 	Type* type_void = &_type_void;
 	Type* type_bool = &_type_bool;
 	Type* type_int = &_type_int;

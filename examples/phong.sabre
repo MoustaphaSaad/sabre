@@ -11,7 +11,7 @@ type PS_Input struct {
 	v_normal: vec3;
 }
 
-@UNIFORM mat4 MVP;
+@uniform MVP: mat4;
 
 func vertex_main(input: VS_Input): PS_Input {
 	output: PS_Input;
