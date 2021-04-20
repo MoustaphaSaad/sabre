@@ -54,6 +54,8 @@ namespace sabre
 		mn::buf_push(self.atoms, atom);
 	}
 
+	struct Type;
+
 	// represents an expression
 	struct Expr
 	{
@@ -70,6 +72,7 @@ namespace sabre
 
 		KIND kind;
 		Location loc;
+		Type* type;
 		bool in_parens;
 
 		union

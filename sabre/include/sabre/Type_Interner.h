@@ -7,6 +7,7 @@
 #include <mn/Memory.h>
 #include <mn/Buf.h>
 #include <mn/Map.h>
+#include <mn/Fmt.h>
 
 namespace sabre
 {
@@ -99,6 +100,33 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_uint;
 	SABRE_EXPORT extern Type* type_float32;
 	SABRE_EXPORT extern Type* type_float64;
+
+	inline static Type*
+	type_from_name(Tkn name)
+	{
+		if (name.kind != Tkn::KIND_ID)
+			return type_void;
+
+		auto str = mn::str_lit(name.str);
+		if (str == "bool")
+			return type_bool;
+		else if (str == "int")
+			return type_int;
+		else if (str == "uint")
+			return type_uint;
+		else if (str == "float32")
+			return type_float32;
+		else if (str == "float64")
+			return type_float64;
+		else
+			return type_void;
+	}
+
+	inline static bool
+	type_is_equal(Type* a, Type* b)
+	{
+		return a == b;
+	}
 
 	// interns the different types to make comparisons and memory management easier
 	struct Type_Interner
@@ -262,7 +290,7 @@ namespace sabre
 
 	// search the given scope only for a symbol with the given name
 	inline static Symbol*
-	scope_shallow_find(Scope* self, const char* name)
+	scope_shallow_find(const Scope* self, const char* name)
 	{
 		if (auto it = mn::map_lookup(self->symbol_table, name))
 			return it->value;
@@ -279,4 +307,57 @@ namespace sabre
 		mn::buf_push(self->symbols, symbol);
 		return true;
 	}
+
+	inline static Symbol*
+	scope_find(const Scope* self, const char* name)
+	{
+		for (auto it = self; it != nullptr; it = it->parent)
+		{
+			if (auto sym = scope_shallow_find(it, name))
+				return sym;
+		}
+		return nullptr;
+	}
+}
+
+namespace fmt
+{
+	template<>
+	struct formatter<sabre::Type*> {
+		template <typename ParseContext>
+		constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+
+		template <typename FormatContext>
+		auto format(const sabre::Type* t, FormatContext &ctx) {
+			if (t == sabre::type_void)
+			{
+				return format_to(ctx.out(), "void");
+			}
+			else if (t == sabre::type_bool)
+			{
+				return format_to(ctx.out(), "bool");
+			}
+			else if (t == sabre::type_int)
+			{
+				return format_to(ctx.out(), "int");
+			}
+			else if (t == sabre::type_uint)
+			{
+				return format_to(ctx.out(), "uint");
+			}
+			else if (t == sabre::type_float32)
+			{
+				return format_to(ctx.out(), "float32");
+			}
+			else if (t == sabre::type_float64)
+			{
+				return format_to(ctx.out(), "float64");
+			}
+			else
+			{
+				assert(false && "unreachable");
+				return format_to(ctx.out(), "<UNKNOWN TYPE>");
+			}
+		}
+	};
 }
