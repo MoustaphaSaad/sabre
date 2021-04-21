@@ -132,4 +132,29 @@ namespace sabre
 
 		return ast_printer_str(printer);
 	}
+
+	mn::Result<mn::Str, mn::Err>
+	check_file(const mn::Str& filepath, const mn::Str& fake_path)
+	{
+		if (mn::path_is_file(filepath) == false)
+			return mn::Err{ "file '{}' not found", filepath };
+
+		auto unit = unit_from_file(filepath);
+		mn_defer(unit_free(unit));
+
+		if (fake_path.count > 0)
+		{
+			mn::str_free(unit->filepath);
+			unit->filepath = mn::str_clone(fake_path);
+		}
+
+		if (unit_scan(unit) == false)
+			return unit_dump_errors(unit);
+
+		if (unit_parse(unit) == false)
+			return unit_dump_errors(unit);
+
+		unit_check(unit);
+		return unit_dump_errors(unit);
+	}
 }

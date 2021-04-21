@@ -25,4 +25,9 @@ namespace sabre
 	// when you want to make the path uniform across testing environment
 	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
 	parse_decl_from_file(const mn::Str& filepath, const mn::Str& fake_path);
+
+	// loads and typechecks a file, fake_path is used for testing
+	// when you want to make the path uniform across testing environment
+	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
+	check_file(const mn::Str& filepath, const mn::Str& fake_path);
 }

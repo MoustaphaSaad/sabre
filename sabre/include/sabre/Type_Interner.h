@@ -151,7 +151,7 @@ namespace sabre
 	// interns the different types to make comparisons and memory management easier
 	struct Type_Interner
 	{
-		mn::Allocator arena;
+		mn::memory::Arena* arena;
 		mn::Map<Func_Sign, Type*, Func_Sign_Hasher> func_table;
 	};
 

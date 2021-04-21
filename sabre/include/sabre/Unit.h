@@ -73,6 +73,10 @@ namespace sabre
 	SABRE_EXPORT bool
 	unit_parse(Unit* self);
 
+	// typecheckes the given unit and returns whether it finishes correctly
+	SABRE_EXPORT bool
+	unit_check(Unit* self);
+
 	// dumps all the scanned tokens to a string
 	SABRE_EXPORT mn::Str
 	unit_dump_tokens(Unit* self, mn::Allocator allocator = mn::allocator_top());

@@ -1,6 +1,7 @@
 #include "sabre/Unit.h"
 #include "sabre/Scan.h"
 #include "sabre/Parse.h"
+#include "sabre/Check.h"
 
 #include <mn/Path.h>
 #include <mn/IO.h>
@@ -28,7 +29,13 @@ namespace sabre
 	void
 	unit_free(Unit* self)
 	{
-		mn::log_debug("AST memory(used/reserved): {}/{} bytes for compilation unit '{}'", self->ast_arena->used_mem, self->ast_arena->total_mem, self->filepath);
+		mn::log_debug(
+			"AST: {}/{}, Symbols: {}/{}, Types: {}/{}, (used/reserved)bytes for compilation unit '{}'",
+			self->ast_arena->used_mem, self->ast_arena->total_mem,
+			self->symbols_arena->used_mem, self->symbols_arena->total_mem,
+			self->type_interner.arena->used_mem, self->type_interner.arena->total_mem,
+			self->filepath
+		);
 
 		mn::str_free(self->filepath);
 		mn::str_free(self->content);
@@ -37,6 +44,7 @@ namespace sabre
 		destruct(self->errs);
 		mn::buf_free(self->tkns);
 		mn::allocator_free(self->ast_arena);
+		mn::buf_free(self->decls);
 		type_interner_free(self->type_interner);
 		mn::allocator_free(self->symbols_arena);
 		destruct(self->scope_table);
@@ -74,6 +82,15 @@ namespace sabre
 				break;
 			mn::buf_push(self->decls, decl);
 		}
+		return self->errs.count == 0;
+	}
+
+	bool
+	unit_check(Unit* self)
+	{
+		auto typer = typer_new(self);
+		mn_defer(typer_free(typer));
+		typer_check(typer);
 		return self->errs.count == 0;
 	}
 
