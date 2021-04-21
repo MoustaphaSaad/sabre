@@ -43,6 +43,8 @@ namespace sabre
 		Scope* global_scope;
 		// maps from and AST node to a scope
 		mn::Map<void*, Scope*> scope_table;
+		// reachable symbols sorted by first usage
+		mn::Buf<Symbol*> reachable_symbols;
 	};
 
 	SABRE_EXPORT Unit*
@@ -96,4 +98,8 @@ namespace sabre
 	{
 		mn::buf_push(self->errs, err);
 	}
+
+	// searchs for the scope associated with the given ptr, and creates a new one if it doesn't exist
+	SABRE_EXPORT Scope*
+	unit_create_scope_for(Unit* self, void* ptr, Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags);
 }

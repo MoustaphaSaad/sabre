@@ -19,7 +19,7 @@ namespace sabre
 		self->ast_arena = mn::allocator_arena_new();
 		self->type_interner = type_interner_new();
 		self->symbols_arena = mn::allocator_arena_new();
-		self->global_scope = scope_new(nullptr, "global");
+		self->global_scope = scope_new(nullptr, "global", nullptr, Scope::FLAG_NONE);
 
 		mn::map_insert(self->scope_table, (void*)nullptr, self->global_scope);
 		return self;
@@ -40,6 +40,7 @@ namespace sabre
 		type_interner_free(self->type_interner);
 		mn::allocator_free(self->symbols_arena);
 		destruct(self->scope_table);
+		mn::buf_free(self->reachable_symbols);
 		mn::free(self);
 	}
 
@@ -141,5 +142,15 @@ namespace sabre
 			}
 		}
 		return res;
+	}
+
+	Scope*
+	unit_create_scope_for(Unit* self, void* ptr, Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags)
+	{
+		if (auto it = mn::map_lookup(self->scope_table, ptr))
+			return it->value;
+		auto new_scope = scope_new(parent, name, expected_type, flags);
+		mn::map_insert(self->scope_table, ptr, new_scope);
+		return new_scope;
 	}
 }

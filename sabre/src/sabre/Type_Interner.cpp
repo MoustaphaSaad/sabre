@@ -11,11 +11,13 @@ namespace sabre
 
 	// API
 	Scope*
-	scope_new(Scope* parent, const char* name)
+	scope_new(Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags)
 	{
 		auto self = mn::alloc_zerod<Scope>();
 		self->parent = parent;
 		self->name = name;
+		self->expected_type = expected_type;
+		self->flags = flags;
 		return self;
 	}
 

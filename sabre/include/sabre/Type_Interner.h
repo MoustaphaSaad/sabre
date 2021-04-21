@@ -122,10 +122,30 @@ namespace sabre
 			return type_void;
 	}
 
+	// returns whether two types are equal
 	inline static bool
 	type_is_equal(Type* a, Type* b)
 	{
 		return a == b;
+	}
+
+	// returns whether a type can use ++v, --v, +v, -v, etc...
+	inline static bool
+	type_is_numeric(Type* a)
+	{
+		return (
+			type_is_equal(a, type_int) ||
+			type_is_equal(a, type_uint) ||
+			type_is_equal(a, type_float32) ||
+			type_is_equal(a, type_float64)
+		);
+	}
+
+	// returns whether a type is a functions
+	inline static bool
+	type_is_func(Type* a)
+	{
+		return a->kind == Type::KIND_FUNC;
 	}
 
 	// interns the different types to make comparisons and memory management easier
@@ -268,15 +288,23 @@ namespace sabre
 	// scope contains symbols inside a scope node in the AST (like a func)
 	struct Scope
 	{
+		enum FLAG
+		{
+			FLAG_NONE,
+			FLAG_INSIDE_LOOP,
+		};
+
 		Scope* parent;
 		const char* name;
 		mn::Buf<Symbol*> symbols;
 		mn::Map<const char*, Symbol*> symbol_table;
+		Type* expected_type;
+		FLAG flags;
 	};
 
 	// creates a new scope
 	SABRE_EXPORT Scope*
-	scope_new(Scope* parent, const char* name);
+	scope_new(Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags);
 
 	// frees the given scope
 	SABRE_EXPORT void
@@ -317,6 +345,15 @@ namespace sabre
 				return sym;
 		}
 		return nullptr;
+	}
+
+	inline static bool
+	scope_is_top_level(Scope* self, Symbol* symbol)
+	{
+		for (auto sym: self->symbols)
+			if (sym == symbol)
+				return true;
+		return false;
 	}
 }
 
