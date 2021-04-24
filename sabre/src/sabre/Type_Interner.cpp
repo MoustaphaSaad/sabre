@@ -2,12 +2,25 @@
 
 namespace sabre
 {
+	inline static Type
+	_vec_builtin(Type* base, size_t width)
+	{
+		Type self{};
+		self.kind = Type::KIND_VEC;
+		self.vec.base = base;
+		self.vec.width = width;
+		return self;
+	}
+
 	static Type _type_void { Type::KIND_VOID };
 	static Type _type_bool { Type::KIND_BOOL };
 	static Type _type_int { Type::KIND_INT };
 	static Type _type_uint { Type::KIND_UINT };
 	static Type _type_float { Type::KIND_FLOAT };
 	static Type _type_double { Type::KIND_DOUBLE };
+	static Type _type_vec2 = _vec_builtin(type_float, 2);
+	static Type _type_vec3 = _vec_builtin(type_float, 3);
+	static Type _type_vec4 = _vec_builtin(type_float, 4);
 
 	// API
 	Scope*
@@ -35,6 +48,9 @@ namespace sabre
 	Type* type_uint = &_type_uint;
 	Type* type_float = &_type_float;
 	Type* type_double = &_type_double;
+	Type* type_vec2 = &_type_vec2;
+	Type* type_vec3 = &_type_vec3;
+	Type* type_vec4 = &_type_vec4;
 
 	Type_Interner
 	type_interner_new()

@@ -168,6 +168,8 @@ TEST_CASE("[sabre]: typecheck")
 		auto [answer, err] = sabre::check_file(filepath, f.name);
 		CHECK(err == false);
 		mn_defer(mn::str_free(answer));
+		mn::str_replace(answer, "\r\n", "\n");
+		mn::str_trim(answer);
 
 		auto match = answer == out_data;
 		CHECK(match == true);

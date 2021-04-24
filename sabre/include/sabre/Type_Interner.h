@@ -83,6 +83,7 @@ namespace sabre
 			KIND_UINT,
 			KIND_FLOAT,
 			KIND_DOUBLE,
+			KIND_VEC,
 			KIND_FUNC,
 		};
 
@@ -90,6 +91,11 @@ namespace sabre
 		union
 		{
 			Func_Sign func;
+			struct
+			{
+				Type* base;
+				int width;
+			} vec;
 		};
 	};
 
@@ -100,6 +106,9 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_uint;
 	SABRE_EXPORT extern Type* type_float;
 	SABRE_EXPORT extern Type* type_double;
+	SABRE_EXPORT extern Type* type_vec2;
+	SABRE_EXPORT extern Type* type_vec3;
+	SABRE_EXPORT extern Type* type_vec4;
 
 	inline static Type*
 	type_from_name(Tkn name)
@@ -118,6 +127,12 @@ namespace sabre
 			return type_float;
 		else if (str == "double")
 			return type_double;
+		else if (str == "vec2")
+			return type_vec2;
+		else if (str == "vec3")
+			return type_vec3;
+		else if (str == "vec4")
+			return type_vec4;
 		else
 			return type_void;
 	}
@@ -146,6 +161,28 @@ namespace sabre
 	type_is_func(Type* a)
 	{
 		return a->kind == Type::KIND_FUNC;
+	}
+
+	// creates a new vector type, max width == 4
+	inline static Type*
+	type_vectorize(Type* base, int width)
+	{
+		if (width == 1)
+			return base;
+
+		if (base == type_float)
+		{
+			switch (width)
+			{
+			case 2: return type_vec2;
+			case 3: return type_vec3;
+			case 4: return type_vec4;
+			default:
+				assert(false && "unreachable");
+				return type_void;
+			}
+		}
+		return type_void;
 	}
 
 	// interns the different types to make comparisons and memory management easier
@@ -389,6 +426,18 @@ namespace fmt
 			else if (t == sabre::type_double)
 			{
 				return format_to(ctx.out(), "double");
+			}
+			else if (t == sabre::type_vec2)
+			{
+				return format_to(ctx.out(), "vec2");
+			}
+			else if (t == sabre::type_vec3)
+			{
+				return format_to(ctx.out(), "vec3");
+			}
+			else if (t == sabre::type_vec4)
+			{
+				return format_to(ctx.out(), "vec4");
 			}
 			else
 			{

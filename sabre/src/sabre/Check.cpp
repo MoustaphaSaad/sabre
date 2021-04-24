@@ -5,6 +5,30 @@
 
 namespace sabre
 {
+	const char SWIZZLE_XYZW[4] = {'x', 'y', 'z', 'w'};
+	const char SWIZZLE_RGBA[4] = {'r', 'g', 'b', 'a'};
+
+	inline static bool
+	_swizzle_style_contains(const char* style, size_t size, mn::Rune r)
+	{
+		for (size_t i = 0; i < size; ++i)
+			if (style[i] == r)
+				return true;
+		return false;
+	}
+
+	inline static const char*
+	_choose_swizzle_style(mn::Rune r)
+	{
+		if (_swizzle_style_contains(SWIZZLE_XYZW, 4, r))
+			return SWIZZLE_XYZW;
+
+		if (_swizzle_style_contains(SWIZZLE_RGBA, 4, r))
+			return SWIZZLE_RGBA;
+
+		return nullptr;
+	}
+
 	inline static Scope*
 	_typer_current_scope(const Typer& self)
 	{
@@ -301,11 +325,70 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_dot_expr(Typer& self, Expr* e)
 	{
-		Err err{};
-		err.loc = e->loc;
-		err.msg = mn::strf("structures are not supported yet");
-		unit_err(self.unit, err);
-		return type_void;
+		auto type = _typer_resolve_expr(self, e->dot.lhs);
+		if (type->kind == Type::KIND_VEC)
+		{
+			bool outside_range = false;
+			bool illegal = false;
+
+			if (e->dot.rhs->kind != Expr::KIND_ATOM)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("unknown structure field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			auto it = e->dot.rhs->atom.str;
+			size_t len = 0;
+			auto r = mn::rune_read(it);
+			const char* swizzle_style = _choose_swizzle_style(r);
+			if (swizzle_style == nullptr)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("illegal swizzle pattern");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			while (auto r = mn::rune_read(it))
+			{
+				it = mn::rune_next(it);
+				++len;
+
+				outside_range |= _swizzle_style_contains(swizzle_style, type->vec.width, r) == false;
+				illegal |= _swizzle_style_contains(swizzle_style, 4, r) == false;
+			}
+
+			if (illegal)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("illegal vector field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+			else if (outside_range || len > 4)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("vector field out of range");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			return type_vectorize(type->vec.base, len);
+		}
+		else
+		{
+			Err err{};
+			err.loc = e->dot.rhs->loc;
+			err.msg = mn::strf("unknown structure field");
+			unit_err(self.unit, err);
+			return type_void;
+		}
 	}
 
 	inline static Type*
@@ -412,7 +495,7 @@ namespace sabre
 		{
 			if (e != nullptr)
 			{
-				sym->type = _typer_resolve_expr(self, e);
+				res = _typer_resolve_expr(self, e);
 			}
 			else
 			{
@@ -435,9 +518,9 @@ namespace sabre
 					unit_err(self.unit, err);
 				}
 			}
-			sym->type = res;
 		}
 
+		sym->type = res;
 		return res;
 	}
 
@@ -633,7 +716,7 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < d->var_decl.values.count)
 					value = d->var_decl.values[i];
-				auto sym = symbol_const_new(self.unit->symbols_arena, name, d, d->var_decl.type, value);
+				auto sym = symbol_var_new(self.unit->symbols_arena, name, d, d->var_decl.type, value);
 				_typer_resolve_symbol(self, sym);
 				_typer_add_symbol(self, sym);
 			}

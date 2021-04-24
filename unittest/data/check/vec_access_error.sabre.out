@@ -1,0 +1,30 @@
+>> 	var v2x, v3x, v4x = v2.rgbaa, v3.x, v4.x;
+>> 	                       ^^^^^             
+Error[vec_access_error.sabre:6:25]: vector field out of range
+Error[vec_access_error.sabre]: type mismatch in binary expression, lhs is 'void' and rhs is 'float'
+>> 	var s: float = v2x + v3x + v4x;
+>> 	               ^^^^^^^^^^^^^^^ 
+Error[vec_access_error.sabre:7:17]: type mismatch in binary expression, lhs is 'void' and rhs is 'float'
+>> 	var s: float = v2x + v3x + v4x;
+>> 	               ^^^^^^^^^^^^^^^ 
+Error[vec_access_error.sabre:7:17]: type mismatch expected 'float' but found 'void'
+>> 	var v2x, v3x, v4x = v2.xyrg, v3.xyy, v4.xzw;
+>> 	                       ^^^^                 
+Error[vec_access_error.sabre:15:25]: illegal vector field
+Error[vec_access_error.sabre]: type mismatch in binary expression, lhs is 'void' and rhs is 'vec3'
+>> 	var s: vec3 = v2x + v3x + v4x;
+>> 	              ^^^^^^^^^^^^^^^ 
+Error[vec_access_error.sabre:16:16]: type mismatch in binary expression, lhs is 'void' and rhs is 'vec3'
+>> 	var s: vec3 = v2x + v3x + v4x;
+>> 	              ^^^^^^^^^^^^^^^ 
+Error[vec_access_error.sabre:16:16]: type mismatch expected 'vec3' but found 'void'
+>> 	var v2x, v3x, v4x = v2.v2, v3.xyyz, v4.rgba;
+>> 	                       ^^                   
+Error[vec_access_error.sabre:24:25]: illegal swizzle pattern
+Error[vec_access_error.sabre]: type mismatch in binary expression, lhs is 'void' and rhs is 'vec4'
+>> 	return v2x + v3x + v4x;
+>> 	       ^^^^^^^^^^^^^^^ 
+Error[vec_access_error.sabre:25:9]: type mismatch in binary expression, lhs is 'void' and rhs is 'vec4'
+>> 	return v2x + v3x + v4x;
+>> 	       ^^^^^^^^^^^^^^^ 
+Error[vec_access_error.sabre:25:9]: incorrect return type 'void' expected 'vec4'
