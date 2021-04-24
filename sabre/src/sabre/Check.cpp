@@ -140,7 +140,7 @@ namespace sabre
 		case Tkn::KIND_INTEGER:
 			return type_int;
 		case Tkn::KIND_FLOAT:
-			return type_float32;
+			return type_float;
 		case Tkn::KIND_KEYWORD_FALSE:
 		case Tkn::KIND_KEYWORD_TRUE:
 			return type_bool;

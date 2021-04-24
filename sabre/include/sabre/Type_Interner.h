@@ -81,8 +81,8 @@ namespace sabre
 			KIND_BOOL,
 			KIND_INT,
 			KIND_UINT,
-			KIND_FLOAT32,
-			KIND_FLOAT64,
+			KIND_FLOAT,
+			KIND_DOUBLE,
 			KIND_FUNC,
 		};
 
@@ -98,8 +98,8 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_bool;
 	SABRE_EXPORT extern Type* type_int;
 	SABRE_EXPORT extern Type* type_uint;
-	SABRE_EXPORT extern Type* type_float32;
-	SABRE_EXPORT extern Type* type_float64;
+	SABRE_EXPORT extern Type* type_float;
+	SABRE_EXPORT extern Type* type_double;
 
 	inline static Type*
 	type_from_name(Tkn name)
@@ -114,10 +114,10 @@ namespace sabre
 			return type_int;
 		else if (str == "uint")
 			return type_uint;
-		else if (str == "float32")
-			return type_float32;
-		else if (str == "float64")
-			return type_float64;
+		else if (str == "float")
+			return type_float;
+		else if (str == "double")
+			return type_double;
 		else
 			return type_void;
 	}
@@ -136,8 +136,8 @@ namespace sabre
 		return (
 			type_is_equal(a, type_int) ||
 			type_is_equal(a, type_uint) ||
-			type_is_equal(a, type_float32) ||
-			type_is_equal(a, type_float64)
+			type_is_equal(a, type_float) ||
+			type_is_equal(a, type_double)
 		);
 	}
 
@@ -382,13 +382,13 @@ namespace fmt
 			{
 				return format_to(ctx.out(), "uint");
 			}
-			else if (t == sabre::type_float32)
+			else if (t == sabre::type_float)
 			{
-				return format_to(ctx.out(), "float32");
+				return format_to(ctx.out(), "float");
 			}
-			else if (t == sabre::type_float64)
+			else if (t == sabre::type_double)
 			{
-				return format_to(ctx.out(), "float64");
+				return format_to(ctx.out(), "double");
 			}
 			else
 			{

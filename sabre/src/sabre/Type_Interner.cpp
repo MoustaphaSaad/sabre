@@ -6,8 +6,8 @@ namespace sabre
 	static Type _type_bool { Type::KIND_BOOL };
 	static Type _type_int { Type::KIND_INT };
 	static Type _type_uint { Type::KIND_UINT };
-	static Type _type_float32 { Type::KIND_FLOAT32 };
-	static Type _type_float64 { Type::KIND_FLOAT64 };
+	static Type _type_float { Type::KIND_FLOAT };
+	static Type _type_double { Type::KIND_DOUBLE };
 
 	// API
 	Scope*
@@ -33,8 +33,8 @@ namespace sabre
 	Type* type_bool = &_type_bool;
 	Type* type_int = &_type_int;
 	Type* type_uint = &_type_uint;
-	Type* type_float32 = &_type_float32;
-	Type* type_float64 = &_type_float64;
+	Type* type_float = &_type_float;
+	Type* type_double = &_type_double;
 
 	Type_Interner
 	type_interner_new()
