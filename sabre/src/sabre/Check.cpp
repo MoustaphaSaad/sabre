@@ -196,6 +196,7 @@ namespace sabre
 
 		if (type_is_equal(lhs_type, rhs_type) == false)
 		{
+			// TODO(Moustapha): better error message here, highlight parts of the expression with their types
 			Err err{};
 			err.loc = e->loc;
 			err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
@@ -205,7 +206,7 @@ namespace sabre
 		if (e->binary.op.kind == Tkn::KIND_LOGICAL_AND ||
 			e->binary.op.kind == Tkn::KIND_LOGICAL_OR)
 		{
-			if (type_is_equal(lhs_type, type_bool) == false)
+			if (type_is_bool_like(lhs_type) == false)
 			{
 				Err err{};
 				err.loc = e->binary.left->loc;
@@ -213,11 +214,23 @@ namespace sabre
 				unit_err(self.unit, err);
 			}
 
-			if (type_is_equal(rhs_type, type_bool) == false)
+			if (type_is_bool_like(rhs_type) == false)
 			{
 				Err err{};
 				err.loc = e->binary.right->loc;
 				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", rhs_type);
+				unit_err(self.unit, err);
+			}
+		}
+
+		if (type_is_bool_like(lhs_type) || type_is_bool_like(rhs_type))
+		{
+			if (e->binary.op.kind != Tkn::KIND_LOGICAL_AND &&
+				e->binary.op.kind != Tkn::KIND_LOGICAL_OR)
+			{
+				Err err{};
+				err.loc = e->binary.op.loc;
+				err.msg = mn::strf("boolean types doesn't support such operator");
 				unit_err(self.unit, err);
 			}
 		}

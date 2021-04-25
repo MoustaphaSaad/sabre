@@ -1,0 +1,26 @@
+func foo() {
+	var v2: bvec2;
+	var v3: bvec3;
+	var v4: bvec4;
+
+	var v2x, v3x, v4x = v2.x, v3.x, v4.x;
+	var s: bool = v2x && v3x && v4x;
+}
+
+func bar() {
+	var v2: bvec2;
+	var v3: bvec3;
+	var v4: bvec4;
+
+	var v2x, v3x, v4x = v2.xxx, v3.xyy, v4.xzw;
+	var s: bvec3 = v2x || v3x && v4x;
+}
+
+func baz(): bvec4 {
+	var v2: bvec2;
+	var v3: bvec3;
+	var v4: bvec4;
+
+	var v2x, v3x, v4x = v2.xxxy, v3.xyyz, v4.rgba;
+	return v2x || v3x || v4x;
+}

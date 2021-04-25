@@ -21,6 +21,18 @@ namespace sabre
 	static Type _type_vec2 = _vec_builtin(type_float, 2);
 	static Type _type_vec3 = _vec_builtin(type_float, 3);
 	static Type _type_vec4 = _vec_builtin(type_float, 4);
+	static Type _type_bvec2 = _vec_builtin(type_bool, 2);
+	static Type _type_bvec3 = _vec_builtin(type_bool, 3);
+	static Type _type_bvec4 = _vec_builtin(type_bool, 4);
+	static Type _type_ivec2 = _vec_builtin(type_int, 2);
+	static Type _type_ivec3 = _vec_builtin(type_int, 3);
+	static Type _type_ivec4 = _vec_builtin(type_int, 4);
+	static Type _type_uvec2 = _vec_builtin(type_uint, 2);
+	static Type _type_uvec3 = _vec_builtin(type_uint, 3);
+	static Type _type_uvec4 = _vec_builtin(type_uint, 4);
+	static Type _type_dvec2 = _vec_builtin(type_double, 2);
+	static Type _type_dvec3 = _vec_builtin(type_double, 3);
+	static Type _type_dvec4 = _vec_builtin(type_double, 4);
 
 	// API
 	Scope*
@@ -51,6 +63,18 @@ namespace sabre
 	Type* type_vec2 = &_type_vec2;
 	Type* type_vec3 = &_type_vec3;
 	Type* type_vec4 = &_type_vec4;
+	Type* type_bvec2 = &_type_bvec2;
+	Type* type_bvec3 = &_type_bvec3;
+	Type* type_bvec4 = &_type_bvec4;
+	Type* type_ivec2 = &_type_ivec2;
+	Type* type_ivec3 = &_type_ivec3;
+	Type* type_ivec4 = &_type_ivec4;
+	Type* type_uvec2 = &_type_uvec2;
+	Type* type_uvec3 = &_type_uvec3;
+	Type* type_uvec4 = &_type_uvec4;
+	Type* type_dvec2 = &_type_dvec2;
+	Type* type_dvec3 = &_type_dvec3;
+	Type* type_dvec4 = &_type_dvec4;
 
 	Type_Interner
 	type_interner_new()

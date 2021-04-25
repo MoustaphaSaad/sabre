@@ -109,7 +109,20 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_vec2;
 	SABRE_EXPORT extern Type* type_vec3;
 	SABRE_EXPORT extern Type* type_vec4;
+	SABRE_EXPORT extern Type* type_bvec2;
+	SABRE_EXPORT extern Type* type_bvec3;
+	SABRE_EXPORT extern Type* type_bvec4;
+	SABRE_EXPORT extern Type* type_ivec2;
+	SABRE_EXPORT extern Type* type_ivec3;
+	SABRE_EXPORT extern Type* type_ivec4;
+	SABRE_EXPORT extern Type* type_uvec2;
+	SABRE_EXPORT extern Type* type_uvec3;
+	SABRE_EXPORT extern Type* type_uvec4;
+	SABRE_EXPORT extern Type* type_dvec2;
+	SABRE_EXPORT extern Type* type_dvec3;
+	SABRE_EXPORT extern Type* type_dvec4;
 
+	// given a type name it will return a type
 	inline static Type*
 	type_from_name(Tkn name)
 	{
@@ -133,6 +146,30 @@ namespace sabre
 			return type_vec3;
 		else if (str == "vec4")
 			return type_vec4;
+		else if (str == "bvec2")
+			return type_bvec2;
+		else if (str == "bvec3")
+			return type_bvec3;
+		else if (str == "bvec4")
+			return type_bvec4;
+		else if (str == "ivec2")
+			return type_ivec2;
+		else if (str == "ivec3")
+			return type_ivec3;
+		else if (str == "ivec4")
+			return type_ivec4;
+		else if (str == "uvec2")
+			return type_uvec2;
+		else if (str == "uvec3")
+			return type_uvec3;
+		else if (str == "uvec4")
+			return type_uvec4;
+		else if (str == "dvec2")
+			return type_dvec2;
+		else if (str == "dvec3")
+			return type_dvec3;
+		else if (str == "dvec4")
+			return type_dvec4;
 		else
 			return type_void;
 	}
@@ -163,6 +200,17 @@ namespace sabre
 		return a->kind == Type::KIND_FUNC;
 	}
 
+	// returns whether a type has a boolean behavior
+	inline static bool
+	type_is_bool_like(Type* a)
+	{
+		if (a == type_bool)
+			return true;
+		else if (a->kind == Type::KIND_VEC && a->vec.base == type_bool)
+			return true;
+		return false;
+	}
+
 	// creates a new vector type, max width == 4
 	inline static Type*
 	type_vectorize(Type* base, int width)
@@ -177,6 +225,54 @@ namespace sabre
 			case 2: return type_vec2;
 			case 3: return type_vec3;
 			case 4: return type_vec4;
+			default:
+				assert(false && "unreachable");
+				return type_void;
+			}
+		}
+		else if (base == type_bool)
+		{
+			switch (width)
+			{
+			case 2: return type_bvec2;
+			case 3: return type_bvec3;
+			case 4: return type_bvec4;
+			default:
+				assert(false && "unreachable");
+				return type_void;
+			}
+		}
+		else if (base == type_int)
+		{
+			switch (width)
+			{
+			case 2: return type_ivec2;
+			case 3: return type_ivec3;
+			case 4: return type_ivec4;
+			default:
+				assert(false && "unreachable");
+				return type_void;
+			}
+		}
+		else if (base == type_uint)
+		{
+			switch (width)
+			{
+			case 2: return type_uvec2;
+			case 3: return type_uvec3;
+			case 4: return type_uvec4;
+			default:
+				assert(false && "unreachable");
+				return type_void;
+			}
+		}
+		else if (base == type_double)
+		{
+			switch (width)
+			{
+			case 2: return type_dvec2;
+			case 3: return type_dvec3;
+			case 4: return type_dvec4;
 			default:
 				assert(false && "unreachable");
 				return type_void;
@@ -438,6 +534,54 @@ namespace fmt
 			else if (t == sabre::type_vec4)
 			{
 				return format_to(ctx.out(), "vec4");
+			}
+			else if (t == sabre::type_bvec2)
+			{
+				return format_to(ctx.out(), "bvec2");
+			}
+			else if (t == sabre::type_bvec3)
+			{
+				return format_to(ctx.out(), "bvec3");
+			}
+			else if (t == sabre::type_bvec4)
+			{
+				return format_to(ctx.out(), "bvec4");
+			}
+			else if (t == sabre::type_ivec2)
+			{
+				return format_to(ctx.out(), "ivec2");
+			}
+			else if (t == sabre::type_ivec3)
+			{
+				return format_to(ctx.out(), "ivec3");
+			}
+			else if (t == sabre::type_ivec4)
+			{
+				return format_to(ctx.out(), "ivec4");
+			}
+			else if (t == sabre::type_uvec2)
+			{
+				return format_to(ctx.out(), "uvec2");
+			}
+			else if (t == sabre::type_uvec3)
+			{
+				return format_to(ctx.out(), "uvec3");
+			}
+			else if (t == sabre::type_uvec4)
+			{
+				return format_to(ctx.out(), "uvec4");
+			}
+			else if (t == sabre::type_dvec2)
+			{
+				return format_to(ctx.out(), "dvec2");
+			}
+			else if (t == sabre::type_dvec3)
+			{
+				return format_to(ctx.out(), "dvec3");
+			}
+			else if (t == sabre::type_dvec4)
+			{
+				return format_to(ctx.out(), "dvec4");
 			}
 			else
 			{
