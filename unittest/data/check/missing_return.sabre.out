@@ -1,0 +1,6 @@
+>> 	if x {
+>> 	^^^^^^
+Error[missing_return.sabre:2:2]: missing return at the end of the function because one of the if branches does not end with return statement
+>> 	if x {
+>> 	^^^^^^
+Error[missing_return.sabre:10:2]: missing return at the end of the function because if statement is missing else branch

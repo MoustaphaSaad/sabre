@@ -749,6 +749,19 @@ namespace sabre
 	}
 
 	inline static Type*
+	_typer_resolve_block_stmt_with_scope(Typer& self, Stmt* s)
+	{
+		auto scope = unit_create_scope_for(self.unit, s, _typer_current_scope(self), "block", nullptr, Scope::FLAG_NONE);
+		_typer_enter_scope(self, scope);
+		{
+			for (auto stmt: s->block_stmt)
+				_typer_resolve_stmt(self, stmt);
+		}
+		_typer_leave_scope(self);
+		return type_void;
+	}
+
+	inline static Type*
 	_typer_resolve_stmt(Typer& self, Stmt* s)
 	{
 		switch (s->kind)
@@ -769,9 +782,111 @@ namespace sabre
 			return _typer_resolve_expr(self, s->expr_stmt);
 		case Stmt::KIND_DECL:
 			return _typer_resolve_decl_stmt(self, s);
+		case Stmt::KIND_BLOCK:
+			return _typer_resolve_block_stmt_with_scope(self, s);
 		default:
 			assert(false && "unreachable");
 			return type_void;
+		}
+	}
+
+	struct Termination_Info
+	{
+		bool will_return;
+		Location loc;
+		mn::Str msg;
+	};
+
+	inline static Termination_Info
+	_typer_stmt_will_terminate(Typer& self, Stmt* s)
+	{
+		switch (s->kind)
+		{
+		case Stmt::KIND_BLOCK:
+			if (s->block_stmt.count == 0)
+			{
+				Termination_Info info{};
+				info.will_return = false;
+				info.loc = s->loc;
+				info.msg = mn::str_tmpf("empty block does not return");
+				return info;
+			}
+			return _typer_stmt_will_terminate(self, mn::buf_top(s->block_stmt));
+		case Stmt::KIND_RETURN:
+		{
+			Termination_Info info{};
+			info.will_return = true;
+			info.loc = s->loc;
+			return info;
+		}
+		case Stmt::KIND_FOR:
+		{
+			if (s->for_stmt.cond != nullptr)
+			{
+				Termination_Info info{};
+				info.will_return = false;
+				info.loc = s->loc;
+				info.msg = mn::str_tmpf("for loop with condition may not enter and thus will not return");
+				return info;
+			}
+			auto info = _typer_stmt_will_terminate(self, s->for_stmt.body);
+			if (info.loc.pos.line == 0)
+				info.loc = s->loc;
+			return info;
+		}
+		case Stmt::KIND_IF:
+		{
+			for (auto body: s->if_stmt.body)
+			{
+				auto body_info = _typer_stmt_will_terminate(self, body);
+
+				if (body_info.will_return == false)
+				{
+					Termination_Info info{};
+					info.will_return = false;
+					info.loc = body_info.loc;
+					info.msg = mn::str_tmpf("one of the if branches does not end with return statement");
+					if (info.loc.pos.line == 0)
+						info.loc = s->loc;
+					return info;
+				}
+			}
+			if (s->if_stmt.else_body != nullptr)
+			{
+				auto body_info = _typer_stmt_will_terminate(self, s->if_stmt.else_body);
+
+				if (body_info.will_return == false)
+				{
+					Termination_Info info{};
+					info.will_return = false;
+					info.loc = body_info.loc;
+					info.msg = mn::str_tmpf("one of the if branches does not end with return statement");
+					if (info.loc.pos.line == 0)
+						info.loc = s->loc;
+					return info;
+				}
+			}
+			else
+			{
+				Termination_Info info{};
+				info.will_return = false;
+				info.loc = s->loc;
+				info.msg = mn::str_tmpf("if statement is missing else branch");
+				return info;
+			}
+
+			Termination_Info info{};
+			info.will_return = true;
+			info.loc = s->loc;
+			return info;
+		}
+		default:
+		{
+			Termination_Info info{};
+			info.will_return = false;
+			info.loc = s->loc;
+			return info;
+		}
 		}
 	}
 
@@ -806,7 +921,14 @@ namespace sabre
 
 				if (type_is_equal(sym->type->func.return_type, type_void) == false)
 				{
-					// check stmt will terminate?
+					auto return_info = _typer_stmt_will_terminate(self, d->func_decl.body);
+					if (return_info.will_return == false)
+					{
+						Err err{};
+						err.loc = return_info.loc;
+						err.msg = mn::strf("missing return at the end of the function because {}", return_info.msg);
+						unit_err(self.unit, err);
+					}
 				}
 			}
 		}

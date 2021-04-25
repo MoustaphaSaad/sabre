@@ -1,0 +1,13 @@
+func missing_return_in_else(x: bool): int {
+	if x {
+		return 0;
+	} else {
+
+	}
+}
+
+func missing_return(x: bool): int {
+	if x {
+		return 0;
+	}
+}
