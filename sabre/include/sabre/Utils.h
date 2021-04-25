@@ -30,4 +30,9 @@ namespace sabre
 	// when you want to make the path uniform across testing environment
 	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
 	check_file(const mn::Str& filepath, const mn::Str& fake_path);
+
+	// loads and parses an expression from a file, fake_path is used for testing
+	// when you want to make the path uniform across testing environment
+	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
+	glsl_gen_expr_from_file(const mn::Str& filepath, const mn::Str& fake_path);
 }

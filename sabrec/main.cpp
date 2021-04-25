@@ -73,6 +73,18 @@ int main(int argc, char** argv)
 		mn::print("{}\n", answer);
 		return 0;
 	}
+	else if (cmd == "glsl-gen-expr")
+	{
+		auto [answer, err] = sabre::glsl_gen_expr_from_file(path, mn::str_lit(""));
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
+		return 0;
+	}
 	else
 	{
 		mn::printerr("invalid command line args\n");

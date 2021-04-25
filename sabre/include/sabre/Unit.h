@@ -106,4 +106,13 @@ namespace sabre
 	// searchs for the scope associated with the given ptr, and creates a new one if it doesn't exist
 	SABRE_EXPORT Scope*
 	unit_create_scope_for(Unit* self, void* ptr, Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags);
+
+	// searchs and returns the associated scope of the given key/ptr, if it doesn't exist it will return nullptr
+	inline static Scope*
+	unit_scope_find(Unit* self, void* ptr)
+	{
+		if (auto it = mn::map_lookup(self->scope_table, ptr))
+			return it->value;
+		return nullptr;
+	}
 }
