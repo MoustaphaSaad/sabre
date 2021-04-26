@@ -106,4 +106,22 @@ namespace sabre
 		mn::map_insert(self.func_table, sign, new_type);
 		return new_type;
 	}
+
+	Type*
+	type_interner_incomplete(Type_Interner& self, Symbol* symbol)
+	{
+		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		new_type->kind = Type::KIND_INCOMPLETE;
+		new_type->struct_type.symbol = symbol;
+		return new_type;
+	}
+
+	void
+	type_interner_complete(Type_Interner& self, Type* type, mn::Buf<Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	{
+		assert(type->kind == Type::KIND_COMPLETING);
+		type->kind = Type::KIND_STRUCT;
+		type->struct_type.fields = fields;
+		type->struct_type.fields_by_name = fields_table;
+	}
 }

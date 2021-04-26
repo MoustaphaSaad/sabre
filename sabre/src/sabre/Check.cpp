@@ -125,6 +125,9 @@ namespace sabre
 		case Decl::KIND_FUNC:
 			_typer_add_symbol(self, symbol_func_new(self.unit->symbols_arena, decl->name, decl));
 			break;
+		case Decl::KIND_STRUCT:
+			_typer_add_symbol(self, symbol_struct_new(self.unit->symbols_arena, decl->name, decl));
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -145,7 +148,18 @@ namespace sabre
 				res = type_from_name(atom.named);
 				if (type_is_equal(res, type_void))
 				{
-					assert(false && "user defined types are not supported");
+					if (auto symbol = _typer_find_symbol(self, atom.named.str))
+					{
+						_typer_resolve_symbol(self, symbol);
+						res = symbol->type;
+					}
+					else
+					{
+						Err err{};
+						err.loc = atom.named.loc;
+						err.msg = mn::strf("'{}' undefined symbol", atom.named.str);
+						unit_err(self.unit, err);
+					}
 				}
 				break;
 			default:
@@ -393,6 +407,29 @@ namespace sabre
 			}
 
 			return type_vectorize(type->vec.base, len);
+		}
+		else if (type->kind == Type::KIND_STRUCT)
+		{
+			if (e->dot.rhs->kind != Expr::KIND_ATOM)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("unknown structure field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			auto it = mn::map_lookup(type->struct_type.fields_by_name, e->dot.rhs->atom.str);
+			if (it == nullptr)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("unknown structure field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			return type->struct_type.fields[it->value].type;
 		}
 		else
 		{
@@ -693,7 +730,7 @@ namespace sabre
 				unit_err(self.unit, err);
 			}
 
-			if (type_is_equal(lhs_type, rhs_type))
+			if (type_is_equal(lhs_type, rhs_type) == false)
 			{
 				Err err{};
 				err.loc = s->assign_stmt.rhs[i]->loc;
@@ -936,6 +973,60 @@ namespace sabre
 	}
 
 	inline static void
+	_typer_complete_type(Typer& self, Symbol* sym, Location used_from)
+	{
+		auto type = sym->type;
+		if (type->kind == Type::KIND_COMPLETING)
+		{
+			Err err{};
+			err.loc = used_from;
+			err.msg = mn::strf("'{}' is a recursive type", sym->name);
+			unit_err(self.unit, err);
+			return;
+		}
+		else if (type->kind != Type::KIND_INCOMPLETE)
+		{
+			return;
+		}
+
+		type->kind = Type::KIND_COMPLETING;
+		if (sym->kind == Symbol::KIND_STRUCT)
+		{
+			auto d = sym->struct_sym.decl;
+			auto struct_fields = mn::buf_with_allocator<Field_Type>(self.unit->type_interner.arena);
+			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->type_interner.arena);
+			for (auto field: d->struct_decl.fields)
+			{
+				auto field_type = _typer_resolve_type_sign(self, field.type);
+				if (field_type->kind == Type::KIND_INCOMPLETE || field_type->kind == Type::KIND_COMPLETING)
+					_typer_complete_type(self, field_type->struct_type.symbol, type_sign_location(field.type));
+				for (auto name: field.names)
+				{
+					Field_Type struct_field{};
+					struct_field.name = name;
+					struct_field.type = field_type;
+					mn::buf_push(struct_fields, struct_field);
+
+					if (auto it = mn::map_lookup(struct_fields_by_name, name.str))
+					{
+						auto old_loc = struct_fields[it->value].name.loc;
+
+						Err err{};
+						err.loc = name.loc;
+						err.msg = mn::strf("'{}' field redefinition, first declared in {}:{}", name.str, old_loc.pos.line, old_loc.pos.col);
+						unit_err(self.unit, err);
+					}
+					else
+					{
+						mn::map_insert(struct_fields_by_name, name.str, struct_fields.count - 1);
+					}
+				}
+			}
+			type_interner_complete(self.unit->type_interner, type, struct_fields, struct_fields_by_name);
+		}
+	}
+
+	inline static void
 	_typer_resolve_symbol(Typer& self, Symbol* sym)
 	{
 		if (sym->state == Symbol::STATE_RESOLVED)
@@ -963,6 +1054,9 @@ namespace sabre
 		case Symbol::KIND_FUNC:
 			sym->type = _typer_resolve_func_decl(self, sym);
 			break;
+		case Symbol::KIND_STRUCT:
+			sym->type = type_interner_incomplete(self.unit->type_interner, sym);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -977,6 +1071,9 @@ namespace sabre
 		case Symbol::KIND_VAR:
 		case Symbol::KIND_CONST:
 			// do nothing
+			break;
+		case Symbol::KIND_STRUCT:
+			_typer_complete_type(self, sym, symbol_location(sym));
 			break;
 		default:
 			assert(false && "unreachable");

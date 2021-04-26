@@ -54,6 +54,26 @@ namespace sabre
 		mn::buf_push(self.atoms, atom);
 	}
 
+	// returns the location of the given type signature
+	inline static Location
+	type_sign_location(const Type_Sign& self)
+	{
+		Location res{};
+		for (auto atom: self.atoms)
+		{
+			assert(atom.kind == Type_Sign_Atom::KIND_NAMED);
+			if (res.unit == nullptr)
+			{
+				res = atom.named.loc;
+			}
+			else
+			{
+				res.rng.end = atom.named.loc.rng.end;
+			}
+		}
+		return res;
+	}
+
 	struct Type;
 
 	// represents an expression

@@ -134,6 +134,19 @@ namespace sabre
 			_ast_printer_newline(self);
 			mn::print_to(self.out, ")");
 			break;
+		case Expr::KIND_DOT:
+			mn::print_to(self.out, "(dot");
+			_ast_printer_enter_scope(self);
+			{
+				_ast_printer_newline(self);
+				ast_printer_print_expr(self, expr->dot.lhs);
+				_ast_printer_newline(self);
+				ast_printer_print_expr(self, expr->dot.rhs);
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
 		default:
 			assert(false && "expression type is not handled");
 			break;

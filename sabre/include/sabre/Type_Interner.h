@@ -12,6 +12,7 @@
 namespace sabre
 {
 	struct Type;
+	struct Symbol;
 
 	// describes a function signature
 	struct Func_Sign
@@ -72,11 +73,20 @@ namespace sabre
 		}
 	};
 
+	struct Field_Type
+	{
+		Tkn name;
+		Type* type;
+	};
+
 	// represents a data type
 	struct Type
 	{
 		enum KIND
 		{
+			KIND_INCOMPLETE,
+			KIND_COMPLETING,
+
 			KIND_VOID,
 			KIND_BOOL,
 			KIND_INT,
@@ -85,6 +95,7 @@ namespace sabre
 			KIND_DOUBLE,
 			KIND_VEC,
 			KIND_FUNC,
+			KIND_STRUCT,
 		};
 
 		KIND kind;
@@ -96,6 +107,13 @@ namespace sabre
 				Type* base;
 				int width;
 			} vec;
+
+			struct
+			{
+				Symbol* symbol;
+				mn::Buf<Field_Type> fields;
+				mn::Map<const char*, size_t> fields_by_name;
+			} struct_type;
 		};
 	};
 
@@ -306,6 +324,14 @@ namespace sabre
 	SABRE_EXPORT Type*
 	type_interner_func(Type_Interner& self, Func_Sign sign);
 
+	// creates a new incomplete type for the given symbol
+	SABRE_EXPORT Type*
+	type_interner_incomplete(Type_Interner& self, Symbol* symbol);
+
+	// completes the given struct/aggregate types
+	SABRE_EXPORT void
+	type_interner_complete(Type_Interner& self, Type* type, mn::Buf<Field_Type> fields, mn::Map<const char*, size_t> fields_table);
+
 	// represents a symbol in the code
 	struct Symbol
 	{
@@ -314,6 +340,7 @@ namespace sabre
 			KIND_CONST,
 			KIND_VAR,
 			KIND_FUNC,
+			KIND_STRUCT,
 		};
 
 		enum STATE
@@ -351,6 +378,12 @@ namespace sabre
 				Decl* decl;
 				Tkn name;
 			} func_sym;
+
+			struct
+			{
+				Decl* decl;
+				Tkn name;
+			} struct_sym;
 		};
 	};
 
@@ -400,6 +433,20 @@ namespace sabre
 		return self;
 	}
 
+	// creates a new symbol for a struct declaration
+	inline static Symbol*
+	symbol_struct_new(mn::Allocator arena, Tkn name, Decl* decl)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_STRUCT;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->struct_sym.decl = decl;
+		self->struct_sym.name = name;
+		return self;
+	}
+
 	// given a symbols it will return its location in compilation unit
 	inline static Location
 	symbol_location(const Symbol* self)
@@ -412,6 +459,8 @@ namespace sabre
 			return self->var_sym.decl->loc;
 		case Symbol::KIND_FUNC:
 			return self->func_sym.decl->loc;
+		case Symbol::KIND_STRUCT:
+			return self->struct_sym.decl->loc;
 		default:
 			assert(false && "unreachable");
 			return Location{};

@@ -189,7 +189,7 @@ namespace sabre
 			}
 			else if (_parser_eat_kind(self, Tkn::KIND_DOT))
 			{
-				auto rhs = parser_parse_expr(self);
+				auto rhs = _parser_parse_expr_atom(self);
 				if (rhs != nullptr)
 					expr = expr_dot_new(self.unit->ast_arena, expr, rhs);
 			}

@@ -1,0 +1,41 @@
+(func-decl
+  (arg
+    (arg-name 'a')
+    (arg-name 'b')
+    (type-sign Point)
+  )
+  (return-type 
+    (type-sign Point)
+  )
+  (block-stmt
+    (decl-stmt
+      (var-decl
+        (var-name res)
+        (type-sign Point)
+      )
+    )
+    (assign-stmt '='
+      (LHS
+        (dot
+          (atom 'res')
+          (atom 'p')
+        )
+      )
+      (RHS
+        (binary '+'
+          (dot
+            (atom 'a')
+            (atom 'p')
+          )
+          (dot
+            (atom 'b')
+            (atom 'p')
+          )
+        )
+      )
+    )
+    (return-stmt
+      (atom 'res')
+    )
+  )
+)
