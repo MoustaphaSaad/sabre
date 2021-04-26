@@ -366,6 +366,21 @@ namespace sabre
 		return self;
 	}
 
+	struct Field
+	{
+		mn::Buf<Tkn> names;
+		Type_Sign type;
+	};
+
+	inline static Field
+	field_new(mn::Allocator arena)
+	{
+		Field self{};
+		self.names = mn::buf_with_allocator<Tkn>(arena);
+		self.type = type_sign_new(arena);
+		return self;
+	}
+
 	// Decl
 	struct Decl
 	{
@@ -374,6 +389,7 @@ namespace sabre
 			KIND_CONST,
 			KIND_VAR,
 			KIND_FUNC,
+			KIND_STRUCT,
 		};
 
 		KIND kind;
@@ -401,6 +417,11 @@ namespace sabre
 				Type_Sign return_type;
 				Stmt* body;
 			} func_decl;
+
+			struct
+			{
+				mn::Buf<Field> fields;
+			} struct_decl;
 		};
 	};
 
@@ -438,6 +459,17 @@ namespace sabre
 		self->func_decl.args = args;
 		self->func_decl.return_type = ret;
 		self->func_decl.body = body;
+		return self;
+	}
+
+	// creates a new struct declaration
+	inline static Decl*
+	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields)
+	{
+		auto self = mn::alloc_zerod_from<Decl>(arena);
+		self->kind = Decl::KIND_STRUCT;
+		self->name = name;
+		self->struct_decl.fields = fields;
 		return self;
 	}
 }

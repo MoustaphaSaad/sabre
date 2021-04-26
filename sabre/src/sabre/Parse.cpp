@@ -780,6 +780,39 @@ namespace sabre
 		return decl_func_new(self.unit->ast_arena, name, args, ret, body);
 	}
 
+	inline static Field
+	_parser_parse_field(Parser& self)
+	{
+		auto field = field_new(self.unit->ast_arena);
+		while (true)
+		{
+			if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))
+				mn::buf_push(field.names, name);
+
+			if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+				break;
+		}
+		_parser_eat_must(self, Tkn::KIND_COLON);
+		field.type = _parser_parse_type(self);
+		return field;
+	}
+
+	inline static Decl*
+	_parser_parse_decl_type(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
+		auto name = _parser_eat_must(self, Tkn::KIND_ID);
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_STRUCT);
+
+		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
+		auto fields = mn::buf_with_allocator<Field>(self.unit->ast_arena);
+		while (_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+			mn::buf_push(fields, _parser_parse_field(self));
+		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
+
+		return decl_struct_new(self.unit->ast_arena, name, fields);
+	}
+
 	// API
 	Parser
 	parser_new(Unit* unit)
@@ -823,6 +856,8 @@ namespace sabre
 			res = _parser_parse_decl_const(self, true);
 		else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
 			res = _parser_parse_decl_func(self);
+		else if (tkn.kind == Tkn::KIND_KEYWORD_TYPE)
+			res = _parser_parse_decl_type(self);
 
 		if (res != nullptr)
 		{

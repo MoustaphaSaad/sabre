@@ -469,6 +469,37 @@ namespace sabre
 			_ast_printer_newline(self);
 			mn::print_to(self.out, ")");
 			break;
+		case Decl::KIND_STRUCT:
+			mn::print_to(self.out, "(struct-decl");
+			_ast_printer_enter_scope(self);
+			{
+				for (auto field: decl->struct_decl.fields)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(field");
+					_ast_printer_enter_scope(self);
+					{
+						for (auto name: field.names)
+						{
+							_ast_printer_newline(self);
+							mn::print_to(self.out, "(field-name '{}')", name.str);
+						}
+
+						if (field.type.atoms.count > 0)
+						{
+							_ast_printer_newline(self);
+							_ast_printer_print_type(self, field.type);
+						}
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
 		default:
 			assert(false && "declaration type is not handled");
 			break;
