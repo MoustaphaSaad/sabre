@@ -110,11 +110,11 @@ namespace sabre
 	{
 		auto tkn = _parser_look(self);
 		Expr* expr = nullptr;
-		if (tkn.kind == Tkn::KIND_INTEGER)
+		if (tkn.kind == Tkn::KIND_LITERAL_INTEGER)
 		{
 			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
-		else if (tkn.kind == Tkn::KIND_FLOAT)
+		else if (tkn.kind == Tkn::KIND_LITERAL_FLOAT)
 		{
 			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
 		}
@@ -813,6 +813,18 @@ namespace sabre
 		return decl_struct_new(self.unit->ast_arena, name, fields);
 	}
 
+	inline static Decl*
+	_parser_parse_decl_import(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_IMPORT);
+		Tkn optional_name{};
+		if (_parser_look_kind(self, Tkn::KIND_ID))
+			optional_name = _parser_eat(self);
+		auto path = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
+
+		return decl_import_new(self.unit->ast_arena, path, optional_name);
+	}
+
 	// API
 	Parser
 	parser_new(Unit* unit)
@@ -858,6 +870,8 @@ namespace sabre
 			res = _parser_parse_decl_func(self);
 		else if (tkn.kind == Tkn::KIND_KEYWORD_TYPE)
 			res = _parser_parse_decl_type(self);
+		else if (tkn.kind == Tkn::KIND_KEYWORD_IMPORT)
+			res = _parser_parse_decl_import(self);
 
 		if (res != nullptr)
 		{

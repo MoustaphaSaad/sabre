@@ -175,9 +175,9 @@ namespace sabre
 	{
 		switch (e->atom.kind)
 		{
-		case Tkn::KIND_INTEGER:
+		case Tkn::KIND_LITERAL_INTEGER:
 			return type_int;
-		case Tkn::KIND_FLOAT:
+		case Tkn::KIND_LITERAL_FLOAT:
 			return type_float;
 		case Tkn::KIND_KEYWORD_FALSE:
 		case Tkn::KIND_KEYWORD_TRUE:

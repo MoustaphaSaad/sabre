@@ -110,7 +110,7 @@ namespace sabre
 	{
 		auto begin_it = self.it;
 		auto begin_pos = self.pos;
-		tkn.kind = Tkn::KIND_INTEGER;
+		tkn.kind = Tkn::KIND_LITERAL_INTEGER;
 
 		if (self.c == '0')
 		{
@@ -175,7 +175,7 @@ namespace sabre
 		// float part .
 		if (self.c == '.')
 		{
-			tkn.kind = Tkn::KIND_FLOAT;
+			tkn.kind = Tkn::KIND_LITERAL_FLOAT;
 			_scanner_eat(self); // for the .
 			// for the after . part
 			if (_scanner_scan_digits(self, 10) == false)
@@ -192,7 +192,7 @@ namespace sabre
 		// scientific notation part
 		if (self.c == 'e' || self.c == 'E')
 		{
-			tkn.kind = Tkn::KIND_FLOAT;
+			tkn.kind = Tkn::KIND_LITERAL_FLOAT;
 			_scanner_eat(self); // for the e
 			if (self.c == '-' || self.c == '+')
 				_scanner_eat(self);
@@ -231,6 +231,26 @@ namespace sabre
 		}
 
 		_scanner_eat(self); // for the \n
+		return unit_intern(self.unit, begin_it, end_it);
+	}
+
+	inline static const char*
+	_scanner_scan_string(Scanner& self)
+	{
+		auto begin_it = self.it;
+		auto end_it = self.it;
+
+		auto prev = self.c;
+		// eat all the runes even those escaped by \ like \"
+		while (self.c != '"' || prev == '\\')
+		{
+			if (_scanner_eat(self) == false)
+				break;
+			prev = self.c;
+		}
+
+		end_it = self.it;
+		_scanner_eat(self); // for the "
 		return unit_intern(self.unit, begin_it, end_it);
 	}
 
@@ -424,6 +444,11 @@ namespace sabre
 				{
 					tkn.kind = Tkn::KIND_LOGICAL_AND;
 				}
+				break;
+			case '"':
+				tkn.kind = Tkn::KIND_LITERAL_STRING;
+				tkn.str = _scanner_scan_string(self);
+				no_intern = true;
 				break;
 			default:
 			{

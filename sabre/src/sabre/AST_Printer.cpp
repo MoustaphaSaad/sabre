@@ -513,6 +513,13 @@ namespace sabre
 			_ast_printer_newline(self);
 			mn::print_to(self.out, ")");
 			break;
+		case Decl::KIND_IMPORT:
+			mn::print_to(self.out, "(import ");
+			if (decl->import_decl.optional_name)
+				mn::print_to(self.out, "{} ", decl->import_decl.optional_name.str);
+			mn::print_to(self.out, "\"{}\"", decl->import_decl.path.str);
+			mn::print_to(self.out, ")");
+			break;
 		default:
 			assert(false && "declaration type is not handled");
 			break;

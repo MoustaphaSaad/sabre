@@ -410,6 +410,7 @@ namespace sabre
 			KIND_VAR,
 			KIND_FUNC,
 			KIND_STRUCT,
+			KIND_IMPORT,
 		};
 
 		KIND kind;
@@ -442,6 +443,13 @@ namespace sabre
 			{
 				mn::Buf<Field> fields;
 			} struct_decl;
+
+			struct
+			{
+				Tkn path;
+				Tkn optional_name;
+				const char* package_name;
+			} import_decl;
 		};
 	};
 
@@ -490,6 +498,18 @@ namespace sabre
 		self->kind = Decl::KIND_STRUCT;
 		self->name = name;
 		self->struct_decl.fields = fields;
+		return self;
+	}
+
+	// creates a new import declaration
+	inline static Decl*
+	decl_import_new(mn::Allocator arena, Tkn path, Tkn optional_name)
+	{
+		auto self = mn::alloc_zerod_from<Decl>(arena);
+		self->kind = Decl::KIND_IMPORT;
+		self->name = path;
+		self->import_decl.path = path;
+		self->import_decl.optional_name = optional_name;
 		return self;
 	}
 }

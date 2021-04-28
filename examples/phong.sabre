@@ -1,5 +1,15 @@
 program phong
 
+import builtin "std:builtin"
+import xo "xo:xo"
+
+import fmt from "sdfdsf"
+import xoxo from "xoxo"
+import (
+	fmt = "werwer"
+	xo = "32"
+)
+
 type VS_Input struct {
 	position: vec3;
 	normal: vec3;
