@@ -6,20 +6,20 @@
 
 namespace sabre
 {
-	struct Unit;
+	struct Unit_Package;
 	struct Scope;
 
 	// type checker state
 	struct Typer
 	{
-		Unit* unit;
+		Unit_Package* unit;
 		Scope* global_scope;
 		mn::Buf<Scope*> scope_stack;
 	};
 
 	// creates a new type checker
 	SABRE_EXPORT Typer
-	typer_new(Unit* unit);
+	typer_new(Unit_Package* unit);
 
 	// frees the given type checker
 	SABRE_EXPORT void

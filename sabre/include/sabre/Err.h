@@ -1,8 +1,10 @@
 #pragma once
 
+#include "sabre/Exports.h"
 #include "sabre/Tkn.h"
 
 #include <mn/Str.h>
+#include <mn/Stream.h>
 
 namespace sabre
 {
@@ -40,4 +42,8 @@ namespace sabre
 	{
 		err_free(self);
 	}
+
+	// dumps the given error to the output stream
+	SABRE_EXPORT void
+	err_dump(const Err& err, mn::Stream out);
 }

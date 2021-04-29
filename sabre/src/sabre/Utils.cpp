@@ -10,6 +10,23 @@
 
 namespace sabre
 {
+	inline static void
+	_unit_change_paths(Unit* self, const mn::Str& fake_path)
+	{
+		if (fake_path.count == 0)
+			return;
+
+		for (auto package: self->packages)
+		{
+			for (auto file: package->files)
+			{
+				mn::str_free(file->filepath);
+				file->filepath = clone(fake_path);
+			}
+		}
+
+	}
+
 	// API
 	mn::Result<mn::Str, mn::Err>
 	scan_file(const mn::Str& filepath, const mn::Str&)
@@ -35,23 +52,19 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
-		if (fake_path.count > 0)
-		{
-			mn::str_free(unit->filepath);
-			unit->filepath = mn::str_clone(fake_path);
-		}
+		_unit_change_paths(unit, fake_path);
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit);
+		auto parser = parser_new(unit->packages[0]->files[0]);
 		mn_defer(parser_free(parser));
 
 		auto expr = parser_parse_expr(parser);
 		if (expr == nullptr)
 			return unit_dump_errors(unit);
 
-		if (unit->errs.count > 0)
+		if (unit_has_errors(unit))
 			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
@@ -71,23 +84,19 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
-		if (fake_path.count > 0)
-		{
-			mn::str_free(unit->filepath);
-			unit->filepath = mn::str_clone(fake_path);
-		}
+		_unit_change_paths(unit, fake_path);
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit);
+		auto parser = parser_new(unit->packages[0]->files[0]);
 		mn_defer(parser_free(parser));
 
 		auto stmt = parser_parse_stmt(parser);
 		if (stmt == nullptr)
 			return unit_dump_errors(unit);
 
-		if (unit->errs.count > 0)
+		if (unit_has_errors(unit))
 			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
@@ -107,23 +116,19 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
-		if (fake_path.count > 0)
-		{
-			mn::str_free(unit->filepath);
-			unit->filepath = mn::str_clone(fake_path);
-		}
+		_unit_change_paths(unit, fake_path);
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit);
+		auto parser = parser_new(unit->packages[0]->files[0]);
 		mn_defer(parser_free(parser));
 
 		auto decl = parser_parse_decl(parser);
 		if (decl == nullptr)
 			return unit_dump_errors(unit);
 
-		if (unit->errs.count > 0)
+		if (unit_has_errors(unit))
 			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
@@ -143,11 +148,7 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
-		if (fake_path.count > 0)
-		{
-			mn::str_free(unit->filepath);
-			unit->filepath = mn::str_clone(fake_path);
-		}
+		_unit_change_paths(unit, fake_path);
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
@@ -168,11 +169,7 @@ namespace sabre
 		auto unit = unit_from_file(filepath);
 		mn_defer(unit_free(unit));
 
-		if (fake_path.count > 0)
-		{
-			mn::str_free(unit->filepath);
-			unit->filepath = mn::str_clone(fake_path);
-		}
+		_unit_change_paths(unit, fake_path);
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
@@ -180,7 +177,7 @@ namespace sabre
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit);
+		auto parser = parser_new(unit->packages[0]->files[0]);
 		mn_defer(parser_free(parser));
 
 		auto expr = parser_parse_expr(parser);

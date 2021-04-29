@@ -7,11 +7,11 @@
 
 namespace sabre
 {
-	struct Unit;
+	struct Unit_File;
 
 	struct Scanner
 	{
-		Unit* unit;
+		Unit_File* unit;
 		const char* it;
 		mn::Rune c;
 		Pos pos;
@@ -22,7 +22,7 @@ namespace sabre
 
 	// creates a new scanner for this unit
 	SABRE_EXPORT Scanner
-	scanner_new(Unit* unit);
+	scanner_new(Unit_File* unit);
 
 	// scans the next token off the unit content
 	SABRE_EXPORT Tkn

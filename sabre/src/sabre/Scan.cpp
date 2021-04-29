@@ -146,7 +146,7 @@ namespace sabre
 					Err err{};
 					err.loc.pos = begin_pos;
 					err.loc.rng = Rng{begin_it, self.it};
-					err.loc.unit = self.unit;
+					err.loc.file = self.unit;
 					err.msg = mn::strf("illegal int literal {:c}", self.c);
 					unit_err(self.unit, err);
 				}
@@ -167,7 +167,7 @@ namespace sabre
 			Err err{};
 			err.loc.pos = begin_pos;
 			err.loc.rng = Rng{begin_it, self.it};
-			err.loc.unit = self.unit;
+			err.loc.file = self.unit;
 			err.msg = mn::strf("illegal int literal {:c}", self.c);
 			unit_err(self.unit, err);
 		}
@@ -183,7 +183,7 @@ namespace sabre
 				Err err{};
 				err.loc.pos = begin_pos;
 				err.loc.rng = Rng{begin_it, self.it};
-				err.loc.unit = self.unit;
+				err.loc.file = self.unit;
 				err.msg = mn::strf("illegal float literal {:c}", self.c);
 				unit_err(self.unit, err);
 			}
@@ -201,7 +201,7 @@ namespace sabre
 				Err err{};
 				err.loc.pos = begin_pos;
 				err.loc.rng = Rng{begin_it, self.it};
-				err.loc.unit = self.unit;
+				err.loc.file = self.unit;
 				err.msg = mn::strf("illegal float literal {:c}", self.c);
 				unit_err(self.unit, err);
 			}
@@ -257,7 +257,7 @@ namespace sabre
 
 	// API
 	Scanner
-	scanner_new(Unit* unit)
+	scanner_new(Unit_File* unit)
 	{
 		Scanner self{};
 		self.unit = unit;
@@ -278,16 +278,16 @@ namespace sabre
 		_scanner_skip_whitespace(self);
 
 		Tkn tkn{};
+		tkn.loc.pos = self.pos;
+		tkn.loc.rng.begin = self.it;
+		tkn.loc.file = self.unit;
+
 		if (_scanner_eof(self))
 		{
 			_scanner_ensure_line_is_added(self);
 			tkn.kind = Tkn::KIND_EOF;
 			return tkn;
 		}
-
-		tkn.loc.pos = self.pos;
-		tkn.loc.rng.begin = self.it;
-		tkn.loc.unit = self.unit;
 
 		if (mn::rune_is_letter(self.c))
 		{
@@ -454,7 +454,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc.pos = begin_pos;
-				err.loc.unit = self.unit;
+				err.loc.file = self.unit;
 				err.msg = mn::strf("illegal rune {:c}", c);
 				unit_err(self.unit, err);
 				break;
