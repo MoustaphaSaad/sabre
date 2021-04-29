@@ -27,9 +27,9 @@ namespace sabre
 	unit_file_free(Unit_File* self)
 	{
 		mn::log_debug(
-			"AST: {}/{}, (used/reserved)bytes for package '{}'",
-			self->ast_arena->used_mem, self->ast_arena->total_mem,
-			self->absolute_path
+			"File '{}': AST {}/{}, (used/reserved)bytes",
+			self->absolute_path,
+			self->ast_arena->used_mem, self->ast_arena->total_mem
 		);
 		mn::str_free(self->absolute_path);
 		mn::str_free(self->filepath);
@@ -107,9 +107,9 @@ namespace sabre
 	unit_package_free(Unit_Package* self)
 	{
 		mn::log_debug(
-			"Symbols: {}/{}, (used/reserved)bytes for package '{}'",
-			self->symbols_arena->used_mem, self->symbols_arena->total_mem,
-			self->absolute_path
+			"Package '{}': Symbols {}/{}, (used/reserved)bytes",
+			self->absolute_path,
+			self->symbols_arena->used_mem, self->symbols_arena->total_mem
 		);
 		mn::str_free(self->absolute_path);
 		destruct(self->files);

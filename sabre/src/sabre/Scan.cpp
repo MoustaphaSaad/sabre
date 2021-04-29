@@ -278,16 +278,16 @@ namespace sabre
 		_scanner_skip_whitespace(self);
 
 		Tkn tkn{};
+		tkn.loc.pos = self.pos;
+		tkn.loc.rng.begin = self.it;
+		tkn.loc.unit = self.unit;
+
 		if (_scanner_eof(self))
 		{
 			_scanner_ensure_line_is_added(self);
 			tkn.kind = Tkn::KIND_EOF;
 			return tkn;
 		}
-
-		tkn.loc.pos = self.pos;
-		tkn.loc.rng.begin = self.it;
-		tkn.loc.unit = self.unit;
 
 		if (mn::rune_is_letter(self.c))
 		{

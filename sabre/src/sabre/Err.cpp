@@ -49,7 +49,10 @@ namespace sabre
 		}
 		else
 		{
-			mn::print_to(out, "Error[{}]: {}", err.loc.unit->filepath, err.msg);
+			if (err.loc.unit != nullptr)
+				mn::print_to(out, "Error[{}]: {}", err.loc.unit->filepath, err.msg);
+			else
+				mn::print_to(out, "Error: {}", err.msg);
 		}
 	}
 }

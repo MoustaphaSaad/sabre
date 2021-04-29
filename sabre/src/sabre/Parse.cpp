@@ -19,6 +19,7 @@ namespace sabre
 			return self.tokens[self.it + k];
 		Tkn tkn{};
 		tkn.kind = Tkn::KIND_EOF;
+		tkn.loc.unit = self.unit;
 		return tkn;
 	}
 
@@ -44,6 +45,7 @@ namespace sabre
 		{
 			Tkn tkn{};
 			tkn.kind = Tkn::KIND_EOF;
+			tkn.loc.unit = self.unit;
 			return tkn;
 		}
 		auto tkn = self.tokens[self.it];
@@ -71,6 +73,7 @@ namespace sabre
 			unit_err(self.unit, err);
 			Tkn tkn{};
 			tkn.kind = Tkn::KIND_EOF;
+			tkn.loc.unit = self.unit;
 			return tkn;
 		}
 
@@ -197,6 +200,13 @@ namespace sabre
 			{
 				break;
 			}
+
+			if (expr != nullptr)
+			{
+				expr->loc.pos = tkn.loc.pos;
+				expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+				expr->loc.unit = self.unit;
+			}
 		}
 
 		if (expr != nullptr)
@@ -228,6 +238,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -244,6 +255,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -266,12 +278,16 @@ namespace sabre
 				break;
 			}
 			expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 
 		if (expr != nullptr)
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -294,12 +310,16 @@ namespace sabre
 				break;
 			}
 			expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
+			expr->loc.pos = tkn.loc.pos;
+			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 
 		if (expr != nullptr)
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -330,6 +350,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -354,6 +375,9 @@ namespace sabre
 					break;
 				}
 				expr = expr_binary_new(self.unit->ast_arena, expr, tkn, rhs);
+				expr->loc.pos = tkn.loc.pos;
+				expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+				expr->loc.unit = self.unit;
 			}
 			else
 			{
@@ -365,6 +389,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
@@ -400,6 +425,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			expr->loc.unit = self.unit;
 		}
 		return expr;
 	}
