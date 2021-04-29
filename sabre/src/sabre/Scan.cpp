@@ -257,7 +257,7 @@ namespace sabre
 
 	// API
 	Scanner
-	scanner_new(Unit* unit)
+	scanner_new(Unit_File* unit)
 	{
 		Scanner self{};
 		self.unit = unit;

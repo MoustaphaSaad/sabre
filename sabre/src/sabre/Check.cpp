@@ -587,7 +587,7 @@ namespace sabre
 				mn::buf_push(sign.args, arg_type);
 		}
 		sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
-		return type_interner_func(self.unit->type_interner, sign);
+		return type_interner_func(self.unit->parent_unit->type_interner, sign);
 	}
 
 	inline static Type*
@@ -993,8 +993,8 @@ namespace sabre
 		if (sym->kind == Symbol::KIND_STRUCT)
 		{
 			auto d = sym->struct_sym.decl;
-			auto struct_fields = mn::buf_with_allocator<Field_Type>(self.unit->type_interner.arena);
-			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->type_interner.arena);
+			auto struct_fields = mn::buf_with_allocator<Field_Type>(self.unit->parent_unit->type_interner.arena);
+			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner.arena);
 			for (auto field: d->struct_decl.fields)
 			{
 				auto field_type = _typer_resolve_type_sign(self, field.type);
@@ -1022,7 +1022,7 @@ namespace sabre
 					}
 				}
 			}
-			type_interner_complete(self.unit->type_interner, type, struct_fields, struct_fields_by_name);
+			type_interner_complete(self.unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name);
 		}
 	}
 
@@ -1055,7 +1055,7 @@ namespace sabre
 			sym->type = _typer_resolve_func_decl(self, sym);
 			break;
 		case Symbol::KIND_STRUCT:
-			sym->type = type_interner_incomplete(self.unit->type_interner, sym);
+			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
 			break;
 		default:
 			assert(false && "unreachable");
@@ -1090,8 +1090,9 @@ namespace sabre
 	inline static void
 	_typer_shallow_walk(Typer& self)
 	{
-		for (auto decl: self.unit->decls)
-			_typer_shallow_process_decl(self, decl);
+		for (auto file: self.unit->files)
+			for (auto decl: file->decls)
+				_typer_shallow_process_decl(self, decl);
 
 		for (auto sym: self.global_scope->symbols)
 		{
@@ -1101,7 +1102,7 @@ namespace sabre
 
 	// API
 	Typer
-	typer_new(Unit* unit)
+	typer_new(Unit_Package* unit)
 	{
 		Typer self{};
 		self.unit = unit;

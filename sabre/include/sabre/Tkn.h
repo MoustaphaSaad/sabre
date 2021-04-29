@@ -16,13 +16,13 @@ namespace sabre
 		const char *begin, *end;
 	};
 
-	struct Unit;
+	struct Unit_File;
 
 	struct Location
 	{
 		Pos pos;
 		Rng rng;
-		Unit* unit;
+		Unit_File* unit;
 	};
 
 	struct Tkn

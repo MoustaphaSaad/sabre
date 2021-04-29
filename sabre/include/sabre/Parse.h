@@ -7,7 +7,7 @@
 
 namespace sabre
 {
-	struct Unit;
+	struct Unit_File;
 	struct Expr;
 	struct Stmt;
 	struct Decl;
@@ -15,7 +15,7 @@ namespace sabre
 	// contains the parser state
 	struct Parser
 	{
-		Unit* unit;
+		Unit_File* unit;
 		mn::Buf<Tkn> tokens;
 		size_t it;
 		size_t prev_it;
@@ -23,7 +23,7 @@ namespace sabre
 
 	// creates a new parser instance
 	SABRE_EXPORT Parser
-	parser_new(Unit* unit);
+	parser_new(Unit_File* unit);
 
 	// frees the given parser instance
 	SABRE_EXPORT void

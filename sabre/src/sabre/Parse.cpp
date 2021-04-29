@@ -827,7 +827,7 @@ namespace sabre
 
 	// API
 	Parser
-	parser_new(Unit* unit)
+	parser_new(Unit_File* unit)
 	{
 		Parser self{};
 		self.unit = unit;

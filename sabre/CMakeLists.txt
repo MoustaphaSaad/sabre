@@ -17,6 +17,7 @@ set(HEADER_FILES
 
 # list the source files
 set(SOURCE_FILES
+	src/sabre/Err.cpp
 	src/sabre/Unit.cpp
 	src/sabre/Scan.cpp
 	src/sabre/Utils.cpp
