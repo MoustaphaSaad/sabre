@@ -62,7 +62,7 @@ namespace sabre
 		for (auto atom: self.atoms)
 		{
 			assert(atom.kind == Type_Sign_Atom::KIND_NAMED);
-			if (res.unit == nullptr)
+			if (res.file == nullptr)
 			{
 				res = atom.named.loc;
 			}

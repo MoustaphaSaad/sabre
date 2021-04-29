@@ -19,7 +19,7 @@ namespace sabre
 			return self.tokens[self.it + k];
 		Tkn tkn{};
 		tkn.kind = Tkn::KIND_EOF;
-		tkn.loc.unit = self.unit;
+		tkn.loc.file = self.unit;
 		return tkn;
 	}
 
@@ -45,7 +45,7 @@ namespace sabre
 		{
 			Tkn tkn{};
 			tkn.kind = Tkn::KIND_EOF;
-			tkn.loc.unit = self.unit;
+			tkn.loc.file = self.unit;
 			return tkn;
 		}
 		auto tkn = self.tokens[self.it];
@@ -73,7 +73,7 @@ namespace sabre
 			unit_err(self.unit, err);
 			Tkn tkn{};
 			tkn.kind = Tkn::KIND_EOF;
-			tkn.loc.unit = self.unit;
+			tkn.loc.file = self.unit;
 			return tkn;
 		}
 
@@ -147,7 +147,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		else
 		{
@@ -205,7 +205,7 @@ namespace sabre
 			{
 				expr->loc.pos = tkn.loc.pos;
 				expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-				expr->loc.unit = self.unit;
+				expr->loc.file = self.unit;
 			}
 		}
 
@@ -213,7 +213,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -238,7 +238,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -255,7 +255,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -280,14 +280,14 @@ namespace sabre
 			expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 
 		if (expr != nullptr)
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -312,14 +312,14 @@ namespace sabre
 			expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 
 		if (expr != nullptr)
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -350,7 +350,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -377,7 +377,7 @@ namespace sabre
 				expr = expr_binary_new(self.unit->ast_arena, expr, tkn, rhs);
 				expr->loc.pos = tkn.loc.pos;
 				expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-				expr->loc.unit = self.unit;
+				expr->loc.file = self.unit;
 			}
 			else
 			{
@@ -389,7 +389,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -425,7 +425,7 @@ namespace sabre
 		{
 			expr->loc.pos = tkn.loc.pos;
 			expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			expr->loc.unit = self.unit;
+			expr->loc.file = self.unit;
 		}
 		return expr;
 	}
@@ -661,7 +661,7 @@ namespace sabre
 				return nullptr;
 			decl->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 			decl->loc.pos = tkn.loc.pos;
-			decl->loc.unit = self.unit;
+			decl->loc.file = self.unit;
 			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else
@@ -697,7 +697,7 @@ namespace sabre
 		{
 			res->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 			res->loc.pos = tkn.loc.pos;
-			res->loc.unit = self.unit;
+			res->loc.file = self.unit;
 		}
 		return res;
 	}
@@ -903,7 +903,7 @@ namespace sabre
 		{
 			res->loc.pos = tkn.loc.pos;
 			res->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-			res->loc.unit = self.unit;
+			res->loc.file = self.unit;
 		}
 		return res;
 	}

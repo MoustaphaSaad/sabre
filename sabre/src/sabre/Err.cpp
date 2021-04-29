@@ -13,7 +13,7 @@ namespace sabre
 
 		if (err.loc.pos.line > 0)
 		{
-			auto l = err.loc.unit->lines[err.loc.pos.line - 1];
+			auto l = err.loc.file->lines[err.loc.pos.line - 1];
 			if (err.loc.rng.end - err.loc.rng.begin > 0)
 			{
 				auto line_str = mn::str_from_substr(l.begin, l.end, mn::memory::tmp());
@@ -40,17 +40,17 @@ namespace sabre
 					}
 				}
 				mn::print_to(out, "\n");
-				mn::print_to(out, "Error[{}:{}:{}]: {}", err.loc.unit->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
+				mn::print_to(out, "Error[{}:{}:{}]: {}", err.loc.file->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
 			}
 			else
 			{
-				mn::print_to(out, "Error[{}:{}:{}]: {}", err.loc.unit->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
+				mn::print_to(out, "Error[{}:{}:{}]: {}", err.loc.file->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
 			}
 		}
 		else
 		{
-			if (err.loc.unit != nullptr)
-				mn::print_to(out, "Error[{}]: {}", err.loc.unit->filepath, err.msg);
+			if (err.loc.file != nullptr)
+				mn::print_to(out, "Error[{}]: {}", err.loc.file->filepath, err.msg);
 			else
 				mn::print_to(out, "Error: {}", err.msg);
 		}

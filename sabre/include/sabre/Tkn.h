@@ -22,7 +22,7 @@ namespace sabre
 	{
 		Pos pos;
 		Rng rng;
-		Unit_File* unit;
+		Unit_File* file;
 	};
 
 	struct Tkn
