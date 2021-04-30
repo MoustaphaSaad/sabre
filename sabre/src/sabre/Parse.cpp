@@ -846,6 +846,19 @@ namespace sabre
 		auto name = _parser_eat_must(self, Tkn::KIND_ID);
 		auto path = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
 
+		// TODO(Moustapha): unescape the string
+		auto package_path = mn::str_from_c(path.str, mn::memory::tmp());
+		mn::str_trim(package_path, "\"");
+
+		auto [package, resolve_err] = unit_file_resolve_package(self.unit, package_path, name);
+		if (resolve_err)
+		{
+			Err err{};
+			err.loc = path.loc;
+			err.msg = mn::strf("import failed because {}", resolve_err);
+			unit_err(self.unit, err);
+		}
+
 		return decl_import_new(self.unit->ast_arena, path, name);
 	}
 

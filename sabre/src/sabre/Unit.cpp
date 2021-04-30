@@ -100,10 +100,10 @@ namespace sabre
 		auto old_pwd = mn::path_current(mn::memory::tmp());
 		mn_defer(mn::path_current_change(old_pwd));
 
-		auto file_dir = mn::file_directory(self->absolute_path);
+		auto file_dir = mn::file_directory(self->absolute_path, mn::memory::tmp());
 		mn::path_current_change(file_dir);
 
-		auto absolute_path = mn::path_absolute(path);
+		auto absolute_path = mn::path_absolute(path, mn::memory::tmp());
 
 		return unit_package_resolve_package(self->parent_package, absolute_path, name);
 	}
@@ -272,13 +272,22 @@ namespace sabre
 	unit_parse(Unit* self)
 	{
 		bool has_errors = false;
-		for (auto package: self->packages)
+		for (size_t i = 0; i < self->packages.count; ++i)
 		{
+			auto package = self->packages[i];
+
 			package->state = Unit_Package::STATE_RESOLVING;
 			if (unit_package_parse(package) == false)
 				has_errors = true;
-			package->state = Unit_Package::STATE_RESOLVED;
+
+			for (auto [_, imported_package]: package->imported_packages)
+			{
+				unit_package_scan(imported_package);
+				unit_package_parse(imported_package);
+			}
 		}
+		for (auto package: self->packages)
+			package->state = Unit_Package::STATE_RESOLVED;
 		return has_errors == false;
 	}
 
@@ -286,15 +295,6 @@ namespace sabre
 	unit_check(Unit* self)
 	{
 		bool has_errors = false;
-		for (auto package: self->packages)
-		{
-			if (package->stage == COMPILATION_STAGE_SCAN)
-				if (unit_package_scan(package) == false)
-					has_errors = true;
-			if (package->stage == COMPILATION_STAGE_PARSE)
-				if (unit_package_parse(package) == false)
-					has_errors = true;
-		}
 		for (auto package: self->packages)
 			if (unit_package_check(package) == false)
 				has_errors = true;

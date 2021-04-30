@@ -135,17 +135,8 @@ namespace sabre
 			mn::str_trim(package_path, "\"");
 
 			auto [package, resolve_err] = unit_file_resolve_package(file, package_path, decl->import_decl.name);
-			if (resolve_err)
-			{
-				Err err{};
-				err.loc = decl->import_decl.path.loc;
-				err.msg = mn::strf("import failed because {}", resolve_err);
-				unit_err(self.unit, err);
-			}
-			else
-			{
+			if (resolve_err == false)
 				_typer_add_symbol(self, symbol_package_new(self.unit->symbols_arena, decl->name, decl, package));
-			}
 			break;
 		}
 		default:
@@ -463,8 +454,6 @@ namespace sabre
 			}
 
 			auto package = type->package_type.package;
-			unit_package_check(package);
-
 			auto symbol = scope_shallow_find(package->global_scope, e->dot.rhs->atom.str);
 			if (symbol == nullptr)
 			{
@@ -474,7 +463,6 @@ namespace sabre
 				unit_err(self.unit, err);
 				return type_void;
 			}
-
 			_typer_resolve_symbol(self, symbol);
 			return symbol->type;
 		}
@@ -1120,7 +1108,10 @@ namespace sabre
 			break;
 		case Symbol::KIND_VAR:
 		case Symbol::KIND_CONST:
+			// do nothing
+			break;
 		case Symbol::KIND_PACKAGE:
+			unit_package_check(sym->package_sym.package);
 			// do nothing
 			break;
 		case Symbol::KIND_STRUCT:

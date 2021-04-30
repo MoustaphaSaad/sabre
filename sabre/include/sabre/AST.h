@@ -506,7 +506,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Decl>(arena);
 		self->kind = Decl::KIND_IMPORT;
-		self->name = path;
+		self->name = name;
 		self->import_decl.path = path;
 		self->import_decl.name = name;
 		return self;

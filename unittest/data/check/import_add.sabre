@@ -1,5 +1,0 @@
-import libadd "add_func.sabre"
-
-func foo(x, y: int): int {
-	return libadd.add(x, y);
-}
