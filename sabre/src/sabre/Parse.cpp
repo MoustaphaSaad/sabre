@@ -843,12 +843,10 @@ namespace sabre
 	_parser_parse_decl_import(Parser& self)
 	{
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_IMPORT);
-		Tkn optional_name{};
-		if (_parser_look_kind(self, Tkn::KIND_ID))
-			optional_name = _parser_eat(self);
+		auto name = _parser_eat_must(self, Tkn::KIND_ID);
 		auto path = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
 
-		return decl_import_new(self.unit->ast_arena, path, optional_name);
+		return decl_import_new(self.unit->ast_arena, path, name);
 	}
 
 	// API

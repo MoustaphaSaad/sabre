@@ -94,7 +94,7 @@ namespace sabre
 	_typer_resolve_expr(Typer& self, Expr* e);
 
 	inline static void
-	_typer_shallow_process_decl(Typer& self, Decl* decl)
+	_typer_shallow_process_decl(Typer& self, Unit_File* file, Decl* decl)
 	{
 		switch (decl->kind)
 		{
@@ -128,6 +128,26 @@ namespace sabre
 		case Decl::KIND_STRUCT:
 			_typer_add_symbol(self, symbol_struct_new(self.unit->symbols_arena, decl->name, decl));
 			break;
+		case Decl::KIND_IMPORT:
+		{
+			// TODO(Moustapha): unescape the string
+			auto package_path = mn::str_from_c(decl->import_decl.path.str, mn::memory::tmp());
+			mn::str_trim(package_path, "\"");
+
+			auto [package, resolve_err] = unit_file_resolve_package(file, package_path, decl->import_decl.name);
+			if (resolve_err)
+			{
+				Err err{};
+				err.loc = decl->import_decl.path.loc;
+				err.msg = mn::strf("import failed because {}", resolve_err);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				_typer_add_symbol(self, symbol_package_new(self.unit->symbols_arena, decl->name, decl, package));
+			}
+			break;
+		}
 		default:
 			assert(false && "unreachable");
 			break;
@@ -430,6 +450,33 @@ namespace sabre
 			}
 
 			return type->struct_type.fields[it->value].type;
+		}
+		else if (type->kind == Type::KIND_PACKAGE)
+		{
+			if (e->dot.rhs->kind != Expr::KIND_ATOM)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("unknown structure field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			auto package = type->package_type.package;
+			unit_package_check(package);
+
+			auto symbol = scope_shallow_find(package->global_scope, e->dot.rhs->atom.str);
+			if (symbol == nullptr)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("undefined symbol");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			_typer_resolve_symbol(self, symbol);
+			return symbol->type;
 		}
 		else
 		{
@@ -1057,6 +1104,9 @@ namespace sabre
 		case Symbol::KIND_STRUCT:
 			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
 			break;
+		case Symbol::KIND_PACKAGE:
+			sym->type = type_interner_package(self.unit->parent_unit->type_interner, sym->package_sym.package);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -1070,6 +1120,7 @@ namespace sabre
 			break;
 		case Symbol::KIND_VAR:
 		case Symbol::KIND_CONST:
+		case Symbol::KIND_PACKAGE:
 			// do nothing
 			break;
 		case Symbol::KIND_STRUCT:
@@ -1092,7 +1143,7 @@ namespace sabre
 	{
 		for (auto file: self.unit->files)
 			for (auto decl: file->decls)
-				_typer_shallow_process_decl(self, decl);
+				_typer_shallow_process_decl(self, file, decl);
 
 		for (auto sym: self.global_scope->symbols)
 		{

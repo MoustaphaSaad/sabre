@@ -447,8 +447,7 @@ namespace sabre
 			struct
 			{
 				Tkn path;
-				Tkn optional_name;
-				const char* package_name;
+				Tkn name;
 			} import_decl;
 		};
 	};
@@ -503,13 +502,13 @@ namespace sabre
 
 	// creates a new import declaration
 	inline static Decl*
-	decl_import_new(mn::Allocator arena, Tkn path, Tkn optional_name)
+	decl_import_new(mn::Allocator arena, Tkn path, Tkn name)
 	{
 		auto self = mn::alloc_zerod_from<Decl>(arena);
 		self->kind = Decl::KIND_IMPORT;
 		self->name = path;
 		self->import_decl.path = path;
-		self->import_decl.optional_name = optional_name;
+		self->import_decl.name = name;
 		return self;
 	}
 }

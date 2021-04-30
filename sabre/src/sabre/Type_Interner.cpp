@@ -89,6 +89,7 @@ namespace sabre
 	{
 		mn::allocator_free(self.arena);
 		destruct(self.func_table);
+		mn::map_free(self.package_table);
 	}
 
 	Type*
@@ -123,5 +124,17 @@ namespace sabre
 		type->kind = Type::KIND_STRUCT;
 		type->struct_type.fields = fields;
 		type->struct_type.fields_by_name = fields_table;
+	}
+
+	Type*
+	type_interner_package(Type_Interner& self, Unit_Package* package)
+	{
+		if (auto it = mn::map_lookup(self.package_table, package))
+			return it->value;
+		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		new_type->kind = Type::KIND_PACKAGE;
+		new_type->package_type.package = package;
+		mn::map_insert(self.package_table, package, new_type);
+		return new_type;
 	}
 }
