@@ -13,6 +13,7 @@ namespace sabre
 {
 	struct Type;
 	struct Symbol;
+	struct Unit_Package;
 
 	// describes a function signature
 	struct Func_Sign
@@ -96,6 +97,7 @@ namespace sabre
 			KIND_VEC,
 			KIND_FUNC,
 			KIND_STRUCT,
+			KIND_PACKAGE,
 		};
 
 		KIND kind;
@@ -114,6 +116,11 @@ namespace sabre
 				mn::Buf<Field_Type> fields;
 				mn::Map<const char*, size_t> fields_by_name;
 			} struct_type;
+
+			struct
+			{
+				Unit_Package* package;
+			} package_type;
 		};
 	};
 
@@ -304,6 +311,7 @@ namespace sabre
 	{
 		mn::memory::Arena* arena;
 		mn::Map<Func_Sign, Type*, Func_Sign_Hasher> func_table;
+		mn::Map<Unit_Package*, Type*> package_table;
 	};
 
 	// creates a new type interner
@@ -332,6 +340,10 @@ namespace sabre
 	SABRE_EXPORT void
 	type_interner_complete(Type_Interner& self, Type* type, mn::Buf<Field_Type> fields, mn::Map<const char*, size_t> fields_table);
 
+	// creates a new package type
+	SABRE_EXPORT Type*
+	type_interner_package(Type_Interner& self, Unit_Package* package);
+
 	// represents a symbol in the code
 	struct Symbol
 	{
@@ -341,6 +353,7 @@ namespace sabre
 			KIND_VAR,
 			KIND_FUNC,
 			KIND_STRUCT,
+			KIND_PACKAGE,
 		};
 
 		enum STATE
@@ -384,6 +397,13 @@ namespace sabre
 				Decl* decl;
 				Tkn name;
 			} struct_sym;
+
+			struct
+			{
+				Decl* decl;
+				Tkn name;
+				Unit_Package* package;
+			} package_sym;
 		};
 	};
 
@@ -447,6 +467,21 @@ namespace sabre
 		return self;
 	}
 
+	// creates a new symbol for package declaration
+	inline static Symbol*
+	symbol_package_new(mn::Allocator arena, Tkn name, Decl* decl, Unit_Package* package)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_PACKAGE;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->package_sym.decl = decl;
+		self->package_sym.name = name;
+		self->package_sym.package = package;
+		return self;
+	}
+
 	// given a symbols it will return its location in compilation unit
 	inline static Location
 	symbol_location(const Symbol* self)
@@ -461,6 +496,8 @@ namespace sabre
 			return self->func_sym.decl->loc;
 		case Symbol::KIND_STRUCT:
 			return self->struct_sym.decl->loc;
+		case Symbol::KIND_PACKAGE:
+			return self->package_sym.decl->loc;
 		default:
 			assert(false && "unreachable");
 			return Location{};

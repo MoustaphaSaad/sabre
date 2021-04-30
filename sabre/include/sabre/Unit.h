@@ -9,6 +9,7 @@
 #include <mn/Buf.h>
 #include <mn/Str_Intern.h>
 #include <mn/Map.h>
+#include <mn/Result.h>
 
 namespace sabre
 {
@@ -16,6 +17,16 @@ namespace sabre
 	struct Unit_File;
 	struct Unit_Package;
 	struct Unit;
+
+	enum COMPILATION_STAGE
+	{
+		COMPILATION_STAGE_NONE,
+		COMPILATION_STAGE_FAILED,
+		COMPILATION_STAGE_SCAN,
+		COMPILATION_STAGE_PARSE,
+		COMPILATION_STAGE_CHECK,
+		COMPILATION_STAGE_CODEGEN,
+	};
 
 	// represents a file compilation unit
 	struct Unit_File
@@ -93,9 +104,25 @@ namespace sabre
 		return false;
 	}
 
+	// processes the package given its path
+	SABRE_EXPORT mn::Result<Unit_Package*>
+	unit_file_resolve_package(Unit_File* self, const mn::Str& path, Tkn name);
+
 	// represents a package compilation unit
 	struct Unit_Package
 	{
+		enum STATE
+		{
+			// resolved = parsed
+			STATE_UNRESOLVED,
+			STATE_RESOLVING,
+			STATE_RESOLVED
+		};
+
+		// state of the given package, useful to detect cyclic imports
+		STATE state;
+		// stage which this package is currently in, scan, parse, check, etc...
+		COMPILATION_STAGE stage;
 		// parent compilation which this package belongs to
 		Unit* parent_unit;
 		// absolute path of this package
@@ -113,6 +140,8 @@ namespace sabre
 		mn::memory::Arena* symbols_arena;
 		// global scope of the unit
 		Scope* global_scope;
+		// maps from package name (user defined) to package pointer
+		mn::Map<const char*, Unit_Package*> imported_packages;
 	};
 
 	// creates a new package compilation unit
@@ -181,6 +210,10 @@ namespace sabre
 				return true;
 		return false;
 	}
+
+	// processes the package given its path
+	SABRE_EXPORT mn::Result<Unit_Package*>
+	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path, Tkn name);
 
 	struct Unit
 	{
@@ -306,4 +339,8 @@ namespace sabre
 				return true;
 		return false;
 	}
+
+	// processes the package given its path and either returns an error or the package name
+	SABRE_EXPORT mn::Result<Unit_Package*>
+	unit_resolve_package(Unit* self, const mn::Str& absolute_path);
 }

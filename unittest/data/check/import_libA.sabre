@@ -1,0 +1,5 @@
+import libB "import_libB.sabre"
+
+func foo(x, y: int): int {
+	return libB.sub(x, y);
+}

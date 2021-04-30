@@ -843,12 +843,23 @@ namespace sabre
 	_parser_parse_decl_import(Parser& self)
 	{
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_IMPORT);
-		Tkn optional_name{};
-		if (_parser_look_kind(self, Tkn::KIND_ID))
-			optional_name = _parser_eat(self);
+		auto name = _parser_eat_must(self, Tkn::KIND_ID);
 		auto path = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
 
-		return decl_import_new(self.unit->ast_arena, path, optional_name);
+		// TODO(Moustapha): unescape the string
+		auto package_path = mn::str_from_c(path.str, mn::memory::tmp());
+		mn::str_trim(package_path, "\"");
+
+		auto [package, resolve_err] = unit_file_resolve_package(self.unit, package_path, name);
+		if (resolve_err)
+		{
+			Err err{};
+			err.loc = path.loc;
+			err.msg = mn::strf("import failed because {}", resolve_err);
+			unit_err(self.unit, err);
+		}
+
+		return decl_import_new(self.unit->ast_arena, path, name);
 	}
 
 	// API

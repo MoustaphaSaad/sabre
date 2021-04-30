@@ -94,10 +94,25 @@ namespace sabre
 			err_dump(err, out);
 	}
 
+	mn::Result<Unit_Package*>
+	unit_file_resolve_package(Unit_File* self, const mn::Str& path, Tkn name)
+	{
+		auto old_pwd = mn::path_current(mn::memory::tmp());
+		mn_defer(mn::path_current_change(old_pwd));
+
+		auto file_dir = mn::file_directory(self->absolute_path, mn::memory::tmp());
+		mn::path_current_change(file_dir);
+
+		auto absolute_path = mn::path_absolute(path, mn::memory::tmp());
+
+		return unit_package_resolve_package(self->parent_package, absolute_path, name);
+	}
+
 	Unit_Package*
 	unit_package_new()
 	{
 		auto self = mn::alloc_zerod<Unit_Package>();
+		self->stage = COMPILATION_STAGE_SCAN;
 		self->symbols_arena = mn::allocator_arena_new();
 		self->global_scope = scope_new(nullptr, "global", nullptr, Scope::FLAG_NONE);
 		return self;
@@ -118,6 +133,7 @@ namespace sabre
 		mn::buf_free(self->reachable_symbols);
 		mn::allocator_free(self->symbols_arena);
 		scope_free(self->global_scope);
+		mn::map_free(self->imported_packages);
 		mn::free(self);
 	}
 
@@ -125,9 +141,17 @@ namespace sabre
 	unit_package_scan(Unit_Package* self)
 	{
 		bool has_errors = false;
-		for (auto file: self->files)
-			if (unit_file_scan(file) == false)
-				has_errors = true;
+		if (self->stage == COMPILATION_STAGE_SCAN)
+		{
+			for (auto file: self->files)
+				if (unit_file_scan(file) == false)
+					has_errors = true;
+
+			if (has_errors)
+				self->stage = COMPILATION_STAGE_FAILED;
+			else
+				self->stage = COMPILATION_STAGE_PARSE;
+		}
 		return has_errors == false;
 	}
 
@@ -135,19 +159,40 @@ namespace sabre
 	unit_package_parse(Unit_Package* self)
 	{
 		bool has_errors = false;
-		for (auto file: self->files)
-			if (unit_file_parse(file) == false)
-				has_errors = true;
+		if (self->stage == COMPILATION_STAGE_PARSE)
+		{
+			for (auto file: self->files)
+				if (unit_file_parse(file) == false)
+					has_errors = true;
+
+			if (has_errors)
+				self->stage = COMPILATION_STAGE_FAILED;
+			else
+				self->stage = COMPILATION_STAGE_CHECK;
+		}
 		return has_errors == false;
 	}
 
 	bool
 	unit_package_check(Unit_Package* self)
 	{
-		auto typer = typer_new(self);
-		mn_defer(typer_free(typer));
-		typer_check(typer);
-		return self->errs.count == 0;
+		bool has_errors = false;
+		if (self->stage == COMPILATION_STAGE_CHECK)
+		{
+			auto typer = typer_new(self);
+			mn_defer(typer_free(typer));
+			typer_check(typer);
+			if (unit_package_has_errors(self))
+			{
+				has_errors = true;
+				self->stage = COMPILATION_STAGE_FAILED;
+			}
+			else
+			{
+				self->stage = COMPILATION_STAGE_CODEGEN;
+			}
+		}
+		return has_errors == false;
 	}
 
 	void
@@ -164,6 +209,18 @@ namespace sabre
 			unit_file_dump_errors(file, out);
 		for (auto err: self->errs)
 			err_dump(err, out);
+	}
+
+	mn::Result<Unit_Package*>
+	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path, Tkn name)
+	{
+		auto [package, err] = unit_resolve_package(self->parent_unit, absolute_path);
+		if (err == false)
+		{
+			mn::map_insert(self->imported_packages, name.str, package);
+			return package;
+		}
+		return err;
 	}
 
 	Unit*
@@ -215,9 +272,22 @@ namespace sabre
 	unit_parse(Unit* self)
 	{
 		bool has_errors = false;
-		for (auto package: self->packages)
+		for (size_t i = 0; i < self->packages.count; ++i)
+		{
+			auto package = self->packages[i];
+
+			package->state = Unit_Package::STATE_RESOLVING;
 			if (unit_package_parse(package) == false)
 				has_errors = true;
+
+			for (auto [_, imported_package]: package->imported_packages)
+			{
+				unit_package_scan(imported_package);
+				unit_package_parse(imported_package);
+			}
+		}
+		for (auto package: self->packages)
+			package->state = Unit_Package::STATE_RESOLVED;
 		return has_errors == false;
 	}
 
@@ -263,5 +333,36 @@ namespace sabre
 		auto new_scope = scope_new(parent, name, expected_type, flags);
 		mn::map_insert(self->scope_table, ptr, new_scope);
 		return new_scope;
+	}
+
+	mn::Result<Unit_Package*>
+	unit_resolve_package(Unit* self, const mn::Str& absolute_path)
+	{
+		if (mn::path_exists(absolute_path) == false)
+			return mn::Err{ "package path '{}' does not exist", absolute_path };
+
+		if (mn::path_is_folder(absolute_path))
+		{
+			return mn::Err { "folder packages are not supported" };
+		}
+		else
+		{
+			if (auto it = mn::map_lookup(self->absolute_path_to_package, absolute_path))
+			{
+				auto package = it->value;
+				if (package->state == Unit_Package::STATE_RESOLVING)
+				{
+					return mn::Err { "cyclic import of package '{}'", absolute_path };
+				}
+				return package;
+			}
+
+			auto file = unit_file_from_path(absolute_path);
+			auto package = unit_package_new();
+			package->absolute_path = clone(absolute_path);
+			unit_package_add_file(package, file);
+			unit_add_package(self, package);
+			return package;
+		}
 	}
 }

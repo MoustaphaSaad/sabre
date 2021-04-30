@@ -515,8 +515,8 @@ namespace sabre
 			break;
 		case Decl::KIND_IMPORT:
 			mn::print_to(self.out, "(import ");
-			if (decl->import_decl.optional_name)
-				mn::print_to(self.out, "{} ", decl->import_decl.optional_name.str);
+			if (decl->import_decl.name)
+				mn::print_to(self.out, "{} ", decl->import_decl.name.str);
 			mn::print_to(self.out, "\"{}\"", decl->import_decl.path.str);
 			mn::print_to(self.out, ")");
 			break;
