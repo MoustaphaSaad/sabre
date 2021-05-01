@@ -18,17 +18,23 @@ namespace sabre
 		KIND kind;
 		union
 		{
-			Tkn named;
+			struct
+			{
+				Tkn type_name;
+				// optional, used in case we reference types from imported packages
+				Tkn package_name;
+			} named;
 		};
 	};
 
 	// creates a new type sign atom with the given token
 	inline static Type_Sign_Atom
-	type_sign_atom_named(Tkn tkn)
+	type_sign_atom_named(Tkn type_name, Tkn package_name)
 	{
 		Type_Sign_Atom self{};
 		self.kind = Type_Sign_Atom::KIND_NAMED;
-		self.named = tkn;
+		self.named.type_name = type_name;
+		self.named.package_name = package_name;
 		return self;
 	}
 
@@ -64,11 +70,11 @@ namespace sabre
 			assert(atom.kind == Type_Sign_Atom::KIND_NAMED);
 			if (res.file == nullptr)
 			{
-				res = atom.named.loc;
+				res = atom.named.type_name.loc;
 			}
 			else
 			{
-				res.rng.end = atom.named.loc.rng.end;
+				res.rng.end = atom.named.type_name.loc.rng.end;
 			}
 		}
 		return res;

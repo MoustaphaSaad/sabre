@@ -96,8 +96,22 @@ namespace sabre
 			auto tkn = _parser_look(self);
 			if (tkn.kind == Tkn::KIND_ID)
 			{
+				Tkn package_name{};
+				Tkn type_name{};
+
+				package_name = _parser_eat(self);
+				if (_parser_look_kind(self, Tkn::KIND_DOT))
+				{
+					_parser_eat(self);
+					type_name = _parser_eat_must(self, Tkn::KIND_ID);
+				}
+				else
+				{
+					type_name = package_name;
+					package_name = Tkn{};
+				}
 				// if we end up with a named type signature token this means that we finished the type signature parsing
-				type_sign_push(type, type_sign_atom_named(_parser_eat(self)));
+				type_sign_push(type, type_sign_atom_named(type_name, package_name));
 				break;
 			}
 			else

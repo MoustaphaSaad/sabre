@@ -36,7 +36,9 @@ namespace sabre
 			switch (atom.kind)
 			{
 			case Type_Sign_Atom::KIND_NAMED:
-				mn::print_to(self.out, "{}", atom.named.str);
+				if (atom.named.package_name)
+					mn::print_to(self.out, "{}.", atom.named.package_name.str);
+				mn::print_to(self.out, "{}", atom.named.type_name.str);
 				break;
 			default:
 				assert(false && "unsupported type sign atom type");

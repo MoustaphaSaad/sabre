@@ -155,21 +155,61 @@ namespace sabre
 			switch (atom.kind)
 			{
 			case Type_Sign_Atom::KIND_NAMED:
-				// this maybe a basic type
-				res = type_from_name(atom.named);
-				if (type_is_equal(res, type_void))
+				// type from imported package
+				if (atom.named.package_name)
 				{
-					if (auto symbol = _typer_find_symbol(self, atom.named.str))
-					{
-						_typer_resolve_symbol(self, symbol);
-						res = symbol->type;
-					}
-					else
+					// package sym
+					auto package_sym = _typer_find_symbol(self, atom.named.package_name.str);
+					if (package_sym == nullptr)
 					{
 						Err err{};
-						err.loc = atom.named.loc;
-						err.msg = mn::strf("'{}' undefined symbol", atom.named.str);
+						err.loc = atom.named.package_name.loc;
+						err.msg = mn::strf("'{}' undefined symbol", atom.named.package_name.str);
 						unit_err(self.unit, err);
+						break;
+					}
+
+					if (package_sym->kind != Symbol::KIND_PACKAGE)
+					{
+						Err err{};
+						err.loc = atom.named.package_name.loc;
+						err.msg = mn::strf("'{}' is not an imported package", atom.named.package_name.str);
+						unit_err(self.unit, err);
+						break;
+					}
+
+					auto package = package_sym->package_sym.package;
+					auto type_symbol = scope_shallow_find(package->global_scope, atom.named.type_name.str);
+					if (type_symbol == nullptr)
+					{
+						Err err{};
+						err.loc = atom.named.type_name.loc;
+						err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
+						unit_err(self.unit, err);
+						break;
+					}
+
+					_typer_resolve_symbol(self, type_symbol);
+					res = type_symbol->type;
+				}
+				else
+				{
+					// this maybe a basic type
+					res = type_from_name(atom.named.type_name);
+					if (type_is_equal(res, type_void))
+					{
+						if (auto symbol = _typer_find_symbol(self, atom.named.type_name.str))
+						{
+							_typer_resolve_symbol(self, symbol);
+							res = symbol->type;
+						}
+						else
+						{
+							Err err{};
+							err.loc = atom.named.type_name.loc;
+							err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
+							unit_err(self.unit, err);
+						}
 					}
 				}
 				break;

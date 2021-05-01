@@ -1,5 +1,12 @@
 import libB "import_libB.sabre"
+import libC "import_libC.sabre"
 
 func foo(x, y: int): int {
 	return libB.sub(x, y);
+}
+
+func add(a, b: libC.Point): libC.Point {
+	var res: libC.Point;
+	res.p = a.p + b.p;
+	return res;
 }
