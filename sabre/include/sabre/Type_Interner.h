@@ -669,6 +669,26 @@ namespace fmt
 			{
 				return format_to(ctx.out(), "dvec4");
 			}
+			else if (t->kind == sabre::Type::KIND_FUNC)
+			{
+				format_to(ctx.out(), "func(");
+				for (size_t i = 0; i < t->func.args.count; ++i)
+				{
+					if (i > 0)
+						format_to(ctx.out(), ", ");
+					format_to(ctx.out(), ":{}", t->func.args[i]);
+				}
+				format_to(ctx.out(), "):{}", t->func.return_type);
+				return ctx.out();
+			}
+			else if (t->kind == sabre::Type::KIND_STRUCT)
+			{
+				return format_to(ctx.out(), "struct {}", t->struct_type.symbol->name);
+			}
+			else if (t->kind == sabre::Type::KIND_PACKAGE)
+			{
+				return format_to(ctx.out(), "package '{}'", t->package_type.package->absolute_path);
+			}
 			else
 			{
 				assert(false && "unreachable");
