@@ -15,21 +15,72 @@ namespace sabre
 	struct Symbol;
 	struct Unit_Package;
 
+	// describes a function argument signature
+	struct Func_Args_Sign
+	{
+		mn::Buf<Type*> types;
+
+		bool
+		operator==(const Func_Args_Sign& other) const
+		{
+			if (types.count != other.types.count)
+				return false;
+
+			for (size_t i = 0; i < types.count; ++i)
+				if (types[i] != other.types[i])
+					return false;
+
+			return true;
+		}
+
+		bool
+		operator!=(const Func_Args_Sign& other) const
+		{
+			return !operator==(other);
+		}
+	};
+
+	// creates a new function arguments signature
+	inline static Func_Args_Sign
+	func_args_sign_new()
+	{
+		return Func_Args_Sign{};
+	}
+
+	// frees the given function arguments signature
+	inline static void
+	func_args_sign_free(Func_Args_Sign& self)
+	{
+		mn::buf_free(self.types);
+	}
+
+	inline static void
+	destruct(Func_Args_Sign& self)
+	{
+		func_args_sign_free(self);
+	}
+
+	// used to hash a function arguments signature
+	struct Func_Args_Sign_Hasher
+	{
+		inline size_t
+		operator()(const Func_Args_Sign& args) const
+		{
+			return mn::murmur_hash(block_from(args.types));
+		}
+	};
+
 	// describes a function signature
 	struct Func_Sign
 	{
-		mn::Buf<Type*> args;
+		Func_Args_Sign args;
 		Type* return_type;
 
 		bool
 		operator==(const Func_Sign& other) const
 		{
-			if (args.count != other.args.count)
+			if (args != other.args)
 				return false;
-
-			for (size_t i = 0; i < args.count; ++i)
-				if (args[i] != other.args[i])
-					return false;
 
 			if (return_type != other.return_type)
 				return false;
@@ -55,7 +106,7 @@ namespace sabre
 	inline static void
 	func_sign_free(Func_Sign& self)
 	{
-		mn::buf_free(self.args);
+		func_args_sign_free(self.args);
 	}
 
 	inline static void
@@ -70,13 +121,20 @@ namespace sabre
 		inline size_t
 		operator()(const Func_Sign& sign) const
 		{
-			return mn::hash_mix(mn::murmur_hash(block_from(sign.args)), mn::Hash<Type*>()(sign.return_type));
+			auto args_hash = Func_Args_Sign_Hasher{}(sign.args);
+			return mn::hash_mix(args_hash, mn::Hash<Type*>()(sign.return_type));
 		}
 	};
 
 	struct Field_Type
 	{
 		Tkn name;
+		Type* type;
+	};
+
+	struct Overload_Entry
+	{
+		Location loc;
 		Type* type;
 	};
 
@@ -98,6 +156,7 @@ namespace sabre
 			KIND_FUNC,
 			KIND_STRUCT,
 			KIND_PACKAGE,
+			KIND_FUNC_OVERLOAD_SET,
 		};
 
 		KIND kind;
@@ -121,6 +180,12 @@ namespace sabre
 			{
 				Unit_Package* package;
 			} package_type;
+
+			struct
+			{
+				Symbol* symbol;
+				mn::Map<Func_Args_Sign, Overload_Entry, Func_Args_Sign_Hasher> overloads;
+			} func_overload_set_type;
 		};
 	};
 
@@ -222,7 +287,10 @@ namespace sabre
 	inline static bool
 	type_is_func(Type* a)
 	{
-		return a->kind == Type::KIND_FUNC;
+		return (
+			a->kind == Type::KIND_FUNC ||
+			a->kind == Type::KIND_FUNC_OVERLOAD_SET
+		);
 	}
 
 	// returns whether a type has a boolean behavior
@@ -344,6 +412,10 @@ namespace sabre
 	SABRE_EXPORT Type*
 	type_interner_package(Type_Interner& self, Unit_Package* package);
 
+	// creates a new overload set type
+	SABRE_EXPORT Type*
+	type_interner_overload_set(Type_Interner& self, Symbol* symbol);
+
 	// represents a symbol in the code
 	struct Symbol
 	{
@@ -354,6 +426,7 @@ namespace sabre
 			KIND_FUNC,
 			KIND_STRUCT,
 			KIND_PACKAGE,
+			KIND_FUNC_OVERLOAD_SET,
 		};
 
 		enum STATE
@@ -404,6 +477,11 @@ namespace sabre
 				Tkn name;
 				Unit_Package* package;
 			} package_sym;
+
+			struct
+			{
+				mn::Set<Decl*> decls;
+			} func_overload_set_sym;
 		};
 	};
 
@@ -479,6 +557,22 @@ namespace sabre
 		self->package_sym.decl = decl;
 		self->package_sym.name = name;
 		self->package_sym.package = package;
+		return self;
+	}
+
+	// creates a new symbol for function overload set given a function
+	inline static Symbol*
+	symbol_func_overload_set_new(mn::Allocator arena, Symbol* func)
+	{
+		auto func_decl = func->func_sym.decl;
+		auto func_name = func->func_sym.name;
+
+		auto self = func;
+		self->kind = Symbol::KIND_FUNC_OVERLOAD_SET;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->func_overload_set_sym.decls = mn::set_with_allocator<Decl*>(arena);
+		mn::set_insert(self->func_overload_set_sym.decls, func_decl);
 		return self;
 	}
 
@@ -672,11 +766,11 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_FUNC)
 			{
 				format_to(ctx.out(), "func(");
-				for (size_t i = 0; i < t->func.args.count; ++i)
+				for (size_t i = 0; i < t->func.args.types.count; ++i)
 				{
 					if (i > 0)
 						format_to(ctx.out(), ", ");
-					format_to(ctx.out(), ":{}", t->func.args[i]);
+					format_to(ctx.out(), ":{}", t->func.args.types[i]);
 				}
 				format_to(ctx.out(), "):{}", t->func.return_type);
 				return ctx.out();
@@ -688,6 +782,24 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_PACKAGE)
 			{
 				return format_to(ctx.out(), "package '{}'", t->package_type.package->absolute_path);
+			}
+			else if (t->kind == sabre::Type::KIND_FUNC_OVERLOAD_SET)
+			{
+				size_t overload_i = 0;
+				for (auto [_, overload]: t->func_overload_set_type.overloads)
+				{
+					if (overload_i > 0)
+						format_to(ctx.out(), "\n");
+					format_to(ctx.out(), "{}. func(", overload_i++);
+					for (size_t i = 0; i < overload.type->func.args.types.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), ":{}", overload.type->func.args.types[i]);
+					}
+					format_to(ctx.out(), "):{}", overload.type->func.return_type);
+				}
+				return ctx.out();
 			}
 			else
 			{

@@ -1,0 +1,11 @@
+>> func add(a, b: vec2): vec3 {
+>> ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error[func_overload_error.sabre:5:1]: function overload already defined func_overload_error.sabre:1:0
+>> 	return add(a.xyzw, b.zyx);
+>> 	       ^^^^^^^^^^^^^^^^^^ 
+Error[func_overload_error.sabre:14:9]: cannot find suitable function for 'func(:vec4, :vec3)' in the overload set:
+  0. func(:vec2, :vec2):vec2 defined in func_overload_error.sabre:1:0
+  1. func(:vec3, :vec3):vec3 defined in func_overload_error.sabre:9:1
+>> 	return add(a.xyzw, b.zyx);
+>> 	       ^^^^^^^^^^^^^^^^^^ 
+Error[func_overload_error.sabre:14:9]: incorrect return type 'void' expected 'vec3'

@@ -69,7 +69,6 @@ namespace sabre
 			auto old_loc = symbol_location(old_sym);
 			Err err{};
 			err.loc = symbol_location(sym);
-			err.loc = old_loc;
 			if (old_loc.pos.line > 0)
 				err.msg = mn::strf("'{}' symbol redefinition, first declared in {}:{}", sym->name, old_loc.pos.line, old_loc.pos.col);
 			else
@@ -91,7 +90,62 @@ namespace sabre
 	_typer_resolve_symbol(Typer& self, Symbol* sym);
 
 	inline static Type*
+	_typer_resolve_func_decl(Typer& self, Decl* d);
+
+	inline static Type*
 	_typer_resolve_expr(Typer& self, Expr* e);
+
+	inline static void
+	_typer_add_func_overload(Typer& self, Type* overload_set, Decl* decl)
+	{
+		Overload_Entry overload_entry{};
+		overload_entry.loc = decl->loc;
+		overload_entry.type = _typer_resolve_func_decl(self, decl);
+
+		if (auto it = mn::map_lookup(overload_set->func_overload_set_type.overloads, overload_entry.type->func.args))
+		{
+			auto old_loc = it->value.loc;
+			Err err{};
+			err.loc = decl->loc;
+			err.msg = mn::strf("function overload already defined {}:{}:{}", old_loc.file->filepath, old_loc.pos.line, old_loc.pos.col);
+			unit_err(self.unit, err);
+		}
+		else
+		{
+			mn::map_insert(overload_set->func_overload_set_type.overloads, overload_entry.type->func.args, overload_entry);
+		}
+	}
+
+	inline static Symbol*
+	_typer_add_func_symbol(Typer& self, Decl* decl)
+	{
+		assert(decl->kind == Decl::KIND_FUNC);
+
+		// try to find a symbol with the same name
+		auto sym = _typer_find_symbol(self, decl->name.str);
+		// if we didn't find any function with this name then we'll try to add a symbol
+		if (sym == nullptr || (sym->kind != Symbol::KIND_FUNC && sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET))
+			return _typer_add_symbol(self, symbol_func_new(self.unit->symbols_arena, decl->name, decl));
+
+		if (sym->kind == Symbol::KIND_FUNC)
+		{
+			// convert the function symbol to overload set
+			if (sym->func_sym.decl != decl)
+				sym = symbol_func_overload_set_new(self.unit->symbols_arena, sym);
+			else
+				return sym;
+		}
+
+		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
+		// add the function declaration to overload set
+		mn::set_insert(sym->func_overload_set_sym.decls, decl);
+		if (sym->state == Symbol::STATE_RESOLVED)
+		{
+			assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
+			_typer_add_func_overload(self, sym->type, decl);
+		}
+		return sym;
+	}
 
 	inline static void
 	_typer_shallow_process_decl(Typer& self, Unit_File* file, Decl* decl)
@@ -123,7 +177,7 @@ namespace sabre
 			}
 			break;
 		case Decl::KIND_FUNC:
-			_typer_add_symbol(self, symbol_func_new(self.unit->symbols_arena, decl->name, decl));
+			_typer_add_func_symbol(self, decl);
 			break;
 		case Decl::KIND_STRUCT:
 			_typer_add_symbol(self, symbol_struct_new(self.unit->symbols_arena, decl->name, decl));
@@ -360,28 +414,96 @@ namespace sabre
 			return type_void;
 		}
 
-		if (e->call.args.count != type->func.args.count)
+		if (type->kind == Type::KIND_FUNC)
 		{
-			Err err{};
-			err.loc = e->loc;
-			err.msg = mn::strf("function expected {} arguments, but {} were provided", type->func.args.count, e->call.args.count);
-			unit_err(self.unit, err);
-			return type->func.return_type;
-		}
-
-		for (size_t i = 0; i < e->call.args.count; ++i)
-		{
-			auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-			if (type_is_equal(arg_type, type->func.args[i]) == false)
+			if (e->call.args.count != type->func.args.types.count)
 			{
 				Err err{};
-				err.loc = e->call.args[i]->loc;
-				err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, type->func.args[i], arg_type);
+				err.loc = e->loc;
+				err.msg = mn::strf("function expected {} arguments, but {} were provided", type->func.args.types.count, e->call.args.count);
 				unit_err(self.unit, err);
+				return type->func.return_type;
+			}
+
+			for (size_t i = 0; i < e->call.args.count; ++i)
+			{
+				auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+				if (type_is_equal(arg_type, type->func.args.types[i]) == false)
+				{
+					Err err{};
+					err.loc = e->call.args[i]->loc;
+					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, type->func.args.types[i], arg_type);
+					unit_err(self.unit, err);
+				}
+			}
+
+			return type->func.return_type;
+		}
+		else if (type->kind == Type::KIND_FUNC_OVERLOAD_SET)
+		{
+			Type* res = nullptr;
+			for (auto [_, overload]: type->func_overload_set_type.overloads)
+			{
+				if (e->call.args.count != overload.type->func.args.types.count)
+					continue;
+
+				bool args_match = true;
+				for (size_t i = 0; i < e->call.args.count; ++i)
+				{
+					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+					if (type_is_equal(arg_type, overload.type->func.args.types[i]) == false)
+					{
+						args_match = false;
+						break;
+					}
+				}
+				if (args_match)
+				{
+					res = overload.type->func.return_type;
+					break;
+				}
+			}
+
+			if (res == nullptr)
+			{
+				auto msg = mn::strf("cannot find suitable function for 'func(");
+
+				for (size_t i = 0; i < e->call.args.count; ++i)
+				{
+					if (i > 0)
+						msg = mn::strf(msg, ", ");
+
+					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+					msg = mn::strf(msg, ":{}", arg_type);
+				}
+				msg = mn::strf(msg, ")' in the overload set:");
+
+				auto overload_i = 0;
+				for (auto [_, overload]: type->func_overload_set_type.overloads)
+				{
+					msg = mn::strf(
+						msg,
+						"\n  {}. {} defined in {}:{}:{}",
+						overload_i++,
+						overload.type,
+						overload.loc.file->filepath,
+						overload.loc.pos.line,
+						overload.loc.pos.col
+					);
+				}
+
+				Err err{};
+				err.loc = e->loc;
+				err.msg = msg;
+				unit_err(self.unit, err);
+				return type_void;
+			}
+			else
+			{
+				return res;
 			}
 		}
-
-		return type->func.return_type;
+		return type_void;
 	}
 
 	inline static Type*
@@ -650,19 +772,34 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_func_decl(Typer& self, Symbol* sym)
+	_typer_resolve_func_decl(Typer& self, Decl* d)
 	{
-		auto d = sym->func_sym.decl;
-
 		auto sign = func_sign_new();
 		for (auto arg: d->func_decl.args)
 		{
 			auto arg_type = _typer_resolve_type_sign(self, arg.type);
 			for (size_t i = 0; i < arg.names.count; ++i)
-				mn::buf_push(sign.args, arg_type);
+				mn::buf_push(sign.args.types, arg_type);
 		}
 		sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
 		return type_interner_func(self.unit->parent_unit->type_interner, sign);
+	}
+
+	inline static Type*
+	_typer_resolve_func_decl(Typer& self, Symbol* sym)
+	{
+		return _typer_resolve_func_decl(self, sym->func_sym.decl);
+	}
+
+	inline static Type*
+	_typer_resolve_func_overload_set(Typer& self, Symbol* sym)
+	{
+		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
+
+		auto type = type_interner_overload_set(self.unit->parent_unit->type_interner, sym);
+		for (auto decl: sym->func_overload_set_sym.decls)
+			_typer_add_func_overload(self, type, decl);
+		return type;
 	}
 
 	inline static Type*
@@ -848,7 +985,7 @@ namespace sabre
 			break;
 		case Decl::KIND_FUNC:
 		{
-			auto sym = symbol_func_new(self.unit->symbols_arena, d->name, d);
+			auto sym = _typer_add_func_symbol(self, d);
 			_typer_resolve_symbol(self, sym);
 			_typer_add_symbol(self, sym);
 			break;
@@ -1014,7 +1151,7 @@ namespace sabre
 			size_t i = 0;
 			for (auto arg: d->func_decl.args)
 			{
-				auto arg_type = sym->type->func.args[i];
+				auto arg_type = sym->type->func.args.types[i];
 				for (auto name: arg.names)
 				{
 					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
@@ -1135,6 +1272,9 @@ namespace sabre
 		case Symbol::KIND_PACKAGE:
 			sym->type = type_interner_package(self.unit->parent_unit->type_interner, sym->package_sym.package);
 			break;
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
+			sym->type = _typer_resolve_func_overload_set(self, sym);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -1148,6 +1288,7 @@ namespace sabre
 			break;
 		case Symbol::KIND_VAR:
 		case Symbol::KIND_CONST:
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			// do nothing
 			break;
 		case Symbol::KIND_PACKAGE:

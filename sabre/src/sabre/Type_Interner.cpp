@@ -137,4 +137,14 @@ namespace sabre
 		mn::map_insert(self.package_table, package, new_type);
 		return new_type;
 	}
+
+	Type*
+	type_interner_overload_set(Type_Interner& self, Symbol* symbol)
+	{
+		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		new_type->kind = Type::KIND_FUNC_OVERLOAD_SET;
+		new_type->func_overload_set_type.symbol = symbol;
+		new_type->func_overload_set_type.overloads = mn::map_with_allocator<Func_Args_Sign, Overload_Entry, Func_Args_Sign_Hasher>(self.arena);
+		return new_type;
+	}
 }

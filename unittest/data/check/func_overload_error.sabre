@@ -1,0 +1,15 @@
+func add(a, b: vec2): vec2 {
+	return a + b;
+}
+
+func add(a, b: vec2): vec3 {
+	return a.xxy + b.yyx;
+}
+
+func add(a, b: vec3): vec3 {
+	return a + b;
+}
+
+func koko(a, b: vec4): vec3 {
+	return add(a.xyzw, b.zyx);
+}
