@@ -153,6 +153,7 @@ namespace sabre
 			KIND_FLOAT,
 			KIND_DOUBLE,
 			KIND_VEC,
+			KIND_MAT,
 			KIND_FUNC,
 			KIND_STRUCT,
 			KIND_PACKAGE,
@@ -163,11 +164,19 @@ namespace sabre
 		union
 		{
 			Func_Sign func;
+
 			struct
 			{
 				Type* base;
 				int width;
 			} vec;
+
+			struct
+			{
+				// matrices are of type float
+				Type* base;
+				int width;
+			} mat;
 
 			struct
 			{
@@ -211,6 +220,9 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_dvec2;
 	SABRE_EXPORT extern Type* type_dvec3;
 	SABRE_EXPORT extern Type* type_dvec4;
+	SABRE_EXPORT extern Type* type_mat2;
+	SABRE_EXPORT extern Type* type_mat3;
+	SABRE_EXPORT extern Type* type_mat4;
 
 	// given a type name it will return a type
 	inline static Type*
@@ -260,6 +272,12 @@ namespace sabre
 			return type_dvec3;
 		else if (str == "dvec4")
 			return type_dvec4;
+		else if (str == "mat2")
+			return type_mat2;
+		else if (str == "mat3")
+			return type_mat3;
+		else if (str == "mat4")
+			return type_mat4;
 		else
 			return type_void;
 	}
@@ -271,9 +289,35 @@ namespace sabre
 		return a == b;
 	}
 
-	// returns whether a type can use ++v, --v, +v, -v, etc...
+	// returns whether a type can use ++v, --v
 	inline static bool
-	type_is_numeric(Type* a)
+	type_can_increment(Type* a)
+	{
+		return (
+			type_is_equal(a, type_int) ||
+			type_is_equal(a, type_uint) ||
+			type_is_equal(a, type_float) ||
+			type_is_equal(a, type_double)
+		);
+	}
+
+	// returns whether a type can use +v, -v
+	inline static bool
+	type_can_negate(Type* a)
+	{
+		return (
+			type_is_equal(a, type_int) ||
+			type_is_equal(a, type_uint) ||
+			type_is_equal(a, type_float) ||
+			type_is_equal(a, type_double) ||
+			(a->kind == Type::KIND_VEC && type_can_negate(a->vec.base)) ||
+			(a->kind == Type::KIND_MAT && type_can_negate(a->mat.base))
+		);
+	}
+
+	// returns whether a type is numerical scalar
+	inline static bool
+	type_is_numeric_scalar(Type* a)
 	{
 		return (
 			type_is_equal(a, type_int) ||
@@ -762,6 +806,18 @@ namespace fmt
 			else if (t == sabre::type_dvec4)
 			{
 				return format_to(ctx.out(), "dvec4");
+			}
+			else if (t == sabre::type_mat2)
+			{
+				return format_to(ctx.out(), "mat2");
+			}
+			else if (t == sabre::type_mat3)
+			{
+				return format_to(ctx.out(), "mat3");
+			}
+			else if (t == sabre::type_mat4)
+			{
+				return format_to(ctx.out(), "mat4");
 			}
 			else if (t->kind == sabre::Type::KIND_FUNC)
 			{

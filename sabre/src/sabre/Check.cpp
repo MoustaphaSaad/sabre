@@ -313,6 +313,39 @@ namespace sabre
 		auto lhs_type = _typer_resolve_expr(self, e->binary.left);
 		auto rhs_type = _typer_resolve_expr(self, e->binary.right);
 
+		// handle matrix vector multiplication
+		if (e->binary.op.kind == Tkn::KIND_STAR)
+		{
+			if (lhs_type->kind == Type::KIND_MAT && rhs_type->kind == Type::KIND_VEC)
+			{
+				if (lhs_type->mat.width == rhs_type->vec.width)
+				{
+					return rhs_type;
+				}
+				else
+				{
+					Err err{};
+					err.loc = e->loc;
+					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+				}
+			}
+			else if (lhs_type->kind == Type::KIND_VEC && rhs_type->kind == Type::KIND_MAT)
+			{
+				if (lhs_type->vec.width == rhs_type->mat.width)
+				{
+					return lhs_type;
+				}
+				else
+				{
+					Err err{};
+					err.loc = e->loc;
+					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+				}
+			}
+		}
+
 		if (type_is_equal(lhs_type, rhs_type) == false)
 		{
 			// TODO(Moustapha): better error message here, highlight parts of the expression with their types
@@ -373,12 +406,21 @@ namespace sabre
 		auto type = _typer_resolve_expr(self, e->unary.base);
 
 		// works with numbers
-		if (e->unary.op.kind == Tkn::KIND_INC ||
-			e->unary.op.kind == Tkn::KIND_DEC ||
-			e->unary.op.kind == Tkn::KIND_PLUS ||
+		if (e->unary.op.kind == Tkn::KIND_PLUS ||
 			e->unary.op.kind == Tkn::KIND_MINUS)
 		{
-			if (type_is_numeric(type) == false)
+			if (type_can_negate(type) == false)
+			{
+				Err err{};
+				err.loc = e->unary.base->loc;
+				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, type);
+				unit_err(self.unit, err);
+			}
+		}
+		if (e->unary.op.kind == Tkn::KIND_INC ||
+			e->unary.op.kind == Tkn::KIND_DEC)
+		{
+			if (type_can_increment(type) == false)
 			{
 				Err err{};
 				err.loc = e->unary.base->loc;
@@ -512,7 +554,7 @@ namespace sabre
 		auto from_type = _typer_resolve_expr(self, e->cast.base);
 		auto to_type = _typer_resolve_type_sign(self, e->cast.type);
 
-		if (type_is_numeric(from_type) && type_is_numeric(to_type))
+		if (type_is_numeric_scalar(from_type) && type_is_numeric_scalar(to_type))
 			return to_type;
 
 		Err err{};
@@ -940,6 +982,22 @@ namespace sabre
 				err.loc = s->assign_stmt.rhs[i]->loc;
 				err.msg = mn::strf("cannot assign a void type");
 				unit_err(self.unit, err);
+			}
+
+			if (s->assign_stmt.op.kind == Tkn::KIND_STAR_EQUAL && lhs_type->kind == Type::KIND_VEC && rhs_type->kind == Type::KIND_MAT)
+			{
+				if (lhs_type->vec.width == rhs_type->mat.width)
+				{
+					// this is allowed
+					continue;
+				}
+				else
+				{
+					Err err{};
+					err.loc = s->loc;
+					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+				}
 			}
 
 			if (type_is_equal(lhs_type, rhs_type) == false)

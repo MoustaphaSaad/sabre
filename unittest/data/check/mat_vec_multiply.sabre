@@ -1,0 +1,20 @@
+func correct(a, b: vec4, c, d: mat4) {
+	var x: vec4 = a * b;
+	x = b * a;
+
+	var y: vec4 = a * c;
+	y = c * a;
+
+	var z: mat4 = c * d;
+	z = d * c;
+
+	y *= x;
+	y *= c;
+
+	c *= d;
+}
+
+func error(a: vec4, c: mat4) {
+	a *= c;
+	c *= a;
+}
