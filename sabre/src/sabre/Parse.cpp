@@ -876,6 +876,58 @@ namespace sabre
 		return decl_import_new(self.unit->ast_arena, path, name);
 	}
 
+	inline static Tag_Table
+	_parser_parse_tags(Parser& self)
+	{
+		auto res = tag_table_new(self.unit->ast_arena);
+		while (true)
+		{
+			if (_parser_eat_kind(self, Tkn::KIND_AT) == false)
+				break;
+
+			auto tag = tag_new(self.unit->ast_arena);
+			tag.name = _parser_eat_must(self, Tkn::KIND_ID);
+			if (_parser_eat_kind(self, Tkn::KIND_OPEN_CURLY))
+			{
+				while (_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+				{
+					auto key = _parser_eat_must(self, Tkn::KIND_ID);
+					_parser_eat_must(self, Tkn::KIND_EQUAL);
+					auto value = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
+
+					if (key && value)
+					{
+						if (auto it = mn::map_lookup(tag.args, key))
+						{
+							Err err{};
+							err.loc = key.loc;
+							err.msg = mn::strf(
+								"duplicated tag key, first defined in {}:{}:{}",
+								it->value.loc.file->filepath,
+								it->value.loc.pos.line,
+								it->value.loc.pos.col
+							);
+							unit_err(self.unit, err);
+						}
+						else
+						{
+							mn::map_insert(tag.args, key, value);
+						}
+
+						_parser_eat_kind(self, Tkn::KIND_COMMA);
+					}
+					else
+					{
+						return res;
+					}
+				}
+				_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
+			}
+			mn::map_insert(res.table, tag.name, tag);
+		}
+		return res;
+	}
+
 	// API
 	Parser
 	parser_new(Unit_File* unit)
@@ -910,6 +962,7 @@ namespace sabre
 	Decl*
 	parser_parse_decl(Parser& self)
 	{
+		auto tags = _parser_parse_tags(self);
 		auto tkn = _parser_look(self);
 		Decl* res = nullptr;
 
@@ -929,6 +982,7 @@ namespace sabre
 			res->loc.pos = tkn.loc.pos;
 			res->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 			res->loc.file = self.unit;
+			res->tags = tags;
 		}
 		return res;
 	}

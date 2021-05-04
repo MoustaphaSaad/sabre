@@ -1,0 +1,18 @@
+(tag 'tagName'
+  (key: 'key', value: 'value')
+  (key: 'another_key', value: 'value2')
+)
+(struct-decl
+  (field
+    (field-name 'x')
+    (field-name 'y')
+    (field-name 'z')
+    (type-sign float)
+  )
+  (field
+    (field-name 'r')
+    (field-name 'g')
+    (field-name 'b')
+    (type-sign double)
+  )
+)

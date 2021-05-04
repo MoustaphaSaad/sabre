@@ -407,6 +407,47 @@ namespace sabre
 		return self;
 	}
 
+	// Hasher for Tkn keys
+	struct Tkn_Hasher
+	{
+		inline size_t
+		operator()(const Tkn& tkn) const
+		{
+			return (size_t)tkn.str;
+		}
+	};
+
+	// represents a tag that can be attached to declarations
+	struct Tag
+	{
+		Tkn name;
+		mn::Map<Tkn, Tkn, Tkn_Hasher> args;
+	};
+
+	// create a new tag
+	inline static Tag
+	tag_new(mn::Allocator arena)
+	{
+		Tag self{};
+		self.args = mn::map_with_allocator<Tkn, Tkn, Tkn_Hasher>(arena);
+		return self;
+	}
+
+	// represents a set of tags attached to a declaration
+	struct Tag_Table
+	{
+		mn::Map<Tkn, Tag, Tkn_Hasher> table;
+	};
+
+	// creates a new tag table
+	inline static Tag_Table
+	tag_table_new(mn::Allocator arena)
+	{
+		Tag_Table self{};
+		self.table = mn::map_with_allocator<Tkn, Tag, Tkn_Hasher>(arena);
+		return self;
+	}
+
 	// Decl
 	struct Decl
 	{
@@ -422,6 +463,7 @@ namespace sabre
 		KIND kind;
 		Location loc;
 		Tkn name;
+		Tag_Table tags;
 		union
 		{
 			struct

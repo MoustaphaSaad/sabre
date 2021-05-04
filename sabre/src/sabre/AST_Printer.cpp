@@ -48,6 +48,29 @@ namespace sabre
 		mn::print_to(self.out, ")");
 	}
 
+	inline static void
+	_ast_printer_print_tags(AST_Printer& self, const Tag_Table& tags)
+	{
+		for (auto [_, tag]: tags.table)
+		{
+			mn::print_to(self.out, "(tag '{}'", tag.name.str);
+			if (tag.args.count > 0)
+			{
+				_ast_printer_enter_scope(self);
+				{
+					for (auto [key, value]: tag.args)
+					{
+						_ast_printer_newline(self);
+						mn::print_to(self.out, "(key: '{}', value: '{}')", key.str, value.str);
+					}
+				}
+				_ast_printer_leave_scope(self);
+				_ast_printer_newline(self);
+			}
+			mn::print_to(self.out, ")");
+		}
+	}
+
 	// API
 	AST_Printer
 	ast_printer_new()
@@ -379,6 +402,12 @@ namespace sabre
 	void
 	ast_printer_print_decl(AST_Printer& self, Decl* decl)
 	{
+		if (decl->tags.table.count > 0)
+		{
+			_ast_printer_print_tags(self, decl->tags);
+			_ast_printer_newline(self);
+		}
+
 		switch (decl->kind)
 		{
 		case Decl::KIND_CONST:
