@@ -1,0 +1,19 @@
+(struct-decl
+  (tag 'SV_POSITION')
+  (field
+    (field-name 'position')
+    (type-sign vec4)
+  )
+  (tag 'TEXCOORD')
+  (field
+    (field-name 'uv')
+    (type-sign vec2)
+  )
+  (tag 'TEST'
+    (key: 'name', value: 'sdf')
+  )
+  (field
+    (field-name 'test')
+    (type-sign vec3)
+  )
+)

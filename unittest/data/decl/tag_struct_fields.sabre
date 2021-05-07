@@ -1,0 +1,5 @@
+type VS_Input struct {
+	@SV_POSITION position: vec4
+	@TEXCOORD uv: vec2
+	@TEST { name = "sdf" } test: vec3
+}

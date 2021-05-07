@@ -774,10 +774,14 @@ namespace sabre
 		return res;
 	}
 
+	inline static Tag_Table
+	_parser_parse_tags(Parser& self);
+
 	inline static Arg
 	_parser_parse_arg(Parser& self)
 	{
 		auto arg = arg_new(self.unit->ast_arena);
+		arg.tags = _parser_parse_tags(self);
 		while (true)
 		{
 			if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))
@@ -824,6 +828,7 @@ namespace sabre
 	_parser_parse_field(Parser& self)
 	{
 		auto field = field_new(self.unit->ast_arena);
+		field.tags = _parser_parse_tags(self);
 		while (true)
 		{
 			if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))

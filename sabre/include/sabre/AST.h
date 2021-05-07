@@ -376,37 +376,6 @@ namespace sabre
 		return self;
 	}
 
-	struct Arg
-	{
-		mn::Buf<Tkn> names;
-		Type_Sign type;
-	};
-
-	// creates a new argument
-	inline static Arg
-	arg_new(mn::Allocator arena)
-	{
-		Arg self{};
-		self.names = mn::buf_with_allocator<Tkn>(arena);
-		self.type = type_sign_new(arena);
-		return self;
-	}
-
-	struct Field
-	{
-		mn::Buf<Tkn> names;
-		Type_Sign type;
-	};
-
-	inline static Field
-	field_new(mn::Allocator arena)
-	{
-		Field self{};
-		self.names = mn::buf_with_allocator<Tkn>(arena);
-		self.type = type_sign_new(arena);
-		return self;
-	}
-
 	// Hasher for Tkn keys
 	struct Tkn_Hasher
 	{
@@ -445,6 +414,41 @@ namespace sabre
 	{
 		Tag_Table self{};
 		self.table = mn::map_with_allocator<Tkn, Tag, Tkn_Hasher>(arena);
+		return self;
+	}
+
+	struct Arg
+	{
+		Tag_Table tags;
+		mn::Buf<Tkn> names;
+		Type_Sign type;
+	};
+
+	// creates a new argument
+	inline static Arg
+	arg_new(mn::Allocator arena)
+	{
+		Arg self{};
+		self.tags = tag_table_new(arena);
+		self.names = mn::buf_with_allocator<Tkn>(arena);
+		self.type = type_sign_new(arena);
+		return self;
+	}
+
+	struct Field
+	{
+		Tag_Table tags;
+		mn::Buf<Tkn> names;
+		Type_Sign type;
+	};
+
+	inline static Field
+	field_new(mn::Allocator arena)
+	{
+		Field self{};
+		self.tags = tag_table_new(arena);
+		self.names = mn::buf_with_allocator<Tkn>(arena);
+		self.type = type_sign_new(arena);
 		return self;
 	}
 

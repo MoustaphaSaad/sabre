@@ -1,0 +1,19 @@
+(func-decl
+  (tag 'in')
+  (arg
+    (arg-name 'x')
+    (arg-name 'y')
+    (type-sign int)
+  )
+  (return-type 
+    (type-sign int)
+  )
+  (block-stmt
+    (return-stmt
+      (binary '+'
+        (atom 'x')
+        (atom 'y')
+      )
+    )
+  )
+)

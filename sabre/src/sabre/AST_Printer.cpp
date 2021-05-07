@@ -466,9 +466,16 @@ namespace sabre
 			mn::print_to(self.out, "(func-decl");
 			_ast_printer_enter_scope(self);
 			{
-				for (auto arg: decl->func_decl.args)
+				for (const auto& arg: decl->func_decl.args)
 				{
 					_ast_printer_newline(self);
+
+					if (arg.tags.table.count > 0)
+					{
+						_ast_printer_print_tags(self, arg.tags);
+						_ast_printer_newline(self);
+					}
+
 					mn::print_to(self.out, "(arg");
 					_ast_printer_enter_scope(self);
 					{
@@ -517,9 +524,14 @@ namespace sabre
 			mn::print_to(self.out, "(struct-decl");
 			_ast_printer_enter_scope(self);
 			{
-				for (auto field: decl->struct_decl.fields)
+				for (const auto& field: decl->struct_decl.fields)
 				{
 					_ast_printer_newline(self);
+					if (field.tags.table.count > 0)
+					{
+						_ast_printer_print_tags(self, field.tags);
+						_ast_printer_newline(self);
+					}
 					mn::print_to(self.out, "(field");
 					_ast_printer_enter_scope(self);
 					{
