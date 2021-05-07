@@ -1,0 +1,8 @@
+func add(x, y: int): int {
+	const w = 324;
+	var z = add(x, y);
+	add(x, y) = z;
+	z = 2;
+	w = z;
+	return z;
+}

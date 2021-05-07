@@ -82,6 +82,14 @@ namespace sabre
 
 	struct Type;
 
+	enum ADDRESS_MODE
+	{
+		ADDRESS_MODE_NONE,
+		ADDRESS_MODE_CONST,
+		ADDRESS_MODE_COMPUTED_VALUE,
+		ADDRESS_MODE_VARIABLE,
+	};
+
 	// represents an expression
 	struct Expr
 	{
@@ -100,6 +108,7 @@ namespace sabre
 		Location loc;
 		Type* type;
 		bool in_parens;
+		ADDRESS_MODE mode;
 
 		union
 		{

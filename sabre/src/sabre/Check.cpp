@@ -281,16 +281,26 @@ namespace sabre
 		switch (e->atom.kind)
 		{
 		case Tkn::KIND_LITERAL_INTEGER:
+			e->mode = ADDRESS_MODE_CONST;
 			return type_int;
 		case Tkn::KIND_LITERAL_FLOAT:
+			e->mode = ADDRESS_MODE_CONST;
 			return type_float;
 		case Tkn::KIND_KEYWORD_FALSE:
 		case Tkn::KIND_KEYWORD_TRUE:
+			e->mode = ADDRESS_MODE_CONST;
 			return type_bool;
 		case Tkn::KIND_ID:
 			if (auto sym = _typer_find_symbol(self, e->atom.str))
 			{
 				_typer_resolve_symbol(self, sym);
+
+				if (sym->kind == Symbol::KIND_CONST)
+					e->mode = ADDRESS_MODE_CONST;
+				else if (sym->kind == Symbol::KIND_VAR)
+					e->mode = ADDRESS_MODE_VARIABLE;
+				else if (sym->kind == Symbol::KIND_FUNC && sym->type->func.return_type != type_void)
+					e->mode = ADDRESS_MODE_COMPUTED_VALUE;
 				return sym->type;
 			}
 			else
@@ -387,6 +397,15 @@ namespace sabre
 			}
 		}
 
+		if (e->binary.left->mode == ADDRESS_MODE_CONST && e->binary.right->mode == ADDRESS_MODE_CONST)
+		{
+			e->mode = ADDRESS_MODE_CONST;
+		}
+		else
+		{
+			e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+		}
+
 		if (e->binary.op.kind == Tkn::KIND_LESS ||
 			e->binary.op.kind == Tkn::KIND_LESS_EQUAL ||
 			e->binary.op.kind == Tkn::KIND_GREATER ||
@@ -439,6 +458,19 @@ namespace sabre
 			}
 		}
 
+		if (e->unary.base->mode == ADDRESS_MODE_CONST && (e->unary.op.kind == Tkn::KIND_INC || e->unary.op.kind == Tkn::KIND_DEC))
+		{
+			Err err{};
+			err.loc = e->loc;
+			err.msg = mn::strf("cannot evaluate expression in compile time");
+			unit_err(self.unit, err);
+		}
+
+		if (e->unary.base->mode == ADDRESS_MODE_CONST)
+			e->mode = ADDRESS_MODE_CONST;
+		else
+			e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+
 		return type;
 	}
 
@@ -455,6 +487,8 @@ namespace sabre
 			unit_err(self.unit, err);
 			return type_void;
 		}
+
+		e->mode = ADDRESS_MODE_COMPUTED_VALUE;
 
 		if (type->kind == Type::KIND_FUNC)
 		{
@@ -557,6 +591,15 @@ namespace sabre
 		if (type_is_numeric_scalar(from_type) && type_is_numeric_scalar(to_type))
 			return to_type;
 
+		if (e->unary.base->mode == ADDRESS_MODE_CONST)
+		{
+			e->mode = ADDRESS_MODE_CONST;
+		}
+		else
+		{
+			e->mode = e->unary.base->mode;
+		}
+
 		Err err{};
 		err.loc = e->loc;
 		err.msg = mn::strf("cannot cast '{}' to '{}'", from_type, to_type);
@@ -621,6 +664,7 @@ namespace sabre
 				return type_void;
 			}
 
+			e->mode = e->dot.lhs->mode;
 			return type_vectorize(type->vec.base, len);
 		}
 		else if (type->kind == Type::KIND_STRUCT)
@@ -644,6 +688,7 @@ namespace sabre
 				return type_void;
 			}
 
+			e->mode = e->dot.lhs->mode;
 			return type->struct_type.fields[it->value].type;
 		}
 		else if (type->kind == Type::KIND_PACKAGE)
@@ -740,7 +785,7 @@ namespace sabre
 		{
 			if (e != nullptr)
 			{
-				sym->type = _typer_resolve_expr(self, e);
+				res = _typer_resolve_expr(self, e);
 			}
 			else
 			{
@@ -763,9 +808,9 @@ namespace sabre
 					unit_err(self.unit, err);
 				}
 			}
-			sym->type = res;
 		}
 
+		sym->type = res;
 		return res;
 	}
 
@@ -1006,6 +1051,33 @@ namespace sabre
 				err.loc = s->assign_stmt.rhs[i]->loc;
 				err.msg = mn::strf("type mismatch in assignment statement, expected '{}' but found '{}'", lhs_type, rhs_type);
 				unit_err(self.unit, err);
+			}
+
+			switch (s->assign_stmt.lhs[i]->mode)
+			{
+			case ADDRESS_MODE_VARIABLE:
+				// this is okay
+				break;
+			case ADDRESS_MODE_CONST:
+			{
+				Err err{};
+				err.loc = s->assign_stmt.lhs[i]->loc;
+				err.msg = mn::strf("cannot assign into a constant value");
+				unit_err(self.unit, err);
+				break;
+			}
+			case ADDRESS_MODE_COMPUTED_VALUE:
+			{
+				Err err{};
+				err.loc = s->assign_stmt.lhs[i]->loc;
+				err.msg = mn::strf("cannot assign into a computed value");
+				unit_err(self.unit, err);
+				break;
+			}
+			case ADDRESS_MODE_NONE:
+			default:
+				assert(false && "unreachable");
+				break;
 			}
 		}
 		return type_void;
