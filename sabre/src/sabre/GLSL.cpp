@@ -3,8 +3,31 @@
 #include "sabre/Type_Interner.h"
 #include "sabre/AST.h"
 
+#include <mn/Defer.h>
+
 namespace sabre
 {
+	inline static void
+	_glsl_newline(GLSL& self)
+	{
+		mn::print_to(self.out, "\n");
+		for (size_t i = 0; i < self.indent; ++i)
+			mn::print_to(self.out, "\t");
+	}
+
+	inline static void
+	_glsl_enter_scope(GLSL& self, Scope* scope)
+	{
+		mn::buf_push(self.scope_stack, scope);
+	}
+
+	inline static void
+	_glsl_leave_scope(GLSL& self)
+	{
+		assert(self.scope_stack.count > 1);
+		mn::buf_pop(self.scope_stack);
+	}
+
 	inline static void
 	_glsl_write_field(GLSL& self, Type* type, const mn::Str& name)
 	{
@@ -190,6 +213,137 @@ namespace sabre
 		mn::print_to(self.out, ")");
 	}
 
+	inline static void
+	_glsl_gen_break_stmt(GLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "break");
+	}
+
+	inline static void
+	_glsl_gen_continue_stmt(GLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "continue");
+	}
+
+	inline static void
+	_glsl_gen_return_stmt(GLSL& self, Stmt* s)
+	{
+		if (s->return_stmt)
+		{
+			mn::print_to(self.out, "return ");
+			glsl_expr_gen(self, s->return_stmt);
+		}
+		else
+		{
+			mn::print_to(self.out, "return");
+		}
+	}
+
+	inline static void
+	_glsl_gen_block_stmt(GLSL& self, Stmt* s);
+
+	inline static void
+	_glsl_gen_if_stmt(GLSL& self, Stmt* s)
+	{
+		for (size_t i = 0; i < s->if_stmt.body.count; ++i)
+		{
+			if (i > 0)
+				mn::print_to(self.out, " else ");
+
+			mn::print_to(self.out, "if (");
+			glsl_expr_gen(self, s->if_stmt.cond[i]);
+			mn::print_to(self.out, ") ");
+			_glsl_gen_block_stmt(self, s->if_stmt.body[i]);
+		}
+
+		if (s->if_stmt.else_body != nullptr)
+		{
+			mn::print_to(self.out, " else ");
+			_glsl_gen_block_stmt(self, s->if_stmt.else_body);
+		}
+	}
+
+	inline static void
+	_glsl_gen_for_stmt(GLSL& self, Stmt* s)
+	{
+		_glsl_enter_scope(self, unit_scope_find(self.unit, s));
+		mn_defer(_glsl_leave_scope(self));
+
+		mn::print_to(self.out, "{{ // for scope");
+		++self.indent;
+
+		_glsl_newline(self);
+		mn::print_to(self.out, "// for init statement");
+		if (s->for_stmt.init != nullptr)
+		{
+			_glsl_newline(self);
+			glsl_stmt_gen(self, s->for_stmt.init);
+			mn::print_to(self.out, ";");
+		}
+
+		_glsl_newline(self);
+		mn::print_to(self.out, "while (");
+		if (s->for_stmt.cond != nullptr)
+			glsl_expr_gen(self, s->for_stmt.cond);
+		else
+			mn::print_to(self.out, "true");
+		mn::print_to(self.out, ") {{");
+		++self.indent;
+
+		_glsl_newline(self);
+		mn::print_to(self.out, "// for body");
+		for (auto stmt: s->for_stmt.body->block_stmt)
+		{
+			_glsl_newline(self);
+			glsl_stmt_gen(self, stmt);
+			mn::print_to(self.out, ";");
+		}
+
+		if (s->for_stmt.post != nullptr)
+		{
+			_glsl_newline(self);
+			mn::print_to(self.out, "// for post statement");
+			_glsl_newline(self);
+			glsl_stmt_gen(self, s->for_stmt.post);
+			mn::print_to(self.out, ";");
+		}
+
+		--self.indent;
+		_glsl_newline(self);
+		mn::print_to(self.out, "}}");
+
+		--self.indent;
+		_glsl_newline(self);
+		mn::print_to(self.out, "}} // for scope");
+	}
+
+	inline static void
+	_glsl_gen_block_stmt(GLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "{{");
+		++self.indent;
+
+		for (auto stmt: s->block_stmt)
+		{
+			_glsl_newline(self);
+			glsl_stmt_gen(self, stmt);
+			if (stmt->kind == Stmt::KIND_BREAK ||
+				stmt->kind == Stmt::KIND_CONTINUE ||
+				stmt->kind == Stmt::KIND_RETURN ||
+				stmt->kind == Stmt::KIND_ASSIGN ||
+				stmt->kind == Stmt::KIND_EXPR ||
+				(stmt->kind == Stmt::KIND_DECL && stmt->decl_stmt->kind == Decl::KIND_VAR))
+			{
+				mn::print_to(self.out, ";");
+			}
+		}
+
+		--self.indent;
+		_glsl_newline(self);
+		mn::print_to(self.out, "}}");
+	}
+
+
 	// API
 	GLSL
 	glsl_new(Unit* unit, mn::Stream out)
@@ -239,6 +393,42 @@ namespace sabre
 			break;
 		case Expr::KIND_CAST:
 			_glsl_gen_cast_expr(self, e);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	void
+	glsl_stmt_gen(GLSL& self, Stmt* s)
+	{
+		switch (s->kind)
+		{
+		case Stmt::KIND_BREAK:
+			_glsl_gen_break_stmt(self, s);
+			break;
+		case Stmt::KIND_CONTINUE:
+			_glsl_gen_continue_stmt(self, s);
+			break;
+		case Stmt::KIND_RETURN:
+			_glsl_gen_return_stmt(self, s);
+			break;
+		case Stmt::KIND_IF:
+			_glsl_gen_if_stmt(self, s);
+			break;
+		case Stmt::KIND_FOR:
+			_glsl_gen_for_stmt(self, s);
+			break;
+		case Stmt::KIND_ASSIGN:
+			break;
+		case Stmt::KIND_EXPR:
+			break;
+		case Stmt::KIND_BLOCK:
+			_glsl_gen_block_stmt(self, s);
+			break;
+		case Stmt::KIND_DECL:
+			// do nothing
 			break;
 		default:
 			assert(false && "unreachable");

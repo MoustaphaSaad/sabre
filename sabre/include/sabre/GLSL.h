@@ -3,12 +3,14 @@
 #include "sabre/Exports.h"
 
 #include <mn/Stream.h>
+#include <mn/Buf.h>
 
 namespace sabre
 {
 	struct Unit;
 	struct Scope;
 	struct Expr;
+	struct Stmt;
 
 	struct GLSL
 	{
@@ -31,4 +33,8 @@ namespace sabre
 	// it will generate the GLSL code for the given expression
 	SABRE_EXPORT void
 	glsl_expr_gen(GLSL& self, Expr* e);
+
+	// it will generate the GLSL code for the given statement
+	SABRE_EXPORT void
+	glsl_stmt_gen(GLSL& self, Stmt* s);
 }
