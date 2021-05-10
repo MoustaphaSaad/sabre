@@ -41,31 +41,31 @@ namespace sabre
 		return scope_find(current_scope, name);
 	}
 
-	inline static void
-	_glsl_write_field(GLSL& self, Type* type, const mn::Str& name)
+	inline static mn::Str
+	_glsl_write_field(mn::Str str, Type* type, const mn::Str& name)
 	{
 		bool can_write_name = false;
 		switch (type->kind)
 		{
 		case Type::KIND_VOID:
 			can_write_name = true;
-			mn::print_to(self.out, "void");
+			str = mn::strf(str, "void");
 			break;
 		case Type::KIND_BOOL:
 			can_write_name = true;
-			mn::print_to(self.out, "bool");
+			str = mn::strf(str, "bool");
 			break;
 		case Type::KIND_INT:
 			can_write_name = true;
-			mn::print_to(self.out, "int");
+			str = mn::strf(str, "int");
 			break;
 		case Type::KIND_FLOAT:
 			can_write_name = true;
-			mn::print_to(self.out, "float");
+			str = mn::strf(str, "float");
 			break;
 		case Type::KIND_DOUBLE:
 			can_write_name = true;
-			mn::print_to(self.out, "double");
+			str = mn::strf(str, "double");
 			break;
 		case Type::KIND_VEC:
 			can_write_name = true;
@@ -74,13 +74,13 @@ namespace sabre
 				switch(type->vec.width)
 				{
 				case 2:
-					mn::print_to(self.out, "bvec2");
+					str = mn::strf(str, "bvec2");
 					break;
 				case 3:
-					mn::print_to(self.out, "bvec3");
+					str = mn::strf(str, "bvec3");
 					break;
 				case 4:
-					mn::print_to(self.out, "bvec4");
+					str = mn::strf(str, "bvec4");
 					break;
 				default:
 					assert(false && "unreachable");
@@ -92,13 +92,13 @@ namespace sabre
 				switch(type->vec.width)
 				{
 				case 2:
-					mn::print_to(self.out, "ivec2");
+					str = mn::strf(str, "ivec2");
 					break;
 				case 3:
-					mn::print_to(self.out, "ivec3");
+					str = mn::strf(str, "ivec3");
 					break;
 				case 4:
-					mn::print_to(self.out, "ivec4");
+					str = mn::strf(str, "ivec4");
 					break;
 				default:
 					assert(false && "unreachable");
@@ -110,13 +110,13 @@ namespace sabre
 				switch(type->vec.width)
 				{
 				case 2:
-					mn::print_to(self.out, "uvec2");
+					str = mn::strf(str, "uvec2");
 					break;
 				case 3:
-					mn::print_to(self.out, "uvec3");
+					str = mn::strf(str, "uvec3");
 					break;
 				case 4:
-					mn::print_to(self.out, "uvec4");
+					str = mn::strf(str, "uvec4");
 					break;
 				default:
 					assert(false && "unreachable");
@@ -128,13 +128,13 @@ namespace sabre
 				switch(type->vec.width)
 				{
 				case 2:
-					mn::print_to(self.out, "vec2");
+					str = mn::strf(str, "vec2");
 					break;
 				case 3:
-					mn::print_to(self.out, "vec3");
+					str = mn::strf(str, "vec3");
 					break;
 				case 4:
-					mn::print_to(self.out, "vec4");
+					str = mn::strf(str, "vec4");
 					break;
 				default:
 					assert(false && "unreachable");
@@ -146,13 +146,13 @@ namespace sabre
 				switch(type->vec.width)
 				{
 				case 2:
-					mn::print_to(self.out, "dvec2");
+					str = mn::strf(str, "dvec2");
 					break;
 				case 3:
-					mn::print_to(self.out, "dvec3");
+					str = mn::strf(str, "dvec3");
 					break;
 				case 4:
-					mn::print_to(self.out, "dvec4");
+					str = mn::strf(str, "dvec4");
 					break;
 				default:
 					assert(false && "unreachable");
@@ -165,14 +165,21 @@ namespace sabre
 			break;
 		}
 
-		if (can_write_name)
-			mn::print_to(self.out, " {}", name);
+		if (can_write_name && name.count > 0)
+			str = mn::strf(str, " {}", name);
+		return str;
 	}
 
-	inline static void
-	_glsl_write_field(GLSL& self, Type* type, const char* name)
+	inline static mn::Str
+	_glsl_write_field(Type* type, const mn::Str& name)
 	{
-		return _glsl_write_field(self, type, mn::str_lit(name));
+		return _glsl_write_field(mn::str_tmp(), type, name);
+	}
+
+	inline static mn::Str
+	_glsl_write_field(Type* type, const char* name)
+	{
+		return _glsl_write_field(type, mn::str_lit(name));
 	}
 
 	inline static void
@@ -230,8 +237,7 @@ namespace sabre
 	inline static void
 	_glsl_gen_cast_expr(GLSL& self, Expr* e)
 	{
-		_glsl_write_field(self, e->type, nullptr);
-		mn::print_to(self.out, "(");
+		mn::print_to(self.out, "{}(", _glsl_write_field(e->type, ""));
 		glsl_expr_gen(self, e->cast.base);
 		mn::print_to(self.out, ")");
 	}
@@ -406,8 +412,8 @@ namespace sabre
 	{
 		auto d = sym->func_sym.decl;
 
-		_glsl_write_field(self, sym->type->func.return_type, "");
-		mn::print_to(self.out, "{}(", sym->name);
+		auto return_type = sym->type->func.return_type;
+		mn::print_to(self.out, "{} {}(", _glsl_write_field(return_type, ""), sym->name);
 
 		if (d->func_decl.body != nullptr)
 			_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
@@ -422,7 +428,7 @@ namespace sabre
 				if (i > 0)
 					mn::print_to(self.out, ", ");
 				auto arg_symbol = _glsl_find_symbol(self, name.str);
-				_glsl_write_field(self, arg_type, arg_symbol->name);
+				mn::print_to(self.out, "{}", _glsl_write_field(arg_type, arg_symbol->name));
 				++i;
 			}
 		}
@@ -439,7 +445,7 @@ namespace sabre
 	inline static void
 	_glsl_var_gen(GLSL& self, Symbol* sym)
 	{
-		_glsl_write_field(self, sym->type, sym->name);
+		mn::print_to(self.out, "{}", _glsl_write_field(sym->type, sym->name));
 		if (sym->var_sym.value != nullptr)
 		{
 			mn::print_to(self.out, ";");
