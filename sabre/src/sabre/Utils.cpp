@@ -161,7 +161,7 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str, mn::Err>
-	glsl_gen_expr_from_file(const mn::Str& filepath, const mn::Str& fake_path)
+	glsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path)
 	{
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
@@ -174,23 +174,19 @@ namespace sabre
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		if (unit_scan(unit) == false)
+		if (unit_parse(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit->packages[0]->files[0]);
-		mn_defer(parser_free(parser));
-
-		auto expr = parser_parse_expr(parser);
-		if (expr == nullptr)
+		if (unit_check(unit) == false)
 			return unit_dump_errors(unit);
 
 		auto stream = mn::memory_stream_new();
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto glsl = glsl_new(unit, stream);
+		auto glsl = glsl_new(unit->packages[0], stream);
 		mn_defer(glsl_free(glsl));
 
-		glsl_expr_gen(glsl, expr);
+		glsl_gen(glsl);
 
 		return mn::memory_stream_str(stream);
 	}

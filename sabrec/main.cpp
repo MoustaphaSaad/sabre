@@ -73,9 +73,9 @@ int main(int argc, char** argv)
 		mn::print("{}\n", answer);
 		return 0;
 	}
-	else if (cmd == "glsl-gen-expr")
+	else if (cmd == "glsl-gen")
 	{
-		auto [answer, err] = sabre::glsl_gen_expr_from_file(path, mn::str_lit(""));
+		auto [answer, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""));
 		if (err)
 		{
 			mn::printerr("{}\n", err);

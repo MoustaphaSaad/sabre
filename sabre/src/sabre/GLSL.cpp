@@ -28,27 +28,47 @@ namespace sabre
 		mn::buf_pop(self.scope_stack);
 	}
 
+	inline static Scope*
+	_glsl_current_scope(GLSL& self)
+	{
+		return mn::buf_top(self.scope_stack);
+	}
+
+	inline static Symbol*
+	_glsl_find_symbol(GLSL& self, const char* name)
+	{
+		auto current_scope = _glsl_current_scope(self);
+		return scope_find(current_scope, name);
+	}
+
 	inline static void
 	_glsl_write_field(GLSL& self, Type* type, const mn::Str& name)
 	{
+		bool can_write_name = false;
 		switch (type->kind)
 		{
 		case Type::KIND_VOID:
+			can_write_name = true;
 			mn::print_to(self.out, "void");
 			break;
 		case Type::KIND_BOOL:
+			can_write_name = true;
 			mn::print_to(self.out, "bool");
 			break;
 		case Type::KIND_INT:
+			can_write_name = true;
 			mn::print_to(self.out, "int");
 			break;
 		case Type::KIND_FLOAT:
+			can_write_name = true;
 			mn::print_to(self.out, "float");
 			break;
 		case Type::KIND_DOUBLE:
+			can_write_name = true;
 			mn::print_to(self.out, "double");
 			break;
 		case Type::KIND_VEC:
+			can_write_name = true;
 			if (type->vec.base == type_bool)
 			{
 				switch(type->vec.width)
@@ -144,6 +164,9 @@ namespace sabre
 			assert(false && "unreachable");
 			break;
 		}
+
+		if (can_write_name)
+			mn::print_to(self.out, " {}", name);
 	}
 
 	inline static void
@@ -266,7 +289,7 @@ namespace sabre
 	inline static void
 	_glsl_gen_for_stmt(GLSL& self, Stmt* s)
 	{
-		_glsl_enter_scope(self, unit_scope_find(self.unit, s));
+		_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, s));
 		mn_defer(_glsl_leave_scope(self));
 
 		mn::print_to(self.out, "{{ // for scope");
@@ -318,6 +341,41 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_assign(GLSL& self, Expr* lhs, const char* op, Expr* rhs)
+	{
+		glsl_expr_gen(self, lhs);
+		mn::print_to(self.out, " {} ", op);
+		glsl_expr_gen(self, rhs);
+	}
+
+	inline static void
+	_glsl_assign(GLSL& self, Symbol* lhs, const char* op, Expr* rhs)
+	{
+		auto e = expr_atom_new(self.unit->symbols_arena, lhs->var_sym.name);
+		e->type = lhs->type;
+		e->mode = ADDRESS_MODE_VARIABLE;
+		_glsl_assign(self, e, op, rhs);
+	}
+
+	inline static void
+	_glsl_gen_assign_stmt(GLSL& self, Stmt* s)
+	{
+		for (size_t i = 0; i < s->assign_stmt.lhs.count; ++i)
+		{
+			if (i > 0)
+			{
+				mn::print_to(self.out, ";");
+				_glsl_newline(self);
+			}
+
+			auto lhs = s->assign_stmt.lhs[i];
+			auto rhs = s->assign_stmt.rhs[i];
+
+			_glsl_assign(self, lhs, s->assign_stmt.op.str, rhs);
+		}
+	}
+
+	inline static void
 	_glsl_gen_block_stmt(GLSL& self, Stmt* s)
 	{
 		mn::print_to(self.out, "{{");
@@ -343,10 +401,74 @@ namespace sabre
 		mn::print_to(self.out, "}}");
 	}
 
+	inline static void
+	_glsl_func_gen(GLSL& self, Symbol* sym)
+	{
+		auto d = sym->func_sym.decl;
+
+		_glsl_write_field(self, sym->type->func.return_type, "");
+		mn::print_to(self.out, "{}(", sym->name);
+
+		if (d->func_decl.body != nullptr)
+			_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
+		mn_defer(if (d->func_decl.body) _glsl_leave_scope(self));
+
+		size_t i = 0;
+		for (auto arg: d->func_decl.args)
+		{
+			auto arg_type = sym->type->func.args.types[i];
+			for (auto name: arg.names)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				auto arg_symbol = _glsl_find_symbol(self, name.str);
+				_glsl_write_field(self, arg_type, arg_symbol->name);
+				++i;
+			}
+		}
+
+		mn::print_to(self.out, ")");
+
+		if (d->func_decl.body != nullptr)
+		{
+			mn::print_to(self.out, " ");
+			_glsl_gen_block_stmt(self, d->func_decl.body);
+		}
+	}
+
+	inline static void
+	_glsl_var_gen(GLSL& self, Symbol* sym)
+	{
+		_glsl_write_field(self, sym->type, sym->name);
+		if (sym->var_sym.value != nullptr)
+		{
+			mn::print_to(self.out, ";");
+			_glsl_newline(self);
+			_glsl_assign(self, sym, "=", sym->var_sym.value);
+		}
+	}
+
+	inline static void
+	_glsl_symbol_gen(GLSL& self, Symbol* sym)
+	{
+		switch (sym->kind)
+		{
+		case Symbol::KIND_FUNC:
+			_glsl_func_gen(self, sym);
+			break;
+		case Symbol::KIND_VAR:
+			_glsl_var_gen(self, sym);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
 
 	// API
 	GLSL
-	glsl_new(Unit* unit, mn::Stream out)
+	glsl_new(Unit_Package* unit, mn::Stream out)
 	{
 		GLSL self{};
 		self.unit = unit;
@@ -355,7 +477,7 @@ namespace sabre
 		self.scope_stack = mn::buf_new<Scope*>();
 
 		// push global scope as first entry in scope stack
-		auto global_scope = unit_scope_find(self.unit, nullptr);
+		auto global_scope = self.unit->global_scope;
 		assert(global_scope != nullptr);
 		mn::buf_push(self.scope_stack, global_scope);
 
@@ -400,6 +522,33 @@ namespace sabre
 		}
 	}
 
+	inline static void
+	_glsl_gen_decl_stmt(GLSL& self, Stmt* s)
+	{
+		auto scope = _glsl_current_scope(self);
+		auto d = s->decl_stmt;
+		switch (d->kind)
+		{
+		case Decl::KIND_VAR:
+		{
+			for (size_t i = 0; i < d->var_decl.names.count; ++i)
+			{
+				if (i > 0)
+				{
+					mn::print_to(self.out, ";");
+					_glsl_newline(self);
+				}
+				auto name = d->var_decl.names[i];
+				_glsl_symbol_gen(self, scope_find(scope, name.str));
+			}
+			break;
+		}
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
 	void
 	glsl_stmt_gen(GLSL& self, Stmt* s)
 	{
@@ -421,18 +570,34 @@ namespace sabre
 			_glsl_gen_for_stmt(self, s);
 			break;
 		case Stmt::KIND_ASSIGN:
+			_glsl_gen_assign_stmt(self, s);
 			break;
 		case Stmt::KIND_EXPR:
+			glsl_expr_gen(self, s->expr_stmt);
 			break;
 		case Stmt::KIND_BLOCK:
 			_glsl_gen_block_stmt(self, s);
 			break;
 		case Stmt::KIND_DECL:
-			// do nothing
+			_glsl_gen_decl_stmt(self, s);
 			break;
 		default:
 			assert(false && "unreachable");
 			break;
+		}
+	}
+
+	void
+	glsl_gen(GLSL& self)
+	{
+		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
+		{
+			if (i > 0)
+			{
+				_glsl_newline(self);
+			}
+
+			_glsl_symbol_gen(self, self.unit->reachable_symbols[i]);
 		}
 	}
 }

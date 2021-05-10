@@ -7,14 +7,14 @@
 
 namespace sabre
 {
-	struct Unit;
+	struct Unit_Package;
 	struct Scope;
 	struct Expr;
 	struct Stmt;
 
 	struct GLSL
 	{
-		Unit* unit;
+		Unit_Package* unit;
 
 		mn::Stream out;
 		size_t indent;
@@ -24,7 +24,7 @@ namespace sabre
 
 	// creates a new GLSL generator instance
 	SABRE_EXPORT GLSL
-	glsl_new(Unit* unit, mn::Stream out);
+	glsl_new(Unit_Package* unit, mn::Stream out);
 
 	// frees the given GLSL generator
 	SABRE_EXPORT void
@@ -37,4 +37,8 @@ namespace sabre
 	// it will generate the GLSL code for the given statement
 	SABRE_EXPORT void
 	glsl_stmt_gen(GLSL& self, Stmt* s);
+
+	// it will generate all of the reachable symbols in the given unit
+	SABRE_EXPORT void
+	glsl_gen(GLSL& self);
 }
