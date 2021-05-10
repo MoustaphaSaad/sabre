@@ -448,9 +448,12 @@ namespace sabre
 		mn::print_to(self.out, "{}", _glsl_write_field(sym->type, sym->name));
 		if (sym->var_sym.value != nullptr)
 		{
-			mn::print_to(self.out, ";");
-			_glsl_newline(self);
-			_glsl_assign(self, sym, "=", sym->var_sym.value);
+			mn::print_to(self.out, " = ");
+			glsl_expr_gen(self, sym->var_sym.value);
+		}
+		else
+		{
+			// TODO(Moustapha): handle zero init data
 		}
 	}
 
