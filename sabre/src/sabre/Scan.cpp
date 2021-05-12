@@ -437,12 +437,14 @@ namespace sabre
 				if (self.c == '|')
 				{
 					tkn.kind = Tkn::KIND_LOGICAL_OR;
+					_scanner_eat(self);
 				}
 				break;
 			case '&':
 				if (self.c == '&')
 				{
 					tkn.kind = Tkn::KIND_LOGICAL_AND;
+					_scanner_eat(self);
 				}
 				break;
 			case '"':
