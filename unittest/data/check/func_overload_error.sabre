@@ -7,7 +7,7 @@ func add(a, b: vec2): vec3 {
 }
 
 func add(a, b: vec3): vec3 {
-	return a + b;
+	return a + b.xy;
 }
 
 func koko(a, b: vec4): vec3 {

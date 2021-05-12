@@ -4,6 +4,7 @@
 #include "sabre/AST.h"
 
 #include <mn/Defer.h>
+#include <mn/Log.h>
 
 namespace sabre
 {
@@ -18,6 +19,7 @@ namespace sabre
 	inline static void
 	_glsl_enter_scope(GLSL& self, Scope* scope)
 	{
+		assert(scope != nullptr);
 		mn::buf_push(self.scope_stack, scope);
 	}
 
@@ -408,12 +410,10 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_func_gen(GLSL& self, Symbol* sym)
+	_glsl_func_gen_internal(GLSL& self, Decl* d, Type* t)
 	{
-		auto d = sym->func_sym.decl;
-
-		auto return_type = sym->type->func.return_type;
-		mn::print_to(self.out, "{} {}(", _glsl_write_field(return_type, ""), sym->name);
+		auto return_type = t->func.return_type;
+		mn::print_to(self.out, "{} {}(", _glsl_write_field(return_type, ""), d->name.str);
 
 		if (d->func_decl.body != nullptr)
 			_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
@@ -422,7 +422,7 @@ namespace sabre
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)
 		{
-			auto arg_type = sym->type->func.args.types[i];
+			auto arg_type = t->func.args.types[i];
 			for (auto name: arg.names)
 			{
 				if (i > 0)
@@ -440,6 +440,12 @@ namespace sabre
 			mn::print_to(self.out, " ");
 			_glsl_gen_block_stmt(self, d->func_decl.body);
 		}
+	}
+
+	inline static void
+	_glsl_func_gen(GLSL& self, Symbol* sym)
+	{
+		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type);
 	}
 
 	inline static void
@@ -467,6 +473,19 @@ namespace sabre
 			break;
 		case Symbol::KIND_VAR:
 			_glsl_var_gen(self, sym);
+			break;
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
+			for (size_t i = 0; i < sym->func_overload_set_sym.used_decls.count; ++i)
+			{
+				auto decl = sym->func_overload_set_sym.used_decls[i];
+				auto it = mn::map_lookup(sym->func_overload_set_sym.decls, decl);
+				auto type = it->value;
+
+				if (i > 0)
+					_glsl_newline(self);
+
+				_glsl_func_gen_internal(self, decl, type);
+			}
 			break;
 		default:
 			assert(false && "unreachable");

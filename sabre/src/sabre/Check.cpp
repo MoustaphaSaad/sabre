@@ -96,9 +96,12 @@ namespace sabre
 	_typer_resolve_expr(Typer& self, Expr* e);
 
 	inline static void
+	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t);
+
+	inline static void
 	_typer_add_func_overload(Typer& self, Type* overload_set, Decl* decl)
 	{
-		Overload_Entry overload_entry{};
+		Type_Overload_Entry overload_entry{};
 		overload_entry.loc = decl->loc;
 		overload_entry.type = _typer_resolve_func_decl(self, decl);
 
@@ -138,11 +141,13 @@ namespace sabre
 
 		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 		// add the function declaration to overload set
-		mn::set_insert(sym->func_overload_set_sym.decls, decl);
+		auto decl_type = _typer_resolve_func_decl(self, decl);
+		mn::map_insert(sym->func_overload_set_sym.decls, decl, decl_type);
 		if (sym->state == Symbol::STATE_RESOLVED)
 		{
 			assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
 			_typer_add_func_overload(self, sym->type, decl);
+			_typer_resolve_func_body_internal(self, decl, decl_type);
 		}
 		return sym;
 	}
@@ -517,17 +522,18 @@ namespace sabre
 		}
 		else if (type->kind == Type::KIND_FUNC_OVERLOAD_SET)
 		{
+			auto overload_set_symbol = type->func_overload_set_type.symbol;
 			Type* res = nullptr;
-			for (auto [_, overload]: type->func_overload_set_type.overloads)
+			for (auto& [overload_decl, overload_type]: overload_set_symbol->func_overload_set_sym.decls)
 			{
-				if (e->call.args.count != overload.type->func.args.types.count)
+				if (e->call.args.count != overload_type->func.args.types.count)
 					continue;
 
 				bool args_match = true;
 				for (size_t i = 0; i < e->call.args.count; ++i)
 				{
 					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-					if (type_is_equal(arg_type, overload.type->func.args.types[i]) == false)
+					if (type_is_equal(arg_type, overload_type->func.args.types[i]) == false)
 					{
 						args_match = false;
 						break;
@@ -535,7 +541,8 @@ namespace sabre
 				}
 				if (args_match)
 				{
-					res = overload.type->func.return_type;
+					res = overload_type->func.return_type;
+					mn::buf_push(overload_set_symbol->func_overload_set_sym.used_decls, overload_decl);
 					break;
 				}
 			}
@@ -858,6 +865,7 @@ namespace sabre
 		return res;
 	}
 
+	// TODO(Moustapha): you should cache the type of the declaration instead of calculating it everytime
 	inline static Type*
 	_typer_resolve_func_decl(Typer& self, Decl* d)
 	{
@@ -884,8 +892,11 @@ namespace sabre
 		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 
 		auto type = type_interner_overload_set(self.unit->parent_unit->type_interner, sym);
-		for (auto decl: sym->func_overload_set_sym.decls)
+		for (auto& [decl, decl_type]: sym->func_overload_set_sym.decls)
+		{
+			decl_type = _typer_resolve_func_decl(self, decl);
 			_typer_add_func_overload(self, type, decl);
+		}
 		return type;
 	}
 
@@ -1270,18 +1281,16 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_resolve_func_body(Typer& self, Symbol* sym)
+	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t)
 	{
-		auto d = sym->func_sym.decl;
-
-		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, sym->type->func.return_type, Scope::FLAG_NONE);
+		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->func.return_type, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
 			// push function arguments into scope
 			size_t i = 0;
 			for (auto arg: d->func_decl.args)
 			{
-				auto arg_type = sym->type->func.args.types[i];
+				auto arg_type = t->func.args.types[i];
 				for (auto name: arg.names)
 				{
 					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
@@ -1298,7 +1307,7 @@ namespace sabre
 				for (auto stmt: d->func_decl.body->block_stmt)
 					_typer_resolve_stmt(self, stmt);
 
-				if (type_is_equal(sym->type->func.return_type, type_void) == false)
+				if (type_is_equal(t->func.return_type, type_void) == false)
 				{
 					auto return_info = _typer_stmt_will_terminate(self, d->func_decl.body);
 					if (return_info.will_return == false)
@@ -1312,6 +1321,21 @@ namespace sabre
 			}
 		}
 		_typer_leave_scope(self);
+	}
+
+	inline static void
+	_typer_resolve_func_body(Typer& self, Symbol* sym)
+	{
+		_typer_resolve_func_body_internal(self, sym->func_sym.decl, sym->type);
+	}
+
+	inline static void
+	_typer_resolve_func_overload_set_body(Typer& self, Symbol* sym)
+	{
+		for (auto [decl, decl_type]: sym->func_overload_set_sym.decls)
+		{
+			_typer_resolve_func_body_internal(self, decl, decl_type);
+		}
 	}
 
 	inline static void
@@ -1418,12 +1442,13 @@ namespace sabre
 			break;
 		case Symbol::KIND_VAR:
 		case Symbol::KIND_CONST:
-		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			// do nothing
+			break;
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
+			_typer_resolve_func_overload_set_body(self, sym);
 			break;
 		case Symbol::KIND_PACKAGE:
 			unit_package_check(sym->package_sym.package);
-			// do nothing
 			break;
 		case Symbol::KIND_STRUCT:
 			_typer_complete_type(self, sym, symbol_location(sym));

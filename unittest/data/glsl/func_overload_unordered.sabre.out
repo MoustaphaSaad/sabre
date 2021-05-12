@@ -1,0 +1,9 @@
+vec2 add(vec2 a, vec2 b) {
+	return a + b;
+}
+vec2 add(vec3 a, vec3 b) {
+	return add(a.xy, b.yx);
+}
+vec2 koko(vec4 a, vec4 b) {
+	return add(a.xyz, b.zyx);
+}

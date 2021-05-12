@@ -132,7 +132,7 @@ namespace sabre
 		Type* type;
 	};
 
-	struct Overload_Entry
+	struct Type_Overload_Entry
 	{
 		Location loc;
 		Type* type;
@@ -193,7 +193,7 @@ namespace sabre
 			struct
 			{
 				Symbol* symbol;
-				mn::Map<Func_Args_Sign, Overload_Entry, Func_Args_Sign_Hasher> overloads;
+				mn::Map<Func_Args_Sign, Type_Overload_Entry, Func_Args_Sign_Hasher> overloads;
 			} func_overload_set_type;
 		};
 	};
@@ -524,7 +524,8 @@ namespace sabre
 
 			struct
 			{
-				mn::Set<Decl*> decls;
+				mn::Map<Decl*, Type*> decls;
+				mn::Buf<Decl*> used_decls;
 			} func_overload_set_sym;
 		};
 	};
@@ -610,13 +611,18 @@ namespace sabre
 	{
 		auto func_decl = func->func_sym.decl;
 		auto func_name = func->func_sym.name;
+		auto func_type = func->type;
+		auto func_used = func->state == Symbol::STATE_RESOLVED;
 
 		auto self = func;
 		self->kind = Symbol::KIND_FUNC_OVERLOAD_SET;
 		self->state = Symbol::STATE_UNRESOLVED;
 		self->type = type_void;
-		self->func_overload_set_sym.decls = mn::set_with_allocator<Decl*>(arena);
-		mn::set_insert(self->func_overload_set_sym.decls, func_decl);
+		self->func_overload_set_sym.decls = mn::map_with_allocator<Decl*, Type*>(arena);
+		self->func_overload_set_sym.used_decls = mn::buf_with_allocator<Decl*>(arena);
+		mn::map_insert(self->func_overload_set_sym.decls, func_decl, func_type);
+		if (func_used)
+			mn::buf_push(self->func_overload_set_sym.used_decls, func_decl);
 		return self;
 	}
 
