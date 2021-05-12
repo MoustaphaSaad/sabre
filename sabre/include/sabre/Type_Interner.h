@@ -718,6 +718,15 @@ namespace sabre
 				return true;
 		return false;
 	}
+
+	inline static bool
+	scope_find_flag(Scope* self, Scope::FLAG flag)
+	{
+		for (auto it = self; it != nullptr; it = it->parent)
+			if ((it->flags & flag) != 0)
+				return true;
+		return false;
+	}
 }
 
 namespace fmt

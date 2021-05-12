@@ -907,7 +907,7 @@ namespace sabre
 	_typer_resolve_break_stmt(Typer& self, Stmt* s)
 	{
 		auto scope = _typer_current_scope(self);
-		if (scope->flags != Scope::FLAG_INSIDE_LOOP)
+		if (scope_find_flag(scope, Scope::FLAG_INSIDE_LOOP) == false)
 		{
 			Err err{};
 			err.loc = s->loc;
@@ -921,7 +921,7 @@ namespace sabre
 	_typer_resolve_continue_stmt(Typer& self, Stmt* s)
 	{
 		auto scope = _typer_current_scope(self);
-		if (scope->flags != Scope::FLAG_INSIDE_LOOP)
+		if (scope_find_flag(scope, Scope::FLAG_INSIDE_LOOP) == false)
 		{
 			Err err{};
 			err.loc = s->loc;

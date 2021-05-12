@@ -1,0 +1,21 @@
+func convert_bool_to_int(x: bool): int {
+	if x {
+		return 0;
+	} else {
+		return 1;
+	}
+}
+
+func sum_to_n(x: bool): int {
+	var n = convert_bool_to_int(x);
+	var res = 0;
+	for var i = 0; i < n; ++i {
+		if i % 2 == 0 {
+			continue;
+		} else if i % 3 == 0 {
+			break;
+		}
+		res += i;
+	}
+	return res;
+}
