@@ -1,0 +1,9 @@
+func add(a, b: Point): Point {
+	var res: Point;
+	res.p = a.p + b.p;
+	return res;
+}
+
+type Point struct {
+	p: vec2
+}

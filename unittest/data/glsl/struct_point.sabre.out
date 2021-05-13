@@ -1,0 +1,8 @@
+struct Point {
+	vec2 p;
+}
+Point add(Point a, Point b) {
+	Point res;
+	res.p = a.p + b.p;
+	return res;
+}

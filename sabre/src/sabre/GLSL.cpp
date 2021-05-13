@@ -162,6 +162,10 @@ namespace sabre
 				}
 			}
 			break;
+		case Type::KIND_STRUCT:
+			can_write_name = true;
+			str = mn::strf(str, "{}", type->struct_type.symbol->name);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -427,8 +431,7 @@ namespace sabre
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				auto arg_symbol = _glsl_find_symbol(self, name.str);
-				mn::print_to(self.out, "{}", _glsl_write_field(arg_type, arg_symbol->name));
+				mn::print_to(self.out, "{}", _glsl_write_field(arg_type, name.str));
 				++i;
 			}
 		}
@@ -464,6 +467,31 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_struct_gen(GLSL& self, Symbol* sym)
+	{
+		mn::print_to(self.out, "struct {} {{", sym->name);
+		++self.indent;
+
+		auto d = sym->struct_sym.decl;
+		auto t = sym->type;
+
+		size_t i = 0;
+		for (auto field: d->struct_decl.fields)
+		{
+			auto field_type = t->struct_type.fields[i];
+			for (auto name: field.names)
+			{
+				_glsl_newline(self);
+				mn::print_to(self.out, "{};", _glsl_write_field(field_type.type, name.str));
+			}
+		}
+
+		--self.indent;
+		_glsl_newline(self);
+		mn::print_to(self.out, "}}");
+	}
+
+	inline static void
 	_glsl_symbol_gen(GLSL& self, Symbol* sym)
 	{
 		switch (sym->kind)
@@ -486,6 +514,9 @@ namespace sabre
 
 				_glsl_func_gen_internal(self, decl, type);
 			}
+			break;
+		case Symbol::KIND_STRUCT:
+			_glsl_struct_gen(self, sym);
 			break;
 		default:
 			assert(false && "unreachable");
