@@ -287,18 +287,28 @@ namespace sabre
 		{
 		case Tkn::KIND_LITERAL_INTEGER:
 			e->mode = ADDRESS_MODE_CONST;
+			e->const_value = expr_value_int(::strtoll(e->atom.str, nullptr, 10));
 			return type_int;
 		case Tkn::KIND_LITERAL_FLOAT:
 			e->mode = ADDRESS_MODE_CONST;
+			e->const_value = expr_value_int(::strtod(e->atom.str, nullptr));
 			return type_float;
 		case Tkn::KIND_KEYWORD_FALSE:
+			e->mode = ADDRESS_MODE_CONST;
+			e->const_value = expr_value_bool(false);
+			return type_bool;
 		case Tkn::KIND_KEYWORD_TRUE:
 			e->mode = ADDRESS_MODE_CONST;
+			e->const_value = expr_value_bool(true);
 			return type_bool;
 		case Tkn::KIND_ID:
 			if (auto sym = _typer_find_symbol(self, e->atom.str))
 			{
 				_typer_resolve_symbol(self, sym);
+				if (sym->kind == Symbol::KIND_CONST && sym->const_sym.value != nullptr)
+				{
+					e->const_value = sym->const_sym.value->const_value;
+				}
 
 				if (sym->kind == Symbol::KIND_CONST)
 					e->mode = ADDRESS_MODE_CONST;
@@ -404,6 +414,7 @@ namespace sabre
 
 		if (e->binary.left->mode == ADDRESS_MODE_CONST && e->binary.right->mode == ADDRESS_MODE_CONST)
 		{
+			e->const_value = expr_value_binar_op(e->binary.left->const_value, e->binary.op.kind, e->binary.right->const_value);
 			e->mode = ADDRESS_MODE_CONST;
 		}
 		else
@@ -470,6 +481,9 @@ namespace sabre
 			err.msg = mn::strf("cannot evaluate expression in compile time");
 			unit_err(self.unit, err);
 		}
+
+		if (e->unary.base->const_value.kind != Expr_Value::KIND_NONE)
+			e->const_value = expr_value_unary_op(e->unary.base->const_value, e->unary.op.kind);
 
 		if (e->unary.base->mode == ADDRESS_MODE_CONST)
 			e->mode = ADDRESS_MODE_CONST;
@@ -595,11 +609,15 @@ namespace sabre
 		auto from_type = _typer_resolve_expr(self, e->cast.base);
 		auto to_type = _typer_resolve_type_sign(self, e->cast.type);
 
+		if (e->cast.base->const_value.kind != Expr_Value::KIND_NONE)
+			e->const_value = e->cast.base->const_value;
+
 		if (type_is_numeric_scalar(from_type) && type_is_numeric_scalar(to_type))
 			return to_type;
 
-		if (e->unary.base->mode == ADDRESS_MODE_CONST)
+		if (e->cast.base->mode == ADDRESS_MODE_CONST)
 		{
+			e->const_value = e->cast.base->const_value;
 			e->mode = ADDRESS_MODE_CONST;
 		}
 		else
@@ -815,6 +833,14 @@ namespace sabre
 					unit_err(self.unit, err);
 				}
 			}
+		}
+
+		if (e->const_value.kind == Expr_Value::KIND_NONE)
+		{
+			Err err{};
+			err.loc = e->loc;
+			err.msg = mn::strf("expression cannot be evaluated in compile time");
+			unit_err(self.unit, err);
 		}
 
 		sym->type = res;
