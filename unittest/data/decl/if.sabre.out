@@ -1,0 +1,38 @@
+(if-decl
+  (if-cond
+    (binary '=='
+      (atom 'dims')
+      (atom '2')
+    )
+  )
+  (if-body
+    (struct-decl
+      (field
+        (field-name 'p')
+        (type-sign vec2)
+      )
+    )
+  )
+  (if-cond
+    (binary '=='
+      (atom 'dims')
+      (atom '3')
+    )
+  )
+  (if-body
+    (struct-decl
+      (field
+        (field-name 'p')
+        (type-sign vec3)
+      )
+    )
+  )
+  (else-body
+    (struct-decl
+      (field
+        (field-name 'p')
+        (type-sign vec4)
+      )
+    )
+  )
+)

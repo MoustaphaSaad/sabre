@@ -881,6 +881,54 @@ namespace sabre
 		return decl_import_new(self.unit->ast_arena, path, name);
 	}
 
+	inline static mn::Buf<Decl*>
+	_parser_parse_decl_group(Parser& self)
+	{
+		auto res = mn::buf_with_allocator<Decl*>(self.unit->ast_arena);
+		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
+		while (_parser_eat_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+		{
+			if (auto d = parser_parse_decl(self))
+				mn::buf_push(res, d);
+			else
+				break;
+		}
+		return res;
+	}
+
+	inline static Decl*
+	_parser_parse_decl_if(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_IF);
+
+		auto cond = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+		auto body = mn::buf_with_allocator<mn::Buf<Decl*>>(self.unit->ast_arena);
+		auto else_body = mn::buf_with_allocator<Decl*>(self.unit->ast_arena);
+
+		auto if_cond = parser_parse_expr(self);
+		auto if_body = _parser_parse_decl_group(self);
+		mn::buf_push(cond, if_cond);
+		mn::buf_push(body, if_body);
+
+		while (_parser_eat_kind(self, Tkn::KIND_KEYWORD_ELSE))
+		{
+			if (_parser_eat_kind(self, Tkn::KIND_KEYWORD_IF))
+			{
+				auto if_cond = parser_parse_expr(self);
+				auto if_body = _parser_parse_decl_group(self);
+				mn::buf_push(cond, if_cond);
+				mn::buf_push(body, if_body);
+			}
+			else
+			{
+				else_body = _parser_parse_decl_group(self);
+				break;
+			}
+		}
+
+		return decl_if_new(self.unit->ast_arena, cond, body, else_body);
+	}
+
 	inline static Tag_Table
 	_parser_parse_tags(Parser& self)
 	{
@@ -981,6 +1029,8 @@ namespace sabre
 			res = _parser_parse_decl_type(self);
 		else if (tkn.kind == Tkn::KIND_KEYWORD_IMPORT)
 			res = _parser_parse_decl_import(self);
+		else if (tkn.kind == Tkn::KIND_KEYWORD_IF)
+			res = _parser_parse_decl_if(self);
 
 		if (res != nullptr)
 		{

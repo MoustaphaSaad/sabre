@@ -563,6 +563,65 @@ namespace sabre
 			mn::print_to(self.out, "\"{}\"", decl->import_decl.path.str);
 			mn::print_to(self.out, ")");
 			break;
+		case Decl::KIND_IF:
+			mn::print_to(self.out, "(if-decl");
+			_ast_printer_enter_scope(self);
+			{
+				auto max_count = decl->if_decl.cond.count;
+				if (decl->if_decl.body.count > max_count)
+					max_count = decl->if_decl.body.count;
+
+				for (size_t i = 0; i < max_count; ++i)
+				{
+					if (i < decl->if_decl.cond.count)
+					{
+						_ast_printer_newline(self);
+						mn::print_to(self.out, "(if-cond");
+						_ast_printer_enter_scope(self);
+						{
+							_ast_printer_newline(self);
+							ast_printer_print_expr(self, decl->if_decl.cond[i]);
+						}
+						_ast_printer_leave_scope(self);
+						_ast_printer_newline(self);
+						mn::print_to(self.out, ")");
+					}
+
+					if (i < decl->if_decl.body.count)
+					{
+						_ast_printer_newline(self);
+						mn::print_to(self.out, "(if-body");
+						_ast_printer_enter_scope(self);
+						{
+							_ast_printer_newline(self);
+							for (auto sub_decl: decl->if_decl.body[i])
+								ast_printer_print_decl(self, sub_decl);
+						}
+						_ast_printer_leave_scope(self);
+						_ast_printer_newline(self);
+						mn::print_to(self.out, ")");
+					}
+				}
+
+				if (decl->if_decl.else_body.count > 0)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(else-body");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						for (auto sub_decl: decl->if_decl.else_body)
+							ast_printer_print_decl(self, sub_decl);
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
 		default:
 			assert(false && "declaration type is not handled");
 			break;

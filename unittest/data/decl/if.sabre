@@ -1,0 +1,13 @@
+if dims == 2 {
+	type Point struct {
+		p: vec2
+	}
+} else if dims == 3 {
+	type Point struct {
+		p: vec3
+	}
+} else {
+	type Point struct {
+		p: vec4
+	}
+}

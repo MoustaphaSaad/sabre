@@ -808,6 +808,7 @@ namespace sabre
 			KIND_FUNC,
 			KIND_STRUCT,
 			KIND_IMPORT,
+			KIND_IF,
 		};
 
 		KIND kind;
@@ -847,6 +848,13 @@ namespace sabre
 				Tkn path;
 				Tkn name;
 			} import_decl;
+
+			struct
+			{
+				mn::Buf<Expr*> cond;
+				mn::Buf<mn::Buf<Decl*>> body;
+				mn::Buf<Decl*> else_body;
+			} if_decl;
 		};
 	};
 
@@ -907,6 +915,18 @@ namespace sabre
 		self->name = name;
 		self->import_decl.path = path;
 		self->import_decl.name = name;
+		return self;
+	}
+
+	// creates a new if delcaration
+	inline static Decl*
+	decl_if_new(mn::Allocator arena, mn::Buf<Expr*> cond, mn::Buf<mn::Buf<Decl*>> body, mn::Buf<Decl*> else_body)
+	{
+		auto self = mn::alloc_zerod_from<Decl>(arena);
+		self->kind = Decl::KIND_IF;
+		self->if_decl.cond = cond;
+		self->if_decl.body = body;
+		self->if_decl.else_body = else_body;
 		return self;
 	}
 }
