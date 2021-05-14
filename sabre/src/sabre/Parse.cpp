@@ -156,6 +156,55 @@ namespace sabre
 			if (expr != nullptr)
 				expr->in_parens = true;
 		}
+		else if (tkn.kind == Tkn::KIND_COLON)
+		{
+			_parser_eat(self); // for the :
+			auto type = _parser_parse_type(self);
+			_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
+
+			auto fields = mn::buf_with_allocator<Complit_Field>(self.unit->ast_arena);
+			bool named = false;
+			while (_parser_eat_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+			{
+				auto tkn = _parser_look(self);
+				if (tkn.kind == Tkn::KIND_DOT)
+				{
+					_parser_eat(self); // for the .
+					auto left = parser_parse_expr(self);
+					_parser_eat_must(self, Tkn::KIND_EQUAL);
+					auto right = parser_parse_expr(self);
+
+					if (named == false && fields.count > 0)
+					{
+						Err err{};
+						err.loc = left->loc;
+						err.msg = mn::strf("mixing named compound literal fields with unnamed fields is forbidden");
+						unit_err(self.unit, err);
+					}
+
+					mn::buf_push(fields, complit_field_member(left, right));
+					named = true;
+				}
+				else
+				{
+					auto right = parser_parse_expr(self);
+
+					if (named == true && fields.count > 0)
+					{
+						Err err{};
+						err.loc = right->loc;
+						err.msg = mn::strf("mixing named compound literal fields with unnamed fields is forbidden");
+						unit_err(self.unit, err);
+					}
+
+					mn::buf_push(fields, complit_field_member(nullptr, right));
+				}
+
+				_parser_eat_must(self, Tkn::KIND_COMMA);
+			}
+
+			expr = expr_complit_new(self.unit->ast_arena, type, fields);
+		}
 
 		if (expr != nullptr)
 		{

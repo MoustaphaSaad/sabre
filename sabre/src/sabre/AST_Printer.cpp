@@ -172,6 +172,35 @@ namespace sabre
 			_ast_printer_newline(self);
 			mn::print_to(self.out, ")");
 			break;
+		case Expr::KIND_COMPLIT:
+			mn::print_to(self.out, "(complit ");
+			_ast_printer_print_type(self, expr->complit.type);
+			_ast_printer_enter_scope(self);
+			{
+				for (auto field: expr->complit.fields)
+				{
+					_ast_printer_newline(self);
+					if (field.kind == Complit_Field::KIND_MEMBER)
+					{
+						mn::print_to(self.out, "(field ");
+						_ast_printer_enter_scope(self);
+						{
+							_ast_printer_newline(self);
+							if (field.left)
+								ast_printer_print_expr(self, field.left);
+							_ast_printer_newline(self);
+							ast_printer_print_expr(self, field.right);
+						}
+						_ast_printer_leave_scope(self);
+						_ast_printer_newline(self);
+						mn::print_to(self.out, ")");
+					}
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
 		default:
 			assert(false && "expression type is not handled");
 			break;

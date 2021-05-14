@@ -413,6 +413,7 @@ namespace sabre
 	}
 
 	struct Type;
+	struct Expr;
 
 	// address mode of expressions which is used to check assignment statements, etc...
 	enum ADDRESS_MODE
@@ -426,6 +427,30 @@ namespace sabre
 		ADDRESS_MODE_VARIABLE,
 	};
 
+	// represents a compound literal field
+	struct Complit_Field
+	{
+		enum KIND
+		{
+			KIND_MEMBER
+		};
+
+		KIND kind;
+		Expr* left;
+		Expr* right;
+	};
+
+	// creates a new compound literal field member
+	inline static Complit_Field
+	complit_field_member(Expr* left, Expr* right)
+	{
+		Complit_Field self{};
+		self.kind = Complit_Field::KIND_MEMBER;
+		self.left = left;
+		self.right = right;
+		return self;
+	}
+
 	// represents an expression
 	struct Expr
 	{
@@ -438,6 +463,7 @@ namespace sabre
 			KIND_CAST,
 			KIND_DOT,
 			KIND_INDEXED,
+			KIND_COMPLIT,
 		};
 
 		KIND kind;
@@ -487,6 +513,12 @@ namespace sabre
 				Expr* base;
 				Expr* index;
 			} indexed;
+
+			struct
+			{
+				Type_Sign type;
+				mn::Buf<Complit_Field> fields;
+			} complit;
 		};
 	};
 
@@ -564,6 +596,17 @@ namespace sabre
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_ATOM;
 		self->atom = atom;
+		return self;
+	}
+
+	// creates a new compound literal expression
+	inline static Expr*
+	expr_complit_new(mn::Allocator arena, Type_Sign type, mn::Buf<Complit_Field> fields)
+	{
+		auto self = mn::alloc_zerod_from<Expr>(arena);
+		self->kind = Expr::KIND_COMPLIT;
+		self->complit.type = type;
+		self->complit.fields = fields;
 		return self;
 	}
 

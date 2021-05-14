@@ -1,0 +1,14 @@
+(complit (type-sign vec4)
+  (field 
+    (atom 'x')
+    (atom '1')
+  )
+  (field 
+    (atom 'y')
+    (atom '2')
+  )
+  (field 
+    (atom 'z')
+    (atom '3')
+  )
+)
