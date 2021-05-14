@@ -1494,13 +1494,70 @@ namespace sabre
 	inline static void
 	_typer_shallow_walk(Typer& self)
 	{
-		for (auto file: self.unit->files)
-			for (auto decl: file->decls)
-				_typer_shallow_process_decl(self, file, decl);
+		auto compile_ifs = mn::buf_with_allocator<Decl*>(mn::memory::tmp());
 
-		for (auto sym: self.global_scope->symbols)
+		for (auto file: self.unit->files)
 		{
-			_typer_resolve_symbol(self, sym);
+			for (auto decl: file->decls)
+			{
+				if (decl->kind == Decl::KIND_IF)
+					mn::buf_push(compile_ifs, decl);
+				else
+					_typer_shallow_process_decl(self, file, decl);
+			}
+		}
+
+		for (size_t i = 0; i < compile_ifs.count; ++i)
+		{
+			auto if_decl = compile_ifs[i];
+			size_t winner_if_index = if_decl->if_decl.cond.count;
+			for (size_t j = 0; j < if_decl->if_decl.cond.count; ++j)
+			{
+				auto cond_expr = if_decl->if_decl.cond[j];
+				auto cond_type = _typer_resolve_expr(self, cond_expr);
+				if (cond_type != type_bool)
+				{
+					Err err{};
+					err.loc = cond_expr->loc;
+					err.msg = mn::strf("if condition type '{}' is not a boolean", cond_type);
+					unit_err(self.unit, err);
+				}
+
+				if (cond_expr->mode != ADDRESS_MODE_CONST)
+				{
+					Err err{};
+					err.loc = cond_expr->loc;
+					err.msg = mn::strf("compile time if condition is not a constant");
+					unit_err(self.unit, err);
+				}
+
+				if (cond_expr->const_value.kind == Expr_Value::KIND_BOOL && cond_expr->const_value.as_bool)
+				{
+					winner_if_index = j;
+					break;
+				}
+			}
+
+			if (winner_if_index < if_decl->if_decl.cond.count)
+			{
+				for (auto decl: if_decl->if_decl.body[winner_if_index])
+				{
+					if (decl->kind == Decl::KIND_IF)
+						mn::buf_push(compile_ifs, decl);
+					else
+						_typer_shallow_process_decl(self, decl->loc.file, decl);
+				}
+			}
+			else
+			{
+				for (auto decl: if_decl->if_decl.else_body)
+				{
+					if (decl->kind == Decl::KIND_IF)
+						mn::buf_push(compile_ifs, decl);
+					else
+						_typer_shallow_process_decl(self, decl->loc.file, decl);
+				}
+			}
 		}
 	}
 
