@@ -1,0 +1,6 @@
+>> 		.z = a.x + b.y,
+>> 		 ^             
+Error[complit.sabre:9:4]: type 'struct Point' doesn't have field 'z'
+>> 		.x.sdwert = a.x + b.x,
+>> 		   ^^^^^^             
+Error[complit.sabre:15:6]: type 'float' doesn't have field 'sdwert'

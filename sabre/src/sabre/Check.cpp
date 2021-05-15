@@ -763,34 +763,136 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_complit_expr(Typer& self, Expr* e)
 	{
-		return type_void;
-		// auto type = _typer_resolve_type_sign(self, e->complit.type);
-		// for (size_t i = 0; i < e->complit.fields.count; ++i)
-		// {
-		// 	auto field = e->complit.fields[i];
+		auto type = _typer_resolve_type_sign(self, e->complit.type);
+		for (size_t i = 0; i < e->complit.fields.count; ++i)
+		{
+			auto field = e->complit.fields[i];
 
-		// 	// if user uses named variant, with a valid left expr
-		// 	if (field.left)
-		// 	{
-		// 		// resolve the left side
-		// 		auto left_type = type_void;
-		// 		switch (field.kind)
-		// 		{
-		// 		case Complit_Field::KIND_MEMBER:
-		// 		{
-		// 			if (type->kind == Type::KIND_STRUCT)
-		// 			{
-		// 				auto field_it = type->struct_type.
-		// 			}
-		// 			break;
-		// 		}
-		// 		default:
-		// 			assert(false && "unreachable");
-		// 			break;
-		// 		}
-		// 	}
-		// }
-		// return type;
+			auto type_it = type;
+			bool failed = false;
+			if (field.selector.count > 0)
+			{
+				for (auto selector: field.selector)
+				{
+					if (selector->kind == Expr::KIND_ATOM)
+					{
+						if (type_it->kind == Type::KIND_VEC)
+						{
+							auto name = mn::str_lit(selector->atom.str);
+							if (type_it->vec.width > 0 && name == "x")
+							{
+								type_it = type_it->vec.base;
+							}
+							else if (type_it->vec.width > 1 && name == "y")
+							{
+								type_it = type_it->vec.base;
+							}
+							else if (type_it->vec.width > 2 && name == "z")
+							{
+								type_it = type_it->vec.base;
+							}
+							else if (type_it->vec.width > 3 && name == "w")
+							{
+								type_it = type_it->vec.base;
+							}
+							else
+							{
+								Err err{};
+								err.loc = selector->loc;
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.str);
+								unit_err(self.unit, err);
+								failed = true;
+								break;
+							}
+						}
+						else if (type_it->kind == Type::KIND_STRUCT)
+						{
+							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector->atom.str);
+							if (field_it == nullptr)
+							{
+								Err err{};
+								err.loc = selector->loc;
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.str);
+								unit_err(self.unit, err);
+								failed = true;
+								break;
+							}
+							type_it = type_it->struct_type.fields[field_it->value].type;
+						}
+						else
+						{
+							Err err{};
+							err.loc = selector->loc;
+							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.str);
+							unit_err(self.unit, err);
+							failed = true;
+							break;
+						}
+					}
+					else
+					{
+						Err err{};
+						err.loc = selector->loc;
+						err.msg = mn::strf("invalid compound literal selector");
+						unit_err(self.unit, err);
+						failed = true;
+						break;
+					}
+				}
+			}
+			else
+			{
+				if (type_it->kind == Type::KIND_VEC)
+				{
+					if (i < type_it->vec.width)
+					{
+						type_it = type_it->vec.base;
+					}
+					else
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("type '{}' contains only {} fields", type_it, type_it->vec.width);
+						unit_err(self.unit, err);
+						failed = true;
+					}
+				}
+				else if (type_it->kind == Type::KIND_STRUCT)
+				{
+					if (i < type_it->struct_type.fields.count)
+					{
+						type_it = type_it->struct_type.fields[i].type;
+					}
+					else
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("type '{}' contains only {} fields", type_it, type_it->struct_type.fields.count);
+						unit_err(self.unit, err);
+						failed = true;
+					}
+				}
+				else
+				{
+					Err err{};
+					err.loc = field.value->loc;
+					err.msg = mn::strf("type '{}' doesn't have fields", type_it);
+					unit_err(self.unit, err);
+					failed = true;
+				}
+			}
+
+			auto value_type = _typer_resolve_expr(self, field.value);
+			if (failed == false && type_is_equal(type_it, value_type) == false)
+			{
+				Err err{};
+				err.loc = field.value->loc;
+				err.msg = mn::strf("type mismatch in compound literal value, selector type '{}' but expression type is '{}'", type_it, value_type);
+				unit_err(self.unit, err);
+				break;
+			}
+		}
+		return type;
 	}
 
 	inline static Type*

@@ -171,7 +171,9 @@ namespace sabre
 				{
 					named = true;
 					auto id = _parser_eat_must(self, Tkn::KIND_ID);
-					mn::buf_push(selector, expr_atom_new(self.unit->ast_arena, id));
+					auto atom_expr = expr_atom_new(self.unit->ast_arena, id);
+					atom_expr->loc = id.loc;
+					mn::buf_push(selector, atom_expr);
 				}
 
 				if (selector.count > 0)
