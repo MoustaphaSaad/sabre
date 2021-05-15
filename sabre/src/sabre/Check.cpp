@@ -761,6 +761,39 @@ namespace sabre
 	}
 
 	inline static Type*
+	_typer_resolve_complit_expr(Typer& self, Expr* e)
+	{
+		return type_void;
+		// auto type = _typer_resolve_type_sign(self, e->complit.type);
+		// for (size_t i = 0; i < e->complit.fields.count; ++i)
+		// {
+		// 	auto field = e->complit.fields[i];
+
+		// 	// if user uses named variant, with a valid left expr
+		// 	if (field.left)
+		// 	{
+		// 		// resolve the left side
+		// 		auto left_type = type_void;
+		// 		switch (field.kind)
+		// 		{
+		// 		case Complit_Field::KIND_MEMBER:
+		// 		{
+		// 			if (type->kind == Type::KIND_STRUCT)
+		// 			{
+		// 				auto field_it = type->struct_type.
+		// 			}
+		// 			break;
+		// 		}
+		// 		default:
+		// 			assert(false && "unreachable");
+		// 			break;
+		// 		}
+		// 	}
+		// }
+		// return type;
+	}
+
+	inline static Type*
 	_typer_resolve_expr(Typer& self, Expr* e)
 	{
 		if (e->type != nullptr)
@@ -788,6 +821,9 @@ namespace sabre
 			return e->type;
 		case Expr::KIND_INDEXED:
 			e->type = _typer_resolve_indexed_expr(self, e);
+			return e->type;
+		case Expr::KIND_COMPLIT:
+			e->type = _typer_resolve_complit_expr(self, e);
 			return e->type;
 		default:
 			assert(false && "unreachable");

@@ -180,21 +180,20 @@ namespace sabre
 				for (auto field: expr->complit.fields)
 				{
 					_ast_printer_newline(self);
-					if (field.kind == Complit_Field::KIND_MEMBER)
+					mn::print_to(self.out, "(field ");
+					_ast_printer_enter_scope(self);
 					{
-						mn::print_to(self.out, "(field ");
-						_ast_printer_enter_scope(self);
+						for (auto selector: field.selector)
 						{
 							_ast_printer_newline(self);
-							if (field.left)
-								ast_printer_print_expr(self, field.left);
-							_ast_printer_newline(self);
-							ast_printer_print_expr(self, field.right);
+							ast_printer_print_expr(self, selector);
 						}
-						_ast_printer_leave_scope(self);
 						_ast_printer_newline(self);
-						mn::print_to(self.out, ")");
+						ast_printer_print_expr(self, field.value);
 					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
 				}
 			}
 			_ast_printer_leave_scope(self);

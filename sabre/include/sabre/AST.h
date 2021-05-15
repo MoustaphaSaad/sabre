@@ -430,24 +430,17 @@ namespace sabre
 	// represents a compound literal field
 	struct Complit_Field
 	{
-		enum KIND
-		{
-			KIND_MEMBER
-		};
-
-		KIND kind;
-		Expr* left;
-		Expr* right;
+		mn::Buf<Expr*> selector;
+		Expr* value;
 	};
 
 	// creates a new compound literal field member
 	inline static Complit_Field
-	complit_field_member(Expr* left, Expr* right)
+	complit_field_member(mn::Buf<Expr*> selector, Expr* value)
 	{
 		Complit_Field self{};
-		self.kind = Complit_Field::KIND_MEMBER;
-		self.left = left;
-		self.right = right;
+		self.selector = selector;
+		self.value = value;
 		return self;
 	}
 
