@@ -1,6 +1,6 @@
->> 		.p.z = 3,
->> 		   ^     
+>> 		.p.z = 3
+>> 		   ^    
 Error[complit_vec.sabre:9:6]: type 'vec2' doesn't have field 'z'
->> 	return :Point { a.p + b.p, a.p, };
->> 	                           ^^^    
+>> 	return :Point { a.p + b.p, a.p };
+>> 	                           ^^^   
 Error[complit_vec.sabre:14:29]: type 'struct Point' contains only 1 fields

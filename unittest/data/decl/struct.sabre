@@ -1,4 +1,4 @@
 type Vec struct {
-	x, y, z: float
-	r, g, b: double
+	x, y, z: float,
+	r, g, b: double,
 }

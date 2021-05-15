@@ -1,6 +1,6 @@
->> 	x: Vec
->> 	   ^^^
+>> 	x: Vec,
+>> 	   ^^^ 
 Error[struct_field_error.sabre:4:5]: 'Vec' is a recursive type
->> 	x: Vec
->> 	^     
+>> 	x: Vec,
+>> 	^      
 Error[struct_field_error.sabre:4:2]: 'x' field redefinition, first declared in 2:2

@@ -1,5 +1,5 @@
 @tagName { key = "value", another_key = "value2" }
 type Vec struct {
-	x, y, z: float
-	r, g, b: double
+	x, y, z: float,
+	r, g, b: double,
 }

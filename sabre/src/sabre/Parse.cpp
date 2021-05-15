@@ -82,6 +82,7 @@ namespace sabre
 			return tkn;
 
 		Err err{};
+		err.loc = tkn.loc;
 		err.msg = mn::strf("expected '{}' but found '{}'", Tkn::NAMES[kind], tkn.str);
 		unit_err(self.unit, err);
 		return Tkn{};
@@ -120,6 +121,16 @@ namespace sabre
 			}
 		}
 		return type;
+	}
+
+	inline static bool
+	_parser_should_stop_at_curly_with_optional_comma(Parser& self)
+	{
+		return (
+			_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) ||
+			(_parser_look_kind(self, Tkn::KIND_COMMA) && _parser_look_ahead_k(self, 1).kind == Tkn::KIND_CLOSE_CURLY) ||
+			_parser_look_kind(self, Tkn::KIND_EOF)
+		);
 	}
 
 	inline static Expr*
@@ -164,8 +175,11 @@ namespace sabre
 
 			auto fields = mn::buf_with_allocator<Complit_Field>(self.unit->ast_arena);
 			bool named = false;
-			while (_parser_eat_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+			while (_parser_should_stop_at_curly_with_optional_comma(self) == false)
 			{
+				if (fields.count > 0)
+					_parser_eat_must(self, Tkn::KIND_COMMA);
+
 				auto selector = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
 				while (_parser_eat_kind(self, Tkn::KIND_DOT))
 				{
@@ -191,9 +205,10 @@ namespace sabre
 
 				auto right = parser_parse_expr(self);
 				mn::buf_push(fields, complit_field_member(selector, right));
-
-				_parser_eat_must(self, Tkn::KIND_COMMA);
 			}
+			// last comma is optional
+			_parser_eat_kind(self, Tkn::KIND_COMMA);
+			_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
 
 			expr = expr_complit_new(self.unit->ast_arena, type, fields);
 		}
@@ -892,8 +907,16 @@ namespace sabre
 
 		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
 		auto fields = mn::buf_with_allocator<Field>(self.unit->ast_arena);
-		while (_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
+
+		while (_parser_should_stop_at_curly_with_optional_comma(self) == false)
+		{
+			if (fields.count > 0)
+				_parser_eat_must(self, Tkn::KIND_COMMA);
+
 			mn::buf_push(fields, _parser_parse_field(self));
+		}
+		// last comma is optional
+		_parser_eat_kind(self, Tkn::KIND_COMMA);
 		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
 
 		return decl_struct_new(self.unit->ast_arena, name, fields);
