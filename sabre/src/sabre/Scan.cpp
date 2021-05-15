@@ -216,7 +216,7 @@ namespace sabre
 		auto begin_it = self.it;
 		auto end_it = self.it;
 
-		while (self.c == '\n')
+		while (self.c != '\n')
 		{
 			// windows style /r/n
 			if (self.c == '\r')
@@ -225,12 +225,12 @@ namespace sabre
 					break;
 			}
 
-			if (_scanner_eof(self) == false)
+			if (_scanner_eat(self) == false)
 				break;
 			end_it = self.it;
 		}
-
-		_scanner_eat(self); // for the \n
+		self.it = end_it;
+		self.c = mn::rune_read(self.it);
 		return unit_intern(self.unit, begin_it, end_it);
 	}
 

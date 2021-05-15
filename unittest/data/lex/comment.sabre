@@ -1,0 +1,4 @@
+// comment
+func add(a, b: vec2): vec2 {
+	return a + b;
+}
