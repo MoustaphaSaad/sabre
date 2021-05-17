@@ -64,6 +64,7 @@ namespace sabre
 	{
 		mn::buf_free(self->symbols);
 		mn::map_free(self->symbol_table);
+		mn::map_free(self->generated_names);
 		mn::free(self);
 	}
 

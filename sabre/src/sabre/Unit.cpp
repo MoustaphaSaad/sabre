@@ -109,12 +109,12 @@ namespace sabre
 	}
 
 	Unit_Package*
-	unit_package_new()
+	unit_package_new(const char* name)
 	{
 		auto self = mn::alloc_zerod<Unit_Package>();
 		self->stage = COMPILATION_STAGE_SCAN;
 		self->symbols_arena = mn::allocator_arena_new();
-		self->global_scope = scope_new(nullptr, "global", nullptr, Scope::FLAG_NONE);
+		self->global_scope = scope_new(nullptr, name, nullptr, Scope::FLAG_NONE);
 		return self;
 	}
 
@@ -214,7 +214,7 @@ namespace sabre
 	mn::Result<Unit_Package*>
 	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path, Tkn name)
 	{
-		auto [package, err] = unit_resolve_package(self->parent_unit, absolute_path);
+		auto [package, err] = unit_resolve_package(self->parent_unit, absolute_path, name.str);
 		if (err == false)
 		{
 			mn::map_insert(self->imported_packages, name.str, package);
@@ -229,7 +229,7 @@ namespace sabre
 		auto self = mn::alloc_zerod<Unit>();
 
 		auto root_file = unit_file_from_path(filepath);
-		auto root_package = unit_package_new();
+		auto root_package = unit_package_new("main");
 		// single file packages has their paths be the file path
 		root_package->absolute_path = clone(root_file->absolute_path);
 		unit_package_add_file(root_package, root_file);
@@ -336,7 +336,7 @@ namespace sabre
 	}
 
 	mn::Result<Unit_Package*>
-	unit_resolve_package(Unit* self, const mn::Str& absolute_path)
+	unit_resolve_package(Unit* self, const mn::Str& absolute_path, const char* name)
 	{
 		if (mn::path_exists(absolute_path) == false)
 			return mn::Err{ "package path '{}' does not exist", absolute_path };
@@ -358,7 +358,7 @@ namespace sabre
 			}
 
 			auto file = unit_file_from_path(absolute_path);
-			auto package = unit_package_new();
+			auto package = unit_package_new(name);
 			package->absolute_path = clone(absolute_path);
 			unit_package_add_file(package, file);
 			unit_add_package(self, package);

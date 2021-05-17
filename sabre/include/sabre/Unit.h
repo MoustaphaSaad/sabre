@@ -146,7 +146,7 @@ namespace sabre
 
 	// creates a new package compilation unit
 	SABRE_EXPORT Unit_Package*
-	unit_package_new();
+	unit_package_new(const char* name);
 
 	// frees the given unit package
 	SABRE_EXPORT void
@@ -342,5 +342,5 @@ namespace sabre
 
 	// processes the package given its path and either returns an error or the package name
 	SABRE_EXPORT mn::Result<Unit_Package*>
-	unit_resolve_package(Unit* self, const mn::Str& absolute_path);
+	unit_resolve_package(Unit* self, const mn::Str& absolute_path, const char* name);
 }

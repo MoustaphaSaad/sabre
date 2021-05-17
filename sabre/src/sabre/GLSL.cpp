@@ -164,7 +164,7 @@ namespace sabre
 			break;
 		case Type::KIND_STRUCT:
 			can_write_name = true;
-			str = mn::strf(str, "{}", type->struct_type.symbol->name);
+			str = mn::strf(str, "{}", type->struct_type.symbol->package_name);
 			break;
 		default:
 			assert(false && "unreachable");
@@ -191,6 +191,20 @@ namespace sabre
 	inline static void
 	_glsl_gen_atom_expr(GLSL& self, Expr* e)
 	{
+		if (e->atom.kind == Tkn::KIND_ID)
+		{
+			if (auto sym = _glsl_find_symbol(self, e->atom.str))
+			{
+				// check if it has a package name
+				auto package_name = mn::str_lit(sym->package_name);
+				if (package_name.count > 0)
+				{
+					mn::print_to(self.out, "{}", sym->package_name);
+					return;
+				}
+			}
+		}
+
 		mn::print_to(self.out, e->atom.str);
 	}
 
@@ -414,10 +428,10 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_func_gen_internal(GLSL& self, Decl* d, Type* t)
+	_glsl_func_gen_internal(GLSL& self, Decl* d, Type* t, const char* name)
 	{
 		auto return_type = t->func.return_type;
-		mn::print_to(self.out, "{} {}(", _glsl_write_field(return_type, ""), d->name.str);
+		mn::print_to(self.out, "{} {}(", _glsl_write_field(return_type, ""), name);
 
 		if (d->func_decl.body != nullptr)
 			_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
@@ -448,13 +462,13 @@ namespace sabre
 	inline static void
 	_glsl_func_gen(GLSL& self, Symbol* sym)
 	{
-		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type);
+		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type, sym->package_name);
 	}
 
 	inline static void
 	_glsl_var_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "{}", _glsl_write_field(sym->type, sym->name));
+		mn::print_to(self.out, "{}", _glsl_write_field(sym->type, sym->package_name));
 		if (sym->var_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
@@ -469,7 +483,7 @@ namespace sabre
 	inline static void
 	_glsl_struct_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "struct {} {{", sym->name);
+		mn::print_to(self.out, "struct {} {{", sym->package_name);
 		++self.indent;
 
 		auto d = sym->struct_sym.decl;
@@ -512,7 +526,7 @@ namespace sabre
 				if (i > 0)
 					_glsl_newline(self);
 
-				_glsl_func_gen_internal(self, decl, type);
+				_glsl_func_gen_internal(self, decl, type, sym->package_name);
 			}
 			break;
 		case Symbol::KIND_STRUCT:

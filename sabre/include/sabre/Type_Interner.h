@@ -484,6 +484,7 @@ namespace sabre
 		STATE state;
 		Type* type;
 		const char* name;
+		const char* package_name;
 
 		union
 		{
@@ -662,6 +663,7 @@ namespace sabre
 		mn::Buf<Symbol*> symbols;
 		mn::Map<const char*, Symbol*> symbol_table;
 		Type* expected_type;
+		mn::Map<const char*, size_t> generated_names;
 		FLAG flags;
 	};
 

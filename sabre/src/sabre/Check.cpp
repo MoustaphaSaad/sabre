@@ -2,6 +2,7 @@
 #include "sabre/Unit.h"
 
 #include <mn/IO.h>
+#include <mn/Log.h>
 
 namespace sabre
 {
@@ -1556,6 +1557,61 @@ namespace sabre
 		}
 	}
 
+	inline static const char*
+	_typer_generate_package_name_for_symbol(Typer& self, const char* name, bool prepend_scope)
+	{
+		auto scope = _typer_current_scope(self);
+
+		auto res = mn::str_tmp();
+
+		if (prepend_scope)
+		{
+			// we want to generate the name in reverse order of the scopes hierarchy
+			auto prefix_list = mn::buf_with_allocator<const char*>(mn::memory::tmp());
+			for (auto it = scope; it != nullptr; it = it->parent)
+			{
+				auto scope_name = mn::str_lit(it->name);
+				if (scope_name.count == 0)
+					continue;
+				mn::buf_push(prefix_list, scope_name.ptr);
+			}
+
+			for (size_t i = 0; i < prefix_list.count; ++i)
+			{
+				auto prefix_name = prefix_list[prefix_list.count - i - 1];
+				res = mn::strf(res, "{}_", prefix_name);
+			}
+			res = mn::strf(res, "{}", name);
+		}
+		else
+		{
+			res = mn::strf(res, "{}", name);
+		}
+
+		auto interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+
+		bool collided = false;
+		// try to search the already generated names for this new name and if found
+		// we'll try to make a new name for us
+		for (auto it = scope; it != nullptr; it = it->parent)
+		{
+			if (auto name_it = mn::map_lookup(it->generated_names, interned_res))
+			{
+				res = mn::strf(res, "_{}", name_it->value + 1);
+				auto interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+				++name_it->value;
+				collided = true;
+				break;
+			}
+		}
+
+		if (collided == false)
+		{
+			mn::map_insert(scope->generated_names, interned_res, (size_t)1);
+		}
+		return interned_res;
+	}
+
 	inline static void
 	_typer_resolve_symbol(Typer& self, Symbol* sym)
 	{
@@ -1623,7 +1679,18 @@ namespace sabre
 		}
 
 		// if sym is top level we add it to reachable symbols
-		if (scope_is_top_level(self.global_scope, sym))
+		auto is_top_level = scope_is_top_level(self.global_scope, sym);
+
+		// we don't prepend scope for local variables
+		bool prepend_scope = true;
+		if (sym->kind == Symbol::KIND_VAR && is_top_level == false)
+			prepend_scope = false;
+
+		sym->package_name = _typer_generate_package_name_for_symbol(self, sym->name, prepend_scope);
+
+		if (is_top_level ||
+			sym->kind == Symbol::KIND_FUNC ||
+			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
 		{
 			mn::buf_push(self.unit->reachable_symbols, sym);
 		}

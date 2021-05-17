@@ -1,4 +1,4 @@
-void foo() {
+void main_foo() {
 	bvec2 v2;
 	bvec3 v3;
 	bvec4 v4;
@@ -7,7 +7,7 @@ void foo() {
 	bool v4x = v4.x;
 	bool s = v2x && v3x && v4x;
 }
-void bar() {
+void main_bar() {
 	bvec2 v2;
 	bvec3 v3;
 	bvec4 v4;
@@ -16,7 +16,7 @@ void bar() {
 	bvec3 v4x = v4.xzw;
 	bvec3 s = v2x || v3x && v4x;
 }
-bvec4 baz() {
+bvec4 main_baz() {
 	bvec2 v2;
 	bvec3 v3;
 	bvec4 v4;
