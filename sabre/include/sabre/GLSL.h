@@ -22,6 +22,9 @@ namespace sabre
 		mn::Buf<Scope*> scope_stack;
 		// map from the reserved keywords to the alternative names
 		mn::Map<const char*, const char*> reserved_to_alternative;
+		// maps the name of a specific AST entity to some generated name, used in compound literals
+		mn::Map<void*, const char*> symbol_to_names;
+		size_t tmp_id;
 	};
 
 	// creates a new GLSL generator instance

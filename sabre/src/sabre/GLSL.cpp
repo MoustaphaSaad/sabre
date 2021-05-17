@@ -265,6 +265,24 @@ namespace sabre
 		return scope_find(current_scope, name);
 	}
 
+	inline static const char*
+	_glsl_tmp_name(GLSL& self)
+	{
+		auto scope = _glsl_current_scope(self);
+		auto res = mn::str_tmp();
+		const char* interned_res = nullptr;
+		while (true)
+		{
+			auto id = ++self.tmp_id;
+			res = mn::strf(res, "_tmp_{}", id);
+			interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+			if (scope_shallow_find(scope, interned_res) == nullptr)
+				break;
+			mn::str_clear(res);
+		}
+		return _glsl_name(self, interned_res);
+	}
+
 	inline static mn::Str
 	_glsl_write_field(GLSL& self, mn::Str str, Type* type, const char* name)
 	{
@@ -477,6 +495,13 @@ namespace sabre
 		mn::print_to(self.out, "{}(", _glsl_write_field(self, e->type, ""));
 		glsl_expr_gen(self, e->cast.base);
 		mn::print_to(self.out, ")");
+	}
+
+	inline static void
+	_glsl_gen_complit_expr(GLSL& self, Expr* e)
+	{
+		auto it = mn::map_lookup(self.symbol_to_names, (void*)e);
+		mn::print_to(self.out, it->value);
 	}
 
 	inline static void
@@ -782,6 +807,242 @@ namespace sabre
 		}
 	}
 
+	inline static void
+	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e);
+
+	inline static void
+	_glsl_rewrite_complits_in_binary_expr(GLSL& self, Expr* e)
+	{
+		_glsl_rewrite_complits_in_expr(self, e->binary.left);
+		_glsl_rewrite_complits_in_expr(self, e->binary.right);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_unary_expr(GLSL& self, Expr* e)
+	{
+		_glsl_rewrite_complits_in_expr(self, e->unary.base);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_dot_expr(GLSL& self, Expr* e)
+	{
+		_glsl_rewrite_complits_in_expr(self, e->dot.lhs);
+		_glsl_rewrite_complits_in_expr(self, e->dot.rhs);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_indexed_expr(GLSL& self, Expr* e)
+	{
+		_glsl_rewrite_complits_in_expr(self, e->indexed.base);
+		_glsl_rewrite_complits_in_expr(self, e->indexed.index);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_call_expr(GLSL& self, Expr* e)
+	{
+		_glsl_rewrite_complits_in_expr(self, e->call.base);
+		for (auto arg: e->call.args)
+			_glsl_rewrite_complits_in_expr(self, arg);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_cast_expr(GLSL& self, Expr* e)
+	{
+		_glsl_rewrite_complits_in_expr(self, e->cast.base);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e)
+	{
+		auto tmp_name = _glsl_tmp_name(self);
+		mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+		mn::print_to(self.out, "{};", _glsl_write_field(self, e->type, tmp_name));
+		for (size_t i = 0; i < e->complit.fields.count; ++i)
+		{
+			_glsl_newline(self);
+			auto field = e->complit.fields[i];
+			mn::print_to(self.out, tmp_name);
+			if (field.selector.count > 0)
+			{
+				for (auto selector: field.selector)
+				{
+					mn::print_to(self.out, ".");
+					glsl_expr_gen(self, selector);
+				}
+			}
+			else
+			{
+				assert(e->type->kind == Type::KIND_STRUCT || e->type->kind == Type::KIND_VEC);
+				if (e->type->kind == Type::KIND_VEC)
+				{
+					assert(i < 4);
+
+					if (i == 0)
+						mn::print_to(self.out, ".x");
+					else if (i == 1)
+						mn::print_to(self.out, ".y");
+					else if (i == 2)
+						mn::print_to(self.out, ".z");
+					else if (i == 3)
+						mn::print_to(self.out, ".w");
+				}
+				else if (e->type->kind == Type::KIND_STRUCT)
+				{
+					mn::print_to(self.out, ".{}", e->type->struct_type.fields[0].name.str);
+				}
+				else
+				{
+					assert(false && "unreachable");
+				}
+			}
+			mn::print_to(self.out, " = ");
+			glsl_expr_gen(self, field.value);
+			mn::print_to(self.out, ";");
+		}
+		_glsl_newline(self);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e)
+	{
+		switch (e->kind)
+		{
+		case Expr::KIND_ATOM:
+			// do nothing, no complit here
+			break;
+		case Expr::KIND_BINARY:
+			_glsl_rewrite_complits_in_binary_expr(self, e);
+			break;
+		case Expr::KIND_UNARY:
+			_glsl_rewrite_complits_in_unary_expr(self, e);
+			break;
+		case Expr::KIND_DOT:
+			_glsl_rewrite_complits_in_dot_expr(self, e);
+			break;
+		case Expr::KIND_INDEXED:
+			_glsl_rewrite_complits_in_indexed_expr(self, e);
+			break;
+		case Expr::KIND_CALL:
+			_glsl_rewrite_complits_in_call_expr(self, e);
+			break;
+		case Expr::KIND_CAST:
+			_glsl_rewrite_complits_in_cast_expr(self, e);
+			break;
+		case Expr::KIND_COMPLIT:
+			_glsl_rewrite_complits_in_complit_expr(self, e);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_stmt(GLSL& self, Stmt* s);
+
+	inline static void
+	_glsl_rewrite_complits_in_return_stmt(GLSL& self, Stmt* s)
+	{
+		_glsl_rewrite_complits_in_expr(self, s->return_stmt);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_if_stmt(GLSL& self, Stmt* s)
+	{
+		for (auto cond: s->if_stmt.cond)
+			_glsl_rewrite_complits_in_expr(self, cond);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_for_stmt(GLSL& self, Stmt* s)
+	{
+		if (s->for_stmt.init)
+			_glsl_rewrite_complits_in_stmt(self, s->for_stmt.init);
+		if (s->for_stmt.cond)
+			_glsl_rewrite_complits_in_expr(self, s->for_stmt.cond);
+		if (s->for_stmt.post)
+			_glsl_rewrite_complits_in_stmt(self, s->for_stmt.post);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_assign_stmt(GLSL& self, Stmt* s)
+	{
+		for (auto e: s->assign_stmt.lhs)
+			_glsl_rewrite_complits_in_expr(self, e);
+
+		for (auto e: s->assign_stmt.rhs)
+			_glsl_rewrite_complits_in_expr(self, e);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_block_stmt(GLSL& self, Stmt* s)
+	{
+		for (auto stmt: s->block_stmt)
+			_glsl_rewrite_complits_in_stmt(self, stmt);
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_decl_stmt(GLSL& self, Stmt* s)
+	{
+		auto scope = _glsl_current_scope(self);
+		auto d = s->decl_stmt;
+		switch (d->kind)
+		{
+		case Decl::KIND_VAR:
+		{
+			for (size_t i = 0; i < d->var_decl.names.count; ++i)
+			{
+				auto name = d->var_decl.names[i];
+				if (auto sym = scope_find(scope, name.str))
+				{
+					if (sym->var_sym.value)
+						_glsl_rewrite_complits_in_expr(self, sym->var_sym.value);
+				}
+			}
+			break;
+		}
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_glsl_rewrite_complits_in_stmt(GLSL& self, Stmt* s)
+	{
+		switch (s->kind)
+		{
+		case Stmt::KIND_BREAK:
+		case Stmt::KIND_CONTINUE:
+			// do nothing, no complits here
+			break;
+		case Stmt::KIND_RETURN:
+			_glsl_rewrite_complits_in_return_stmt(self, s);
+			break;
+		case Stmt::KIND_IF:
+			_glsl_rewrite_complits_in_if_stmt(self, s);
+			break;
+		case Stmt::KIND_FOR:
+			_glsl_rewrite_complits_in_for_stmt(self, s);
+			break;
+		case Stmt::KIND_ASSIGN:
+			_glsl_rewrite_complits_in_assign_stmt(self, s);
+			break;
+		case Stmt::KIND_EXPR:
+			_glsl_rewrite_complits_in_expr(self, s->expr_stmt);
+			break;
+		case Stmt::KIND_BLOCK:
+			_glsl_rewrite_complits_in_block_stmt(self, s);
+			break;
+		case Stmt::KIND_DECL:
+			_glsl_rewrite_complits_in_decl_stmt(self, s);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
 
 	// API
 	GLSL
@@ -813,6 +1074,7 @@ namespace sabre
 	{
 		mn::buf_free(self.scope_stack);
 		mn::map_free(self.reserved_to_alternative);
+		mn::map_free(self.symbol_to_names);
 	}
 
 	void
@@ -841,6 +1103,9 @@ namespace sabre
 		case Expr::KIND_CAST:
 			_glsl_gen_cast_expr(self, e);
 			break;
+		case Expr::KIND_COMPLIT:
+			_glsl_gen_complit_expr(self, e);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -850,6 +1115,9 @@ namespace sabre
 	void
 	glsl_stmt_gen(GLSL& self, Stmt* s)
 	{
+		// handle compound literal expressions
+		_glsl_rewrite_complits_in_stmt(self, s);
+
 		switch (s->kind)
 		{
 		case Stmt::KIND_BREAK:

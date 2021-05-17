@@ -1,0 +1,26 @@
+struct main_Point {
+	vec2 p;
+}
+main_Point main_add(main_Point a, main_Point b) {
+	main_Point _tmp_1;
+	_tmp_1.p.x = a.p.x + b.p.x;
+	_tmp_1.p.y = a.p.y + b.p.y;
+	return _tmp_1;
+}
+main_Point main_add2(main_Point a, main_Point b) {
+	main_Point _tmp_2;
+	_tmp_2.p = a.p + b.p;
+	return _tmp_2;
+}
+bool main_is_white(vec4 color) {
+	vec4 _tmp_3;
+	_tmp_3.x = 1.0;
+	_tmp_3.y = 1.0;
+	_tmp_3.z = 1.0;
+	_tmp_3.w = 1.0;
+	if (color == _tmp_3) {
+		return true;
+	} else {
+		return false;
+	}
+}

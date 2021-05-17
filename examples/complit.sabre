@@ -1,0 +1,22 @@
+type Point struct {
+	p: vec2
+}
+
+func add(a, b: Point): Point {
+	return :Point {
+		.p.x = a.p.x + b.p.x,
+		.p.y = a.p.y + b.p.y,
+	};
+}
+
+func add2(a, b: Point): Point {
+	return :Point { a.p + b.p };
+}
+
+func is_white(color: vec4): bool {
+	if color == :vec4{1.0, 1.0, 1.0, 1.0} {
+		return true;
+	} else {
+		return false;
+	}
+}
