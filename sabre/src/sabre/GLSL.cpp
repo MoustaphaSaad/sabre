@@ -8,6 +8,228 @@
 
 namespace sabre
 {
+	inline static const char* GLSL_KEYWORDS[] = {
+		"attribute",
+		"const",
+		"uniform",
+		"varying",
+		"buffer",
+		"shared",
+		"coherent",
+		"volatile",
+		"restrict",
+		"readonly",
+		"writeonly",
+		"atomic_uint",
+		"layout",
+		"centroid",
+		"flat",
+		"smooth",
+		"noperspective",
+		"patch",
+		"sample",
+		"break",
+		"continue",
+		"do",
+		"for",
+		"while",
+		"switch",
+		"case",
+		"default",
+		"if",
+		"else",
+		"subroutine",
+		"in",
+		"out",
+		"inout",
+		"float",
+		"double",
+		"int",
+		"void",
+		"bool",
+		"true",
+		"false",
+		"invariant",
+		"precise",
+		"discard",
+		"return",
+		"mat2",
+		"mat3",
+		"mat4",
+		"dmat2",
+		"dmat3",
+		"dmat4",
+		"mat2x2",
+		"mat2x3",
+		"mat2x4",
+		"dmat2x2",
+		"dmat2x3",
+		"dmat2x4",
+		"mat3x2",
+		"mat3x3",
+		"mat3x4",
+		"dmat3x2",
+		"dmat3x3",
+		"dmat3x4",
+		"mat4x2",
+		"mat4x3",
+		"mat4x4",
+		"dmat4x2",
+		"dmat4x3",
+		"dmat4x4",
+		"vec2",
+		"vec3",
+		"vec4",
+		"ivec2",
+		"ivec3",
+		"ivec4",
+		"bvec2",
+		"bvec3",
+		"bvec4",
+		"dvec2",
+		"dvec3",
+		"dvec4",
+		"uint",
+		"uvec2",
+		"uvec3",
+		"uvec4",
+		"lowp",
+		"mediump",
+		"highp",
+		"precision",
+		"sampler1D",
+		"sampler2D",
+		"sampler3D",
+		"samplerCube",
+		"sampler1DShadow",
+		"sampler2DShadow",
+		"samplerCubeShadow",
+		"sampler1DArray",
+		"sampler2DArray",
+		"sampler1DArrayShadow",
+		"sampler2DArrayShadow",
+		"isampler1D",
+		"isampler2D",
+		"isampler3D",
+		"isamplerCube",
+		"isampler1DArray",
+		"isampler2DArray",
+		"usampler1D",
+		"usampler2D",
+		"usampler3D",
+		"usamplerCube",
+		"usampler1DArray",
+		"usampler2DArray",
+		"sampler2DRect",
+		"sampler2DRectShadow",
+		"isampler2D",
+		"Rect",
+		"usampler2DRect",
+		"samplerBuffer",
+		"isamplerBuffer",
+		"usamplerBuffer",
+		"sampler2DMS",
+		"isampler2DMS",
+		"usampler2DMS",
+		"sampler2DMSArray",
+		"isampler2DMSArray",
+		"usampler2DMSArray",
+		"samplerCubeArray",
+		"samplerCubeArrayShadow",
+		"isamplerCubeArray",
+		"usamplerCubeArray",
+		"image1D",
+		"iimage1D",
+		"uimage1D",
+		"image2D",
+		"iimage2D",
+		"uimage2D",
+		"image3D",
+		"iimage3D",
+		"uimage3D",
+		"image2DRect",
+		"iimage2DRect",
+		"uimage2DRect",
+		"imageCube",
+		"iimageCube",
+		"uimageCube",
+		"imageBuffer",
+		"iimageBuffer",
+		"uimageBuffer",
+		"image1DArray",
+		"iimage1DArray",
+		"uimage1DArray",
+		"image2DArray",
+		"iimage2DArray",
+		"uimage2DArray",
+		"imageCubeArray",
+		"iimageCubeArray",
+		"uimageCubeArray",
+		"image2DMS",
+		"iimage2DMS",
+		"uimage2DMS",
+		"image2DMSArray",
+		"iimage2DMSArray",
+		"uimage2DMSArraystruct",
+		"common",
+		"partition",
+		"active",
+		"asm",
+		"class",
+		"union",
+		"enum",
+		"typedef",
+		"template",
+		"this",
+		"resource",
+		"goto",
+		"inline",
+		"noinline",
+		"public",
+		"static",
+		"extern",
+		"external",
+		"interface",
+		"long",
+		"short",
+		"half",
+		"fixed",
+		"unsigned",
+		"superp",
+		"input",
+		"output",
+		"hvec2",
+		"hvec3",
+		"hvec4",
+		"fvec2",
+		"fvec3",
+		"fvec4",
+		"sampler3DRect",
+		"filter",
+		"sizeof",
+		"cast",
+		"namespace",
+		"using",
+		"main",
+	};
+
+	inline static const char*
+	_glsl_name(GLSL& self, const char* name)
+	{
+		if (auto it = mn::map_lookup(self.reserved_to_alternative, name))
+		{
+			if (it->value != nullptr)
+				return it->value;
+
+			mn::log_debug("reserved name collision: {}", name);
+			auto str = mn::str_tmpf("RESERVED_{}", name);
+			it->value = unit_intern(self.unit->parent_unit, str.ptr);
+			return it->value;
+		}
+
+		return name;
+	}
+
 	inline static void
 	_glsl_newline(GLSL& self)
 	{
@@ -44,7 +266,7 @@ namespace sabre
 	}
 
 	inline static mn::Str
-	_glsl_write_field(mn::Str str, Type* type, const mn::Str& name)
+	_glsl_write_field(GLSL& self, mn::Str str, Type* type, const char* name)
 	{
 		bool can_write_name = false;
 		switch (type->kind)
@@ -164,28 +386,23 @@ namespace sabre
 			break;
 		case Type::KIND_STRUCT:
 			can_write_name = true;
-			str = mn::strf(str, "{}", type->struct_type.symbol->package_name);
+			str = mn::strf(str, "{}", _glsl_name(self, type->struct_type.symbol->package_name));
 			break;
 		default:
 			assert(false && "unreachable");
 			break;
 		}
 
-		if (can_write_name && name.count > 0)
-			str = mn::strf(str, " {}", name);
+		auto str_name = mn::str_lit(name);
+		if (can_write_name && str_name.count > 0)
+			str = mn::strf(str, " {}", _glsl_name(self, name));
 		return str;
 	}
 
 	inline static mn::Str
-	_glsl_write_field(Type* type, const mn::Str& name)
+	_glsl_write_field(GLSL& self, Type* type, const char* name)
 	{
-		return _glsl_write_field(mn::str_tmp(), type, name);
-	}
-
-	inline static mn::Str
-	_glsl_write_field(Type* type, const char* name)
-	{
-		return _glsl_write_field(type, mn::str_lit(name));
+		return _glsl_write_field(self, mn::str_tmp(), type, name);
 	}
 
 	inline static void
@@ -199,7 +416,7 @@ namespace sabre
 				auto package_name = mn::str_lit(sym->package_name);
 				if (package_name.count > 0)
 				{
-					mn::print_to(self.out, "{}", sym->package_name);
+					mn::print_to(self.out, "{}", _glsl_name(self, sym->package_name));
 					return;
 				}
 			}
@@ -257,7 +474,7 @@ namespace sabre
 	inline static void
 	_glsl_gen_cast_expr(GLSL& self, Expr* e)
 	{
-		mn::print_to(self.out, "{}(", _glsl_write_field(e->type, ""));
+		mn::print_to(self.out, "{}(", _glsl_write_field(self, e->type, ""));
 		glsl_expr_gen(self, e->cast.base);
 		mn::print_to(self.out, ")");
 	}
@@ -431,7 +648,7 @@ namespace sabre
 	_glsl_func_gen_internal(GLSL& self, Decl* d, Type* t, const char* name)
 	{
 		auto return_type = t->func.return_type;
-		mn::print_to(self.out, "{} {}(", _glsl_write_field(return_type, ""), name);
+		mn::print_to(self.out, "{} {}(", _glsl_write_field(self, return_type, ""), _glsl_name(self, name));
 
 		if (d->func_decl.body != nullptr)
 			_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
@@ -445,7 +662,7 @@ namespace sabre
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				mn::print_to(self.out, "{}", _glsl_write_field(arg_type, name.str));
+				mn::print_to(self.out, "{}", _glsl_write_field(self, arg_type, name.str));
 				++i;
 			}
 		}
@@ -468,7 +685,7 @@ namespace sabre
 	inline static void
 	_glsl_var_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "{}", _glsl_write_field(sym->type, sym->package_name));
+		mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, sym->package_name));
 		if (sym->var_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
@@ -483,7 +700,7 @@ namespace sabre
 	inline static void
 	_glsl_struct_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "struct {} {{", sym->package_name);
+		mn::print_to(self.out, "struct {} {{", _glsl_name(self, sym->package_name));
 		++self.indent;
 
 		auto d = sym->struct_sym.decl;
@@ -496,7 +713,7 @@ namespace sabre
 			for (auto name: field.names)
 			{
 				_glsl_newline(self);
-				mn::print_to(self.out, "{};", _glsl_write_field(field_type.type, name.str));
+				mn::print_to(self.out, "{};", _glsl_write_field(self, field_type.type, name.str));
 			}
 		}
 
@@ -538,6 +755,33 @@ namespace sabre
 		}
 	}
 
+	inline static void
+	_glsl_gen_decl_stmt(GLSL& self, Stmt* s)
+	{
+		auto scope = _glsl_current_scope(self);
+		auto d = s->decl_stmt;
+		switch (d->kind)
+		{
+		case Decl::KIND_VAR:
+		{
+			for (size_t i = 0; i < d->var_decl.names.count; ++i)
+			{
+				if (i > 0)
+				{
+					mn::print_to(self.out, ";");
+					_glsl_newline(self);
+				}
+				auto name = d->var_decl.names[i];
+				_glsl_symbol_gen(self, scope_find(scope, name.str));
+			}
+			break;
+		}
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
 
 	// API
 	GLSL
@@ -554,6 +798,13 @@ namespace sabre
 		assert(global_scope != nullptr);
 		mn::buf_push(self.scope_stack, global_scope);
 
+		constexpr auto keywords_count = sizeof(GLSL_KEYWORDS) / sizeof(*GLSL_KEYWORDS);
+		for (size_t i = 0; i < keywords_count; ++i)
+		{
+			auto keyword = unit_intern(self.unit->parent_unit, GLSL_KEYWORDS[i]);
+			mn::map_insert(self.reserved_to_alternative, keyword, (const char*)nullptr);
+		}
+
 		return self;
 	}
 
@@ -561,6 +812,7 @@ namespace sabre
 	glsl_free(GLSL& self)
 	{
 		mn::buf_free(self.scope_stack);
+		mn::map_free(self.reserved_to_alternative);
 	}
 
 	void
@@ -589,33 +841,6 @@ namespace sabre
 		case Expr::KIND_CAST:
 			_glsl_gen_cast_expr(self, e);
 			break;
-		default:
-			assert(false && "unreachable");
-			break;
-		}
-	}
-
-	inline static void
-	_glsl_gen_decl_stmt(GLSL& self, Stmt* s)
-	{
-		auto scope = _glsl_current_scope(self);
-		auto d = s->decl_stmt;
-		switch (d->kind)
-		{
-		case Decl::KIND_VAR:
-		{
-			for (size_t i = 0; i < d->var_decl.names.count; ++i)
-			{
-				if (i > 0)
-				{
-					mn::print_to(self.out, ";");
-					_glsl_newline(self);
-				}
-				auto name = d->var_decl.names[i];
-				_glsl_symbol_gen(self, scope_find(scope, name.str));
-			}
-			break;
-		}
 		default:
 			assert(false && "unreachable");
 			break;

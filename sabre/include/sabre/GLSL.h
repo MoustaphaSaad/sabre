@@ -20,6 +20,8 @@ namespace sabre
 		size_t indent;
 
 		mn::Buf<Scope*> scope_stack;
+		// map from the reserved keywords to the alternative names
+		mn::Map<const char*, const char*> reserved_to_alternative;
 	};
 
 	// creates a new GLSL generator instance
