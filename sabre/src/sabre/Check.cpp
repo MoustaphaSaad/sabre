@@ -451,6 +451,8 @@ namespace sabre
 		auto lhs_type = _typer_resolve_expr(self, e->binary.left);
 		auto rhs_type = _typer_resolve_expr(self, e->binary.right);
 
+		bool failed = false;
+
 		// handle matrix vector multiplication
 		if (e->binary.op.kind == Tkn::KIND_STAR)
 		{
@@ -466,6 +468,7 @@ namespace sabre
 					err.loc = e->loc;
 					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
 					unit_err(self.unit, err);
+					failed = true;
 				}
 			}
 			else if (lhs_type->kind == Type::KIND_VEC && rhs_type->kind == Type::KIND_MAT)
@@ -480,11 +483,51 @@ namespace sabre
 					err.loc = e->loc;
 					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
 					unit_err(self.unit, err);
+					failed = true;
 				}
 			}
 		}
 
-		if (type_is_equal(lhs_type, rhs_type) == false)
+		// handle vector scalar operations
+		if (e->binary.op.kind == Tkn::KIND_PLUS ||
+			e->binary.op.kind == Tkn::KIND_MINUS ||
+			e->binary.op.kind == Tkn::KIND_STAR ||
+			e->binary.op.kind == Tkn::KIND_DIVIDE ||
+			e->binary.op.kind == Tkn::KIND_MODULUS)
+		{
+			if (lhs_type->kind == Type::KIND_VEC && type_is_numeric_scalar(rhs_type))
+			{
+				if (type_is_equal(lhs_type->vec.base, rhs_type))
+				{
+					return lhs_type;
+				}
+				else
+				{
+					Err err{};
+					err.loc = e->loc;
+					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+					failed = true;
+				}
+			}
+			else if (type_is_numeric_scalar(lhs_type) && rhs_type->kind == Type::KIND_VEC)
+			{
+				if (type_is_equal(rhs_type->vec.base, lhs_type))
+				{
+					return rhs_type;
+				}
+				else
+				{
+					Err err{};
+					err.loc = e->loc;
+					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+					failed = true;
+				}
+			}
+		}
+
+		if (failed == false && type_is_equal(lhs_type, rhs_type) == false)
 		{
 			// TODO(Moustapha): better error message here, highlight parts of the expression with their types
 			Err err{};
@@ -1400,8 +1443,13 @@ namespace sabre
 			}
 			case ADDRESS_MODE_NONE:
 			default:
-				assert(false && "unreachable");
+			{
+				Err err{};
+				err.loc = s->assign_stmt.lhs[i]->loc;
+				err.msg = mn::strf("you can only assign into variables");
+				unit_err(self.unit, err);
 				break;
+			}
 			}
 		}
 		return type_void;

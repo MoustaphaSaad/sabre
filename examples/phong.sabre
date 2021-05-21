@@ -10,7 +10,7 @@ type PS_Input struct {
 }
 
 type PS_Output struct {
-	@SV_TARGET volor: vec4,
+	@SV_TARGET color: vec4,
 }
 
 type Model struct {
@@ -29,7 +29,7 @@ type Light struct {
 @vertex
 func vertex(input: VS_Input): PS_Input {
 	return :PS_Input {
-		.position = mvp * :vec4{input.position.x, input.position.y, input.position.z, 1.0},
+		.position = mvp * :vec4{input.position, 1.0},
 		.vertex_position = input.position,
 		.vertex_normal = input.normal,
 	};
@@ -38,10 +38,27 @@ func vertex(input: VS_Input): PS_Input {
 @uniform{binding = 1} var model: Model;
 @uniform{binding = 2} var light: Light;
 
+// dummy builtin functions for now
+func normalize(a: vec4): vec4 {
+	return a;
+}
+
+func normalize(a: vec3): vec3 {
+	return a;
+}
+
+func max(a, b: float): float {
+	return a;
+}
+
+func dot(a, b: vec3): float {
+	return 0;
+}
+
 @pixel
 func pixel(input: PS_Input): PS_Output {
-	var world_pos = model.model_matrix * :vec4{input.vertex_position.x, input.vertex_position.y, input.vertex_position.z, 1.0};
-	var normal = model.model_inverse_transposed * :vec4{input.vertex_normal.x, input.vertex_normal.y, input.vertex_normal.z, 0.0};
+	var world_pos = model.model_matrix * :vec4{input.vertex_position, 1.0};
+	var normal = (model.model_inverse_transposed * :vec4{input.vertex_normal, 0.0}).xyz;
 	normal = normalize(normal);
 
 	// ambient
@@ -49,12 +66,12 @@ func pixel(input: PS_Input): PS_Output {
 	var ambient_color = ambient_factor * light.color;
 
 	// diffuse
-	var dir = normalize(-light_dir);
+	var dir = normalize(-light.direction);
 	var diffuse_factor = max(dot(normal, dir), 0.0);
 	var diffuse_color = diffuse_factor * light.color;
 
 	var output: PS_Output;
-	output.color.rgb = (ambient_color + diffuse_color) * model.color.rgb;
+	output.color.rgb = (ambient_color.rgb + diffuse_color.rgb) * model.color.rgb;
 	output.color.a = model.color.a;
-	return ouput;
+	return output;
 }

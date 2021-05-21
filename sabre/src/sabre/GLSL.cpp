@@ -402,6 +402,25 @@ namespace sabre
 				}
 			}
 			break;
+		case Type::KIND_MAT:
+			can_write_name = true;
+			if (type == type_mat2)
+			{
+				str = mn::strf(str, "mat2");
+			}
+			else if (type == type_mat3)
+			{
+				str = mn::strf(str, "mat3");
+			}
+			else if (type == type_mat4)
+			{
+				str = mn::strf(str, "mat4");
+			}
+			else
+			{
+				assert(false && "unreachable");
+			}
+			break;
 		case Type::KIND_STRUCT:
 			can_write_name = true;
 			str = mn::strf(str, "{}", _glsl_name(self, type->struct_type.symbol->package_name));
@@ -723,6 +742,21 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_const_gen(GLSL& self, Symbol* sym)
+	{
+		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, sym->package_name));
+		if (sym->var_sym.value != nullptr)
+		{
+			mn::print_to(self.out, " = ");
+			glsl_expr_gen(self, sym->var_sym.value);
+		}
+		else
+		{
+			// TODO(Moustapha): handle zero init data
+		}
+	}
+
+	inline static void
 	_glsl_struct_gen(GLSL& self, Symbol* sym)
 	{
 		mn::print_to(self.out, "struct {} {{", _glsl_name(self, sym->package_name));
@@ -757,6 +791,9 @@ namespace sabre
 			break;
 		case Symbol::KIND_VAR:
 			_glsl_var_gen(self, sym);
+			break;
+		case Symbol::KIND_CONST:
+			_glsl_const_gen(self, sym);
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			for (size_t i = 0; i < sym->func_overload_set_sym.used_decls.count; ++i)
@@ -797,6 +834,20 @@ namespace sabre
 					_glsl_newline(self);
 				}
 				auto name = d->var_decl.names[i];
+				_glsl_symbol_gen(self, scope_find(scope, name.str));
+			}
+			break;
+		}
+		case Decl::KIND_CONST:
+		{
+			for (size_t i = 0; i < d->const_decl.names.count; ++i)
+			{
+				if (i > 0)
+				{
+					mn::print_to(self.out, ";");
+					_glsl_newline(self);
+				}
+				auto name = d->const_decl.names[i];
 				_glsl_symbol_gen(self, scope_find(scope, name.str));
 			}
 			break;
@@ -854,6 +905,12 @@ namespace sabre
 	inline static void
 	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e)
 	{
+		for (size_t i = 0; i < e->complit.fields.count; ++i)
+		{
+			if (e->complit.fields[i].value)
+				_glsl_rewrite_complits_in_expr(self, e->complit.fields[i].value);
+		}
+
 		auto tmp_name = _glsl_tmp_name(self);
 		mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 		mn::print_to(self.out, "{};", _glsl_write_field(self, e->type, tmp_name));
@@ -997,6 +1054,19 @@ namespace sabre
 				{
 					if (sym->var_sym.value)
 						_glsl_rewrite_complits_in_expr(self, sym->var_sym.value);
+				}
+			}
+			break;
+		}
+		case Decl::KIND_CONST:
+		{
+			for (size_t i = 0; i < d->const_decl.names.count; ++i)
+			{
+				auto name = d->const_decl.names[i];
+				if (auto sym = scope_find(scope, name.str))
+				{
+					if (sym->const_sym.value)
+						_glsl_rewrite_complits_in_expr(self, sym->const_sym.value);
 				}
 			}
 			break;
