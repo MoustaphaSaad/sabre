@@ -1,0 +1,9 @@
+>> 	return :vec3{a, 1.0};
+>> 	             ^       
+Error[vec_upcast.sabre:10:15]: type mismatch in compound literal value, type 'vec3' cannot be constructed from 'vec4'
+>> 	return :vec4{a, 1.0, 2.0, 3.0};
+>> 	                          ^^^  
+Error[vec_upcast.sabre:14:28]: type 'vec4' contains only 4 fields
+>> 	return :vec4{a, 1.0, 2.0};
+>> 	             ^            
+Error[vec_upcast.sabre:18:15]: type mismatch in compound literal value, type 'vec4' cannot be constructed from 'dvec2'

@@ -613,8 +613,26 @@ namespace sabre
 		if (e->cast.base->const_value.kind != Expr_Value::KIND_NONE)
 			e->const_value = e->cast.base->const_value;
 
+		auto res = to_type;
 		if (type_is_numeric_scalar(from_type) && type_is_numeric_scalar(to_type))
-			return to_type;
+		{
+			res = to_type;
+		}
+		else if (from_type->kind == Type::KIND_VEC &&
+				 to_type->kind == Type::KIND_VEC &&
+				 from_type->vec.width == to_type->vec.width &&
+				 type_is_numeric_scalar(from_type->vec.base) &&
+				 type_is_numeric_scalar(to_type->vec.base))
+		{
+			res = to_type;
+		}
+		else
+		{
+			Err err{};
+			err.loc = e->loc;
+			err.msg = mn::strf("cannot cast '{}' to '{}'", from_type, to_type);
+			unit_err(self.unit, err);
+		}
 
 		if (e->cast.base->mode == ADDRESS_MODE_CONST)
 		{
@@ -623,14 +641,10 @@ namespace sabre
 		}
 		else
 		{
-			e->mode = e->unary.base->mode;
+			e->mode = e->cast.base->mode;
 		}
 
-		Err err{};
-		err.loc = e->loc;
-		err.msg = mn::strf("cannot cast '{}' to '{}'", from_type, to_type);
-		unit_err(self.unit, err);
-		return to_type;
+		return res;
 	}
 
 	inline static Type*
@@ -765,6 +779,7 @@ namespace sabre
 	_typer_resolve_complit_expr(Typer& self, Expr* e)
 	{
 		auto type = _typer_resolve_type_sign(self, e->complit.type);
+		size_t type_field_index = 0;
 		for (size_t i = 0; i < e->complit.fields.count; ++i)
 		{
 			auto field = e->complit.fields[i];
@@ -845,9 +860,10 @@ namespace sabre
 			{
 				if (type_it->kind == Type::KIND_VEC)
 				{
-					if (i < type_it->vec.width)
+					if (type_field_index < type_it->vec.width)
 					{
 						type_it = type_it->vec.base;
+						++type_field_index;
 					}
 					else
 					{
@@ -860,9 +876,10 @@ namespace sabre
 				}
 				else if (type_it->kind == Type::KIND_STRUCT)
 				{
-					if (i < type_it->struct_type.fields.count)
+					if (type_field_index < type_it->struct_type.fields.count)
 					{
-						type_it = type_it->struct_type.fields[i].type;
+						type_it = type_it->struct_type.fields[type_field_index].type;
+						++type_field_index;
 					}
 					else
 					{
@@ -884,13 +901,32 @@ namespace sabre
 			}
 
 			auto value_type = _typer_resolve_expr(self, field.value);
-			if (failed == false && type_is_equal(type_it, value_type) == false)
+			if (failed == false)
 			{
-				Err err{};
-				err.loc = field.value->loc;
-				err.msg = mn::strf("type mismatch in compound literal value, selector type '{}' but expression type is '{}'", type_it, value_type);
-				unit_err(self.unit, err);
-				break;
+				// special case vector upcast
+				if (field.selector.count == 0 && type->kind == Type::KIND_VEC && value_type->kind == Type::KIND_VEC)
+				{
+					if (value_type->vec.width <= type->vec.width && type_is_equal(value_type->vec.base, type->vec.base))
+					{
+						type_field_index += value_type->vec.width - 1;
+					}
+					else
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("type mismatch in compound literal value, type '{}' cannot be constructed from '{}'", type, value_type);
+						unit_err(self.unit, err);
+						break;
+					}
+				}
+				else if (type_is_equal(type_it, value_type) == false)
+				{
+					Err err{};
+					err.loc = field.value->loc;
+					err.msg = mn::strf("type mismatch in compound literal value, selector type '{}' but expression type is '{}'", type_it, value_type);
+					unit_err(self.unit, err);
+					break;
+				}
 			}
 		}
 		return type;

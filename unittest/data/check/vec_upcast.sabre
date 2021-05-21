@@ -1,0 +1,23 @@
+func vec4_from_vec3(a: vec3): vec4 {
+	return :vec4{a, 1.0};
+}
+
+func vec4_from_vec3_swizzled(a: vec3): vec4 {
+	return :vec4{a.xyzz};
+}
+
+func vec3_from_vec4(a: vec4): vec3 {
+	return :vec3{a, 1.0};
+}
+
+func vec4_from_vec2_plus_more(a: vec2): vec4 {
+	return :vec4{a, 1.0, 2.0, 3.0};
+}
+
+func vec4_from_dvec2(a: dvec2): vec4 {
+	return :vec4{a, 1.0, 2.0};
+}
+
+func vec4_from_dvec2_with_casting(a: dvec2): vec4 {
+	return :vec4{a: vec2, 1.0, 2.0};
+}
