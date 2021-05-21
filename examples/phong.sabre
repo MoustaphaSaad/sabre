@@ -1,32 +1,60 @@
-program phong
-
-import builtin "std:builtin"
-import xo "xo:xo"
-
-import fmt from "sdfdsf"
-import xoxo from "xoxo"
-import (
-	fmt = "werwer"
-	xo = "32"
-)
-
 type VS_Input struct {
-	position: vec3;
-	normal: vec3;
+	@POSITION position: vec3,
+	@NORMAL normal: vec3,
 }
 
 type PS_Input struct {
-	@SV_POSITION position: vec4;
-	v_pos: vec3;
-	v_normal: vec3;
+	@SV_POSITION position: vec4,
+	@POSITION vertex_position: vec3,
+	@NORMAL vertex_normal: vec3,
 }
 
-@uniform MVP: mat4;
+type PS_Output struct {
+	@SV_TARGET volor: vec4,
+}
 
-func vertex_main(input: VS_Input): PS_Input {
-	output: PS_Input;
-	output.position = MVP * vec4(input.position, 1.0);
-	output.v_pos = input.position;
-	output.v_normal = input.normal;
-	return output;
+type Model struct {
+	model_matrix: mat4,
+	model_inverse_transposed: mat4,
+	color: vec4,
+}
+
+type Light struct {
+	direction: vec3,
+	color: vec4,
+}
+
+@uniform{binding = 0} var mvp: mat4;
+
+@vertex
+func vertex(input: VS_Input): PS_Input {
+	return :PS_Input {
+		.position = mvp * :vec4{input.position.x, input.position.y, input.position.z, 1.0},
+		.vertex_position = input.position,
+		.vertex_normal = input.normal,
+	};
+}
+
+@uniform{binding = 1} var model: Model;
+@uniform{binding = 2} var light: Light;
+
+@pixel
+func pixel(input: PS_Input): PS_Output {
+	var world_pos = model.model_matrix * :vec4{input.vertex_position.x, input.vertex_position.y, input.vertex_position.z, 1.0};
+	var normal = model.model_inverse_transposed * :vec4{input.vertex_normal.x, input.vertex_normal.y, input.vertex_normal.z, 0.0};
+	normal = normalize(normal);
+
+	// ambient
+	const ambient_factor = 0.3;
+	var ambient_color = ambient_factor * light.color;
+
+	// diffuse
+	var dir = normalize(-light_dir);
+	var diffuse_factor = max(dot(normal, dir), 0.0);
+	var diffuse_color = diffuse_factor * light.color;
+
+	var output: PS_Output;
+	output.color.rgb = (ambient_color + diffuse_color) * model.color.rgb;
+	output.color.a = model.color.a;
+	return ouput;
 }
