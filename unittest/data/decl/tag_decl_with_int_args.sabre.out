@@ -1,0 +1,7 @@
+(tag 'uniform'
+  (key: 'binding', value: '1')
+)
+(var-decl
+  (var-name x)
+  (type-sign int)
+)

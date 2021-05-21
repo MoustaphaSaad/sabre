@@ -1,0 +1,1 @@
+@uniform{binding = 1} var x: int;
