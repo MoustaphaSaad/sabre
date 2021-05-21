@@ -1,0 +1,9 @@
+>> 	var y = :ivec2{ 1.1, x };
+>> 	                ^^^      
+Error[literal_types.sabre:8:18]: type mismatch in compound literal value, selector type 'int' but expression type is 'float'
+>> 	var z = :ivec2{ 1.0, x };
+>> 	                     ^   
+Error[literal_types.sabre:9:23]: type mismatch in compound literal value, selector type 'int' but expression type is 'float'
+>> 	var z = :ivec2{ 1.0, x };
+>> 	^^^^^^^^^^^^^^^^^^^^^^^^^
+Error[literal_types.sabre:9:2]: missing return at the end of the function because 

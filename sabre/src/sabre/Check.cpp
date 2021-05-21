@@ -87,6 +87,118 @@ namespace sabre
 		return scope_find(_typer_current_scope(self), name);
 	}
 
+	inline static bool
+	_typer_can_assign(Type* lhs, Expr* rhs)
+	{
+		// if we have different types then we can't assign
+		if (type_is_equal(lhs, rhs->type) == false)
+			return false;
+
+		if (rhs->type == type_lit_int)
+		{
+			if (lhs == type_int)
+			{
+				return true;
+			}
+			else if (lhs == type_uint)
+			{
+				bool mismatch = false;
+				if (rhs->mode == ADDRESS_MODE_CONST)
+				{
+					switch (rhs->const_value.kind)
+					{
+					case Expr_Value::KIND_INT:
+						mismatch = rhs->const_value.as_int < 0;
+						break;
+					case Expr_Value::KIND_DOUBLE:
+						mismatch = rhs->const_value.as_double < 0;
+						break;
+					default:
+						mismatch = true;
+						break;
+					}
+				}
+				else
+				{
+					mismatch = true;
+				}
+				return mismatch == false;
+			}
+			else if (lhs == type_float)
+			{
+				return true;
+			}
+			else if (lhs == type_double)
+			{
+				return true;
+			}
+		}
+		else if (rhs->type == type_lit_float)
+		{
+			if (lhs == type_int)
+			{
+				bool mismatch = false;
+				if (rhs->mode == ADDRESS_MODE_CONST)
+				{
+					switch (rhs->const_value.kind)
+					{
+					case Expr_Value::KIND_INT:
+						mismatch = false;
+						break;
+					case Expr_Value::KIND_DOUBLE:
+						mismatch = (rhs->const_value.as_double - (int64_t)rhs->const_value.as_double) != 0;
+						break;
+					default:
+						mismatch = true;
+						break;
+					}
+				}
+				else
+				{
+					mismatch = true;
+				}
+				return mismatch == false;
+			}
+			else if (lhs == type_uint)
+			{
+				bool mismatch = false;
+				if (rhs->mode == ADDRESS_MODE_CONST)
+				{
+					switch (rhs->const_value.kind)
+					{
+					case Expr_Value::KIND_INT:
+						mismatch = rhs->const_value.as_int < 0;
+						break;
+					case Expr_Value::KIND_DOUBLE:
+						mismatch = rhs->const_value.as_double < 0;
+						mismatch |= (rhs->const_value.as_double - (int64_t)rhs->const_value.as_double) != 0;
+						break;
+					default:
+						mismatch = true;
+						break;
+					}
+				}
+				else
+				{
+					mismatch = true;
+				}
+				return mismatch == false;
+			}
+			else if (lhs == type_float)
+			{
+				return true;
+			}
+			else if (lhs == type_double)
+			{
+				return true;
+			}
+		}
+		else
+		{
+			return true;
+		}
+	}
+
 	inline static void
 	_typer_resolve_symbol(Typer& self, Symbol* sym);
 
@@ -179,7 +291,7 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < decl->var_decl.values.count)
 					value = decl->var_decl.values[i];
-				_typer_add_symbol(self, symbol_const_new(self.unit->symbols_arena, name, decl, sign, value));
+				_typer_add_symbol(self, symbol_var_new(self.unit->symbols_arena, name, decl, sign, value));
 			}
 			break;
 		case Decl::KIND_FUNC:
@@ -289,11 +401,11 @@ namespace sabre
 		case Tkn::KIND_LITERAL_INTEGER:
 			e->mode = ADDRESS_MODE_CONST;
 			e->const_value = expr_value_int(::strtoll(e->atom.str, nullptr, 10));
-			return type_int;
+			return type_lit_int;
 		case Tkn::KIND_LITERAL_FLOAT:
 			e->mode = ADDRESS_MODE_CONST;
-			e->const_value = expr_value_int(::strtod(e->atom.str, nullptr));
-			return type_float;
+			e->const_value = expr_value_double(::strtod(e->atom.str, nullptr));
+			return type_lit_float;
 		case Tkn::KIND_KEYWORD_FALSE:
 			e->mode = ADDRESS_MODE_CONST;
 			e->const_value = expr_value_bool(false);
@@ -524,7 +636,7 @@ namespace sabre
 			for (size_t i = 0; i < e->call.args.count; ++i)
 			{
 				auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-				if (type_is_equal(arg_type, type->func.args.types[i]) == false)
+				if (_typer_can_assign(type->func.args.types[i], e->call.args[i]) == false)
 				{
 					Err err{};
 					err.loc = e->call.args[i]->loc;
@@ -548,7 +660,7 @@ namespace sabre
 				for (size_t i = 0; i < e->call.args.count; ++i)
 				{
 					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-					if (type_is_equal(arg_type, overload_type->func.args.types[i]) == false)
+					if (_typer_can_assign(overload_type->func.args.types[i], e->call.args[i]) == false)
 					{
 						args_match = false;
 						break;
@@ -919,7 +1031,7 @@ namespace sabre
 						break;
 					}
 				}
-				else if (type_is_equal(type_it, value_type) == false)
+				else if (_typer_can_assign(type_it, field.value) == false)
 				{
 					Err err{};
 					err.loc = field.value->loc;
@@ -1052,7 +1164,7 @@ namespace sabre
 			if (e != nullptr)
 			{
 				auto expr_type = _typer_resolve_expr(self, e);
-				if (type_is_equal(expr_type, res) == false)
+				if (_typer_can_assign(res, e) == false)
 				{
 					Err err{};
 					err.loc = e->loc;
@@ -1257,7 +1369,7 @@ namespace sabre
 				}
 			}
 
-			if (type_is_equal(lhs_type, rhs_type) == false)
+			if (_typer_can_assign(lhs_type, s->assign_stmt.rhs[i]) == false)
 			{
 				Err err{};
 				err.loc = s->assign_stmt.rhs[i]->loc;

@@ -25,8 +25,10 @@ namespace sabre
 	static Type _type_void { Type::KIND_VOID };
 	static Type _type_bool { Type::KIND_BOOL };
 	static Type _type_int { Type::KIND_INT };
+	static Type _type_lit_int { Type::KIND_INT };
 	static Type _type_uint { Type::KIND_UINT };
 	static Type _type_float { Type::KIND_FLOAT };
+	static Type _type_lit_float { Type::KIND_FLOAT };
 	static Type _type_double { Type::KIND_DOUBLE };
 	static Type _type_vec2 = _vec_builtin(type_float, 2);
 	static Type _type_vec3 = _vec_builtin(type_float, 3);
@@ -71,6 +73,8 @@ namespace sabre
 	Type* type_void = &_type_void;
 	Type* type_bool = &_type_bool;
 	Type* type_int = &_type_int;
+	Type* type_lit_int = &_type_lit_int;
+	Type* type_lit_float = &_type_lit_float;
 	Type* type_uint = &_type_uint;
 	Type* type_float = &_type_float;
 	Type* type_double = &_type_double;

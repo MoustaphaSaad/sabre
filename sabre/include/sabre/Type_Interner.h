@@ -202,8 +202,10 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_void;
 	SABRE_EXPORT extern Type* type_bool;
 	SABRE_EXPORT extern Type* type_int;
+	SABRE_EXPORT extern Type* type_lit_int;
 	SABRE_EXPORT extern Type* type_uint;
 	SABRE_EXPORT extern Type* type_float;
+	SABRE_EXPORT extern Type* type_lit_float;
 	SABRE_EXPORT extern Type* type_double;
 	SABRE_EXPORT extern Type* type_vec2;
 	SABRE_EXPORT extern Type* type_vec3;
@@ -286,7 +288,26 @@ namespace sabre
 	inline static bool
 	type_is_equal(Type* a, Type* b)
 	{
-		return a == b;
+		if ((a == type_lit_int && b == type_int) || (a == type_int && b == type_lit_int))
+		{
+			return true;
+		}
+		else if ((a == type_lit_float && b == type_float) || (a == type_float && b == type_lit_float))
+		{
+			return true;
+		}
+		else if ((a == type_float && b == type_lit_int) || (a == type_lit_int && b == type_float))
+		{
+			return true;
+		}
+		else if ((a == type_int && b == type_lit_float) || (a == type_lit_float && b == type_int))
+		{
+			return true;
+		}
+		else
+		{
+			return a == b;
+		}
 	}
 
 	// returns whether a type can use ++v, --v
@@ -334,6 +355,16 @@ namespace sabre
 		return (
 			a->kind == Type::KIND_FUNC ||
 			a->kind == Type::KIND_FUNC_OVERLOAD_SET
+		);
+	}
+
+	// returns whether a type is a literal
+	inline static bool
+	type_is_literal(Type* a)
+	{
+		return (
+			a == type_lit_int ||
+			a == type_lit_float
 		);
 	}
 
@@ -748,7 +779,7 @@ namespace fmt
 			{
 				return format_to(ctx.out(), "bool");
 			}
-			else if (t == sabre::type_int)
+			else if (t == sabre::type_int || t == sabre::type_lit_int)
 			{
 				return format_to(ctx.out(), "int");
 			}
@@ -756,7 +787,7 @@ namespace fmt
 			{
 				return format_to(ctx.out(), "uint");
 			}
-			else if (t == sabre::type_float)
+			else if (t == sabre::type_float || t == sabre::type_lit_float)
 			{
 				return format_to(ctx.out(), "float");
 			}
