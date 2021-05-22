@@ -25,6 +25,7 @@ namespace sabre
 		// maps the name of a specific AST entity to some generated name, used in compound literals
 		mn::Map<void*, const char*> symbol_to_names;
 		size_t tmp_id;
+		const char* builtin_keyword;
 	};
 
 	// creates a new GLSL generator instance

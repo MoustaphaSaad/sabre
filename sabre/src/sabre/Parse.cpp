@@ -1048,7 +1048,7 @@ namespace sabre
 				}
 				_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
 			}
-			mn::map_insert(res.table, tag.name, tag);
+			mn::map_insert(res.table, tag.name.str, tag);
 		}
 		return res;
 	}

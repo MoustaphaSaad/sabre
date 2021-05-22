@@ -787,7 +787,7 @@ namespace sabre
 	// represents a set of tags attached to a declaration
 	struct Tag_Table
 	{
-		mn::Map<Tkn, Tag, Tkn_Hasher> table;
+		mn::Map<const char*, Tag> table;
 	};
 
 	// creates a new tag table
@@ -795,7 +795,7 @@ namespace sabre
 	tag_table_new(mn::Allocator arena)
 	{
 		Tag_Table self{};
-		self.table = mn::map_with_allocator<Tkn, Tag, Tkn_Hasher>(arena);
+		self.table = mn::map_with_allocator<const char*, Tag>(arena);
 		return self;
 	}
 

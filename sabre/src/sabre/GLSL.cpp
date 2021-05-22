@@ -266,6 +266,40 @@ namespace sabre
 	}
 
 	inline static const char*
+	_glsl_symbol_name(GLSL& self, Symbol* sym)
+	{
+		bool use_raw_name = false;
+
+		switch (sym->kind)
+		{
+		// in case the function is a builtin function we don't use it's package name
+		case Symbol::KIND_FUNC:
+			use_raw_name = mn::map_lookup(sym->func_sym.decl->tags.table, self.builtin_keyword) != nullptr;
+			break;
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
+			// NOTE(Moustapha): this is very bad, we should know which decl we're using
+			for (auto [decl, _]: sym->func_overload_set_sym.decls)
+			{
+				use_raw_name = mn::map_lookup(decl->tags.table, self.builtin_keyword) != nullptr;
+				if (use_raw_name)
+					break;
+			}
+			break;
+		default:
+			break;
+		}
+
+		if (use_raw_name)
+		{
+			return sym->name;
+		}
+		else
+		{
+			return sym->package_name;
+		}
+	}
+
+	inline static const char*
 	_glsl_tmp_name(GLSL& self)
 	{
 		auto scope = _glsl_current_scope(self);
@@ -423,7 +457,7 @@ namespace sabre
 			break;
 		case Type::KIND_STRUCT:
 			can_write_name = true;
-			str = mn::strf(str, "{}", _glsl_name(self, type->struct_type.symbol->package_name));
+			str = mn::strf(str, "{}", _glsl_name(self, _glsl_symbol_name(self, type->struct_type.symbol)));
 			break;
 		default:
 			assert(false && "unreachable");
@@ -449,17 +483,16 @@ namespace sabre
 		{
 			if (auto sym = _glsl_find_symbol(self, e->atom.str))
 			{
-				// check if it has a package name
-				auto package_name = mn::str_lit(sym->package_name);
+				auto package_name = mn::str_lit(_glsl_symbol_name(self, sym));
 				if (package_name.count > 0)
 				{
-					mn::print_to(self.out, "{}", _glsl_name(self, sym->package_name));
+					mn::print_to(self.out, "{}", _glsl_name(self, package_name.ptr));
 					return;
 				}
 			}
 		}
 
-		mn::print_to(self.out, e->atom.str);
+		mn::print_to(self.out, "{}", e->atom.str);
 	}
 
 	inline static void
@@ -691,6 +724,14 @@ namespace sabre
 	inline static void
 	_glsl_func_gen_internal(GLSL& self, Decl* d, Type* t, const char* name)
 	{
+		bool is_builtin = false;
+
+		if (mn::map_lookup(d->tags.table, self.builtin_keyword))
+			is_builtin = true;
+
+		if (is_builtin)
+			return;
+
 		auto return_type = t->func.return_type;
 		mn::print_to(self.out, "{} {}(", _glsl_write_field(self, return_type, ""), _glsl_name(self, name));
 
@@ -723,13 +764,13 @@ namespace sabre
 	inline static void
 	_glsl_func_gen(GLSL& self, Symbol* sym)
 	{
-		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type, sym->package_name);
+		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type, _glsl_symbol_name(self, sym));
 	}
 
 	inline static void
 	_glsl_var_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, sym->package_name));
+		mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(self, sym)));
 		if (sym->var_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
@@ -744,7 +785,7 @@ namespace sabre
 	inline static void
 	_glsl_const_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, sym->package_name));
+		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(self, sym)));
 		if (sym->var_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
@@ -759,7 +800,7 @@ namespace sabre
 	inline static void
 	_glsl_struct_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "struct {} {{", _glsl_name(self, sym->package_name));
+		mn::print_to(self.out, "struct {} {{", _glsl_name(self, _glsl_symbol_name(self, sym)));
 		++self.indent;
 
 		auto d = sym->struct_sym.decl;
@@ -805,7 +846,7 @@ namespace sabre
 				if (i > 0)
 					_glsl_newline(self);
 
-				_glsl_func_gen_internal(self, decl, type, sym->package_name);
+				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(self, sym));
 			}
 			break;
 		case Symbol::KIND_STRUCT:
@@ -1135,6 +1176,8 @@ namespace sabre
 			auto keyword = unit_intern(self.unit->parent_unit, GLSL_KEYWORDS[i]);
 			mn::map_insert(self.reserved_to_alternative, keyword, (const char*)nullptr);
 		}
+
+		self.builtin_keyword = unit_intern(self.unit->parent_unit, "builtin");
 
 		return self;
 	}
