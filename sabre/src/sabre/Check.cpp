@@ -712,7 +712,11 @@ namespace sabre
 				if (args_match)
 				{
 					res = overload_type->func.return_type;
-					mn::buf_push(overload_set_symbol->func_overload_set_sym.used_decls, overload_decl);
+					if (mn::set_lookup(overload_set_symbol->func_overload_set_sym.unique_used_decls, overload_decl) == nullptr)
+					{
+						mn::buf_push(overload_set_symbol->func_overload_set_sym.used_decls, overload_decl);
+						mn::set_insert(overload_set_symbol->func_overload_set_sym.unique_used_decls, overload_decl);
+					}
 					break;
 				}
 			}
