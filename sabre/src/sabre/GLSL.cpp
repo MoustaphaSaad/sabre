@@ -266,23 +266,30 @@ namespace sabre
 	}
 
 	inline static const char*
-	_glsl_symbol_name(GLSL& self, Symbol* sym)
+	_glsl_symbol_name(GLSL& self, Symbol* sym, Decl* decl = nullptr)
 	{
 		bool use_raw_name = false;
 
 		switch (sym->kind)
 		{
 		// in case the function is a builtin function we don't use it's package name
-		case Symbol::KIND_FUNC:
+		case Symbol::KIND_CONST:
 			use_raw_name = mn::map_lookup(sym->func_sym.decl->tags.table, self.builtin_keyword) != nullptr;
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
-			// NOTE(Moustapha): this is very bad, we should know which decl we're using
-			for (auto [decl, _]: sym->func_overload_set_sym.decls)
+			if (decl)
 			{
 				use_raw_name = mn::map_lookup(decl->tags.table, self.builtin_keyword) != nullptr;
-				if (use_raw_name)
-					break;
+			}
+			else
+			{
+				// NOTE(Moustapha): this is very bad, we should know which decl we're using
+				for (auto [decl, _]: sym->func_overload_set_sym.decls)
+				{
+					use_raw_name = mn::map_lookup(decl->tags.table, self.builtin_keyword) != nullptr;
+					if (use_raw_name)
+						break;
+				}
 			}
 			break;
 		default:
@@ -479,11 +486,11 @@ namespace sabre
 	inline static void
 	_glsl_gen_atom_expr(GLSL& self, Expr* e)
 	{
-		if (e->atom.kind == Tkn::KIND_ID)
+		if (e->atom.tkn.kind == Tkn::KIND_ID)
 		{
-			if (auto sym = _glsl_find_symbol(self, e->atom.str))
+			if (e->atom.sym)
 			{
-				auto package_name = mn::str_lit(_glsl_symbol_name(self, sym));
+				auto package_name = mn::str_lit(_glsl_symbol_name(self, e->atom.sym, e->atom.decl));
 				if (package_name.count > 0)
 				{
 					mn::print_to(self.out, "{}", _glsl_name(self, package_name.ptr));
@@ -492,7 +499,7 @@ namespace sabre
 			}
 		}
 
-		mn::print_to(self.out, "{}", e->atom.str);
+		mn::print_to(self.out, "{}", e->atom.tkn.str);
 	}
 
 	inline static void
@@ -846,7 +853,7 @@ namespace sabre
 				if (i > 0)
 					_glsl_newline(self);
 
-				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(self, sym));
+				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(self, sym, decl));
 			}
 			break;
 		case Symbol::KIND_STRUCT:

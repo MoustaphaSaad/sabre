@@ -92,7 +92,7 @@ namespace sabre
 		switch(expr->kind)
 		{
 		case Expr::KIND_ATOM:
-			mn::print_to(self.out, "(atom '{}')", expr->atom.str);
+			mn::print_to(self.out, "(atom '{}')", expr->atom.tkn.str);
 			break;
 		case Expr::KIND_BINARY:
 			mn::print_to(self.out, "(binary '{}'", expr->binary.op.str);

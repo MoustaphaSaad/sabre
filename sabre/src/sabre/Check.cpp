@@ -396,15 +396,15 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_atom_expr(Typer& self, Expr* e)
 	{
-		switch (e->atom.kind)
+		switch (e->atom.tkn.kind)
 		{
 		case Tkn::KIND_LITERAL_INTEGER:
 			e->mode = ADDRESS_MODE_CONST;
-			e->const_value = expr_value_int(::strtoll(e->atom.str, nullptr, 10));
+			e->const_value = expr_value_int(::strtoll(e->atom.tkn.str, nullptr, 10));
 			return type_lit_int;
 		case Tkn::KIND_LITERAL_FLOAT:
 			e->mode = ADDRESS_MODE_CONST;
-			e->const_value = expr_value_double(::strtod(e->atom.str, nullptr));
+			e->const_value = expr_value_double(::strtod(e->atom.tkn.str, nullptr));
 			return type_lit_float;
 		case Tkn::KIND_KEYWORD_FALSE:
 			e->mode = ADDRESS_MODE_CONST;
@@ -415,8 +415,10 @@ namespace sabre
 			e->const_value = expr_value_bool(true);
 			return type_bool;
 		case Tkn::KIND_ID:
-			if (auto sym = _typer_find_symbol(self, e->atom.str))
+			if (auto sym = _typer_find_symbol(self, e->atom.tkn.str))
 			{
+				e->atom.sym = sym;
+				e->atom.decl = symbol_decl(sym);
 				_typer_resolve_symbol(self, sym);
 				if (sym->kind == Symbol::KIND_CONST && sym->const_sym.value != nullptr)
 				{
@@ -435,7 +437,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->loc;
-				err.msg = mn::strf("'{}' undefined symbol", e->atom.str);
+				err.msg = mn::strf("'{}' undefined symbol", e->atom.tkn.str);
 				unit_err(self.unit, err);
 				return type_void;
 			}
@@ -688,6 +690,10 @@ namespace sabre
 				}
 			}
 
+			if (e->call.base->kind == Expr::KIND_ATOM)
+			{
+				e->call.func = e->call.base->atom.sym->func_sym.decl;
+			}
 			return type->func.return_type;
 		}
 		else if (type->kind == Type::KIND_FUNC_OVERLOAD_SET)
@@ -711,6 +717,9 @@ namespace sabre
 				}
 				if (args_match)
 				{
+					if (e->call.base->kind == Expr::KIND_ATOM)
+						e->call.base->atom.decl = overload_decl;
+					e->call.func = overload_decl;
 					res = overload_type->func.return_type;
 					if (mn::set_lookup(overload_set_symbol->func_overload_set_sym.unique_used_decls, overload_decl) == nullptr)
 					{
@@ -824,7 +833,7 @@ namespace sabre
 				return type_void;
 			}
 
-			auto it = e->dot.rhs->atom.str;
+			auto it = e->dot.rhs->atom.tkn.str;
 			size_t len = 0;
 			auto r = mn::rune_read(it);
 			const char* swizzle_style = _choose_swizzle_style(r);
@@ -877,7 +886,7 @@ namespace sabre
 				return type_void;
 			}
 
-			auto it = mn::map_lookup(type->struct_type.fields_by_name, e->dot.rhs->atom.str);
+			auto it = mn::map_lookup(type->struct_type.fields_by_name, e->dot.rhs->atom.tkn.str);
 			if (it == nullptr)
 			{
 				Err err{};
@@ -902,7 +911,7 @@ namespace sabre
 			}
 
 			auto package = type->package_type.package;
-			auto symbol = scope_shallow_find(package->global_scope, e->dot.rhs->atom.str);
+			auto symbol = scope_shallow_find(package->global_scope, e->dot.rhs->atom.tkn.str);
 			if (symbol == nullptr)
 			{
 				Err err{};
@@ -953,7 +962,7 @@ namespace sabre
 					{
 						if (type_it->kind == Type::KIND_VEC)
 						{
-							auto name = mn::str_lit(selector->atom.str);
+							auto name = mn::str_lit(selector->atom.tkn.str);
 							if (type_it->vec.width > 0 && name == "x")
 							{
 								type_it = type_it->vec.base;
@@ -974,7 +983,7 @@ namespace sabre
 							{
 								Err err{};
 								err.loc = selector->loc;
-								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.str);
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
 								unit_err(self.unit, err);
 								failed = true;
 								break;
@@ -982,12 +991,12 @@ namespace sabre
 						}
 						else if (type_it->kind == Type::KIND_STRUCT)
 						{
-							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector->atom.str);
+							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector->atom.tkn.str);
 							if (field_it == nullptr)
 							{
 								Err err{};
 								err.loc = selector->loc;
-								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.str);
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
 								unit_err(self.unit, err);
 								failed = true;
 								break;
@@ -998,7 +1007,7 @@ namespace sabre
 						{
 							Err err{};
 							err.loc = selector->loc;
-							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.str);
+							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
 							unit_err(self.unit, err);
 							failed = true;
 							break;

@@ -683,6 +683,30 @@ namespace sabre
 		}
 	}
 
+	// given a symbol it will return the declaration it represents
+	inline static Decl*
+	symbol_decl(const Symbol* self)
+	{
+		switch (self->kind)
+		{
+		case Symbol::KIND_CONST:
+			return self->const_sym.decl;
+		case Symbol::KIND_VAR:
+			return self->var_sym.decl;
+		case Symbol::KIND_FUNC:
+			return self->func_sym.decl;
+		case Symbol::KIND_STRUCT:
+			return self->struct_sym.decl;
+		case Symbol::KIND_PACKAGE:
+			return self->package_sym.decl;
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
+			return nullptr;
+		default:
+			assert(false && "unreachable");
+			return nullptr;
+		}
+	}
+
 	// scope contains symbols inside a scope node in the AST (like a func)
 	struct Scope
 	{

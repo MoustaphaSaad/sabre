@@ -414,6 +414,8 @@ namespace sabre
 
 	struct Type;
 	struct Expr;
+	struct Symbol;
+	struct Decl;
 
 	// address mode of expressions which is used to check assignment statements, etc...
 	enum ADDRESS_MODE
@@ -468,7 +470,14 @@ namespace sabre
 
 		union
 		{
-			Tkn atom;
+			struct
+			{
+				Tkn tkn;
+				// the symbol to which this atom points
+				Symbol* sym;
+				// the exact declaration which this atom uses
+				Decl* decl;
+			} atom;
 
 			struct
 			{
@@ -487,6 +496,8 @@ namespace sabre
 			{
 				Expr* base;
 				mn::Buf<Expr*> args;
+				// the actual function which this call uses
+				Decl* func;
 			} call;
 
 			struct
@@ -588,7 +599,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_ATOM;
-		self->atom = atom;
+		self->atom.tkn = atom;
 		return self;
 	}
 
@@ -602,8 +613,6 @@ namespace sabre
 		self->complit.fields = fields;
 		return self;
 	}
-
-	struct Decl;
 
 	// Stmt
 	struct Stmt
