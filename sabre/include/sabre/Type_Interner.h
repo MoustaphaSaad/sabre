@@ -655,9 +655,11 @@ namespace sabre
 		self->func_overload_set_sym.used_decls = mn::buf_with_allocator<Decl*>(arena);
 		self->func_overload_set_sym.unique_used_decls = mn::set_with_allocator<Decl*>(arena);
 		mn::map_insert(self->func_overload_set_sym.decls, func_decl, func_type);
-		mn::set_insert(self->func_overload_set_sym.unique_used_decls, func_decl);
 		if (func_used)
+		{
 			mn::buf_push(self->func_overload_set_sym.used_decls, func_decl);
+			mn::set_insert(self->func_overload_set_sym.unique_used_decls, func_decl);
+		}
 		return self;
 	}
 

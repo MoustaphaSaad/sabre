@@ -39,20 +39,17 @@ func vertex(input: VS_Input): PS_Input {
 @uniform{binding = 2} var light: Light;
 
 // dummy builtin functions for now
-func normalize(a: vec4): vec4 {
-	return a;
-}
+@builtin
+func normalize(a: vec4): vec4
+@builtin
+func normalize(a: vec3): vec3
+@builtin
+func max(a, b: float): float
+@builtin
+func dot(a, b: vec3): float
 
-func normalize(a: vec3): vec3 {
-	return a;
-}
-
-func max(a, b: float): float {
-	return a;
-}
-
-func dot(a, b: vec3): float {
-	return 0;
+func normalize(a, b: vec4): vec4 {
+	return a + b;
 }
 
 @pixel
@@ -73,5 +70,6 @@ func pixel(input: PS_Input): PS_Output {
 	var output: PS_Output;
 	output.color.rgb = (ambient_color.rgb + diffuse_color.rgb) * model.color.rgb;
 	output.color.a = model.color.a;
+	var koko = normalize(output.color, output.color);
 	return output;
 }
