@@ -213,6 +213,18 @@ namespace sabre
 		"main",
 	};
 
+	inline static int64_t
+	_glsl_buffer_position(GLSL& self)
+	{
+		return mn::stream_cursor_pos(self.out);
+	}
+
+	inline static bool
+	_glsl_code_generated_after(GLSL& self, int64_t pos)
+	{
+		return mn::stream_cursor_pos(self.out) > pos;
+	}
+
 	inline static const char*
 	_glsl_name(GLSL& self, const char* name)
 	{
@@ -613,6 +625,20 @@ namespace sabre
 		}
 	}
 
+	inline static bool
+	_glsl_add_semicolon_after(GLSL& self, Stmt* s)
+	{
+		if (s->kind == Stmt::KIND_BREAK ||
+			s->kind == Stmt::KIND_CONTINUE ||
+			s->kind == Stmt::KIND_RETURN ||
+			s->kind == Stmt::KIND_ASSIGN ||
+			s->kind == Stmt::KIND_EXPR)
+		{
+			return true;
+		}
+		return false;
+	}
+
 	inline static void
 	_glsl_gen_for_stmt(GLSL& self, Stmt* s)
 	{
@@ -628,7 +654,8 @@ namespace sabre
 		{
 			_glsl_newline(self);
 			glsl_stmt_gen(self, s->for_stmt.init);
-			mn::print_to(self.out, ";");
+			if (_glsl_add_semicolon_after(self, s->for_stmt.init))
+				mn::print_to(self.out, ";");
 		}
 
 		_glsl_newline(self);
@@ -646,7 +673,10 @@ namespace sabre
 		{
 			_glsl_newline(self);
 			glsl_stmt_gen(self, stmt);
-			mn::print_to(self.out, ";");
+			if (_glsl_add_semicolon_after(self, stmt))
+			{
+				mn::print_to(self.out, ";");
+			}
 		}
 
 		if (s->for_stmt.post != nullptr)
@@ -712,12 +742,7 @@ namespace sabre
 		{
 			_glsl_newline(self);
 			glsl_stmt_gen(self, stmt);
-			if (stmt->kind == Stmt::KIND_BREAK ||
-				stmt->kind == Stmt::KIND_CONTINUE ||
-				stmt->kind == Stmt::KIND_RETURN ||
-				stmt->kind == Stmt::KIND_ASSIGN ||
-				stmt->kind == Stmt::KIND_EXPR ||
-				(stmt->kind == Stmt::KIND_DECL && stmt->decl_stmt->kind == Decl::KIND_VAR))
+			if (_glsl_add_semicolon_after(self, stmt))
 			{
 				mn::print_to(self.out, ";");
 			}
@@ -787,6 +812,7 @@ namespace sabre
 		{
 			// TODO(Moustapha): handle zero init data
 		}
+		mn::print_to(self.out, ";");
 	}
 
 	inline static void
@@ -802,6 +828,7 @@ namespace sabre
 		{
 			// TODO(Moustapha): handle zero init data
 		}
+		mn::print_to(self.out, ";");
 	}
 
 	inline static void
@@ -826,7 +853,7 @@ namespace sabre
 
 		--self.indent;
 		_glsl_newline(self);
-		mn::print_to(self.out, "}}");
+		mn::print_to(self.out, "}};");
 	}
 
 	inline static void
@@ -844,18 +871,26 @@ namespace sabre
 			_glsl_const_gen(self, sym);
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
+		{
+			bool was_last_symbol_generated = false;
 			for (size_t i = 0; i < sym->func_overload_set_sym.used_decls.count; ++i)
 			{
 				auto decl = sym->func_overload_set_sym.used_decls[i];
 				auto it = mn::map_lookup(sym->func_overload_set_sym.decls, decl);
 				auto type = it->value;
 
-				if (i > 0)
+				if (was_last_symbol_generated)
+				{
 					_glsl_newline(self);
+					_glsl_newline(self);
+				}
 
+				auto pos = _glsl_buffer_position(self);
 				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(self, sym, decl));
+				was_last_symbol_generated = _glsl_code_generated_after(self, pos);
 			}
 			break;
+		}
 		case Symbol::KIND_STRUCT:
 			_glsl_struct_gen(self, sym);
 			break;
@@ -877,10 +912,7 @@ namespace sabre
 			for (size_t i = 0; i < d->var_decl.names.count; ++i)
 			{
 				if (i > 0)
-				{
-					mn::print_to(self.out, ";");
 					_glsl_newline(self);
-				}
 				auto name = d->var_decl.names[i];
 				_glsl_symbol_gen(self, scope_find(scope, name.str));
 			}
@@ -891,10 +923,7 @@ namespace sabre
 			for (size_t i = 0; i < d->const_decl.names.count; ++i)
 			{
 				if (i > 0)
-				{
-					mn::print_to(self.out, ";");
 					_glsl_newline(self);
-				}
 				auto name = d->const_decl.names[i];
 				_glsl_symbol_gen(self, scope_find(scope, name.str));
 			}
@@ -1276,14 +1305,18 @@ namespace sabre
 	void
 	glsl_gen(GLSL& self)
 	{
+		bool last_symbol_was_generated = false;
 		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
 		{
-			if (i > 0)
+			if (last_symbol_was_generated)
 			{
+				_glsl_newline(self);
 				_glsl_newline(self);
 			}
 
+			auto pos = _glsl_buffer_position(self);
 			_glsl_symbol_gen(self, self.unit->reachable_symbols[i]);
+			last_symbol_was_generated = _glsl_code_generated_after(self, pos);
 		}
 	}
 }

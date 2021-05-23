@@ -5,6 +5,7 @@ int main_convert_bool_to_int(bool x) {
 		return 1;
 	}
 }
+
 int main_sum_to_n(bool x) {
 	int n = main_convert_bool_to_int(x);
 	int res = 0;
@@ -17,7 +18,7 @@ int main_sum_to_n(bool x) {
 				continue;
 			} else if (i % 3 == 0) {
 				break;
-			};
+			}
 			res += i;
 			// for post statement
 			++i;
