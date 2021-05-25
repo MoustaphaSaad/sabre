@@ -511,7 +511,14 @@ namespace sabre
 			}
 		}
 
-		mn::print_to(self.out, "{}", _glsl_name(self, e->atom.tkn.str));
+		if (e->atom.tkn.kind == Tkn::KIND_ID)
+		{
+			mn::print_to(self.out, "{}", _glsl_name(self, e->atom.tkn.str));
+		}
+		else
+		{
+			mn::print_to(self.out, "{}", e->atom.tkn.str);
+		}
 	}
 
 	inline static void
@@ -811,8 +818,22 @@ namespace sabre
 
 		if (auto it = mn::map_lookup(decl->tags.table, self.uniform_keyword))
 		{
+			int binding = -1;
+			if (auto arg_it = mn::map_lookup(it->value.args, self.binding_keyword))
+			{
+				auto value_tkn = arg_it->value.value;
+				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				{
+					binding = ::atoi(value_tkn.str);
+					if (binding > self.uniform_binding_generator)
+						self.uniform_binding_generator = binding + 1;
+				}
+			}
+			// if no user generated uniform binding is found we generate one for it
+			if (binding < 0)
+				binding = self.uniform_binding_generator++;
+
 			auto uniform_name = _glsl_name(self, _glsl_symbol_name(self, sym));
-			auto binding = self.uniform_binding_generator++;
 			mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_name);
 			++self.indent;
 			{
@@ -1252,6 +1273,7 @@ namespace sabre
 
 		self.builtin_keyword = unit_intern(self.unit->parent_unit, "builtin");
 		self.uniform_keyword = unit_intern(self.unit->parent_unit, "uniform");
+		self.binding_keyword = unit_intern(self.unit->parent_unit, "binding");
 
 		return self;
 	}

@@ -35,7 +35,7 @@ func vertex(input: VS_Input): PS_Input {
 	};
 }
 
-@uniform{binding = 1} var model: Model;
+@uniform{binding = 3} var model: Model;
 @uniform{binding = 2} var light: Light;
 
 // dummy builtin functions for now

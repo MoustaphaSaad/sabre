@@ -1022,21 +1022,21 @@ namespace sabre
 
 					if (key && value)
 					{
-						if (auto it = mn::map_lookup(tag.args, key))
+						if (auto it = mn::map_lookup(tag.args, key.str))
 						{
 							Err err{};
 							err.loc = key.loc;
 							err.msg = mn::strf(
 								"duplicated tag key, first defined in {}:{}:{}",
-								it->value.loc.file->filepath,
-								it->value.loc.pos.line,
-								it->value.loc.pos.col
+								it->value.key.loc.file->filepath,
+								it->value.key.loc.pos.line,
+								it->value.key.loc.pos.col
 							);
 							unit_err(self.unit, err);
 						}
 						else
 						{
-							mn::map_insert(tag.args, key, value);
+							mn::map_insert(tag.args, key.str, Tag_Key_Value{key, value});
 						}
 
 						_parser_eat_kind(self, Tkn::KIND_COMMA);

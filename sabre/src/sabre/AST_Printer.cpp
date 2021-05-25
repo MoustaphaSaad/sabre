@@ -58,10 +58,10 @@ namespace sabre
 			{
 				_ast_printer_enter_scope(self);
 				{
-					for (auto [key, value]: tag.args)
+					for (auto [_, kv]: tag.args)
 					{
 						_ast_printer_newline(self);
-						mn::print_to(self.out, "(key: '{}', value: '{}')", key.str, value.str);
+						mn::print_to(self.out, "(key: '{}', value: '{}')", kv.key.str, kv.value.str);
 					}
 				}
 				_ast_printer_leave_scope(self);

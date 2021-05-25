@@ -767,21 +767,17 @@ namespace sabre
 		return self;
 	}
 
-	// Hasher for Tkn keys
-	struct Tkn_Hasher
+	struct Tag_Key_Value
 	{
-		inline size_t
-		operator()(const Tkn& tkn) const
-		{
-			return (size_t)tkn.str;
-		}
+		Tkn key;
+		Tkn value;
 	};
 
 	// represents a tag that can be attached to declarations
 	struct Tag
 	{
 		Tkn name;
-		mn::Map<Tkn, Tkn, Tkn_Hasher> args;
+		mn::Map<const char*, Tag_Key_Value> args;
 	};
 
 	// create a new tag
@@ -789,7 +785,7 @@ namespace sabre
 	tag_new(mn::Allocator arena)
 	{
 		Tag self{};
-		self.args = mn::map_with_allocator<Tkn, Tkn, Tkn_Hasher>(arena);
+		self.args = mn::map_with_allocator<const char*, Tag_Key_Value>(arena);
 		return self;
 	}
 
