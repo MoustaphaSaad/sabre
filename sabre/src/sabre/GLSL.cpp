@@ -511,7 +511,7 @@ namespace sabre
 			}
 		}
 
-		mn::print_to(self.out, "{}", e->atom.tkn.str);
+		mn::print_to(self.out, "{}", _glsl_name(self, e->atom.tkn.str));
 	}
 
 	inline static void
@@ -533,7 +533,12 @@ namespace sabre
 	_glsl_gen_dot_expr(GLSL& self, Expr* e)
 	{
 		glsl_expr_gen(self, e->dot.lhs);
-		mn::print_to(self.out, ".");
+		const char* dot = ".";
+		if (e->dot.lhs->kind == Expr::KIND_ATOM)
+			if (auto decl = e->dot.lhs->atom.decl)
+				if (auto it = mn::map_lookup(decl->tags.table, self.uniform_keyword))
+					dot = "_";
+		mn::print_to(self.out, "{}", dot);
 		glsl_expr_gen(self, e->dot.rhs);
 	}
 
@@ -802,15 +807,47 @@ namespace sabre
 	inline static void
 	_glsl_var_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(self, sym)));
-		if (sym->var_sym.value != nullptr)
+		auto decl = symbol_decl(sym);
+
+		if (auto it = mn::map_lookup(decl->tags.table, self.uniform_keyword))
 		{
-			mn::print_to(self.out, " = ");
-			glsl_expr_gen(self, sym->var_sym.value);
+			auto uniform_name = _glsl_name(self, _glsl_symbol_name(self, sym));
+			auto binding = self.uniform_binding_generator++;
+			mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_name);
+			++self.indent;
+			{
+				auto type = sym->type;
+				if (type->kind == Type::KIND_STRUCT)
+				{
+					for (auto field: type->struct_type.fields)
+					{
+						_glsl_newline(self);
+						auto name = mn::str_tmpf("{}_{}", uniform_name, field.name.str);
+						mn::print_to(self.out, "{};", _glsl_write_field(self, field.type, name.ptr));
+					}
+				}
+				else
+				{
+					_glsl_newline(self);
+					mn::print_to(self.out, "{};", _glsl_write_field(self, type, uniform_name));
+				}
+			}
+			--self.indent;
+			_glsl_newline(self);
+			mn::print_to(self.out, "}}");
 		}
 		else
 		{
-			// TODO(Moustapha): handle zero init data
+			mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(self, sym)));
+			if (sym->var_sym.value != nullptr)
+			{
+				mn::print_to(self.out, " = ");
+				glsl_expr_gen(self, sym->var_sym.value);
+			}
+			else
+			{
+				// TODO(Moustapha): handle zero init data
+			}
 		}
 		mn::print_to(self.out, ";");
 	}
@@ -1214,6 +1251,7 @@ namespace sabre
 		}
 
 		self.builtin_keyword = unit_intern(self.unit->parent_unit, "builtin");
+		self.uniform_keyword = unit_intern(self.unit->parent_unit, "uniform");
 
 		return self;
 	}
