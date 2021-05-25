@@ -26,9 +26,6 @@ namespace sabre
 		mn::Map<void*, const char*> symbol_to_names;
 		size_t tmp_id;
 		int uniform_binding_generator;
-		const char* builtin_keyword;
-		const char* uniform_keyword;
-		const char* binding_keyword;
 	};
 
 	// creates a new GLSL generator instance

@@ -237,6 +237,10 @@ namespace sabre
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
 
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BINDING));
+
 		unit_add_package(self, root_package);
 
 		return self;

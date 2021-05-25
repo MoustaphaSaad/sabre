@@ -278,7 +278,7 @@ namespace sabre
 	}
 
 	inline static const char*
-	_glsl_symbol_name(GLSL& self, Symbol* sym, Decl* decl = nullptr)
+	_glsl_symbol_name(Symbol* sym, Decl* decl = nullptr)
 	{
 		bool use_raw_name = false;
 
@@ -286,19 +286,19 @@ namespace sabre
 		{
 		// in case the function is a builtin function we don't use it's package name
 		case Symbol::KIND_CONST:
-			use_raw_name = mn::map_lookup(sym->func_sym.decl->tags.table, self.builtin_keyword) != nullptr;
+			use_raw_name = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN) != nullptr;
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			if (decl)
 			{
-				use_raw_name = mn::map_lookup(decl->tags.table, self.builtin_keyword) != nullptr;
+				use_raw_name = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN) != nullptr;
 			}
 			else
 			{
 				// NOTE(Moustapha): this is very bad, we should know which decl we're using
 				for (auto [decl, _]: sym->func_overload_set_sym.decls)
 				{
-					use_raw_name = mn::map_lookup(decl->tags.table, self.builtin_keyword) != nullptr;
+					use_raw_name = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN) != nullptr;
 					if (use_raw_name)
 						break;
 				}
@@ -476,7 +476,7 @@ namespace sabre
 			break;
 		case Type::KIND_STRUCT:
 			can_write_name = true;
-			str = mn::strf(str, "{}", _glsl_name(self, _glsl_symbol_name(self, type->struct_type.symbol)));
+			str = mn::strf(str, "{}", _glsl_name(self, _glsl_symbol_name(type->struct_type.symbol)));
 			break;
 		default:
 			assert(false && "unreachable");
@@ -502,7 +502,7 @@ namespace sabre
 		{
 			if (e->atom.sym)
 			{
-				auto package_name = mn::str_lit(_glsl_symbol_name(self, e->atom.sym, e->atom.decl));
+				auto package_name = mn::str_lit(_glsl_symbol_name(e->atom.sym, e->atom.decl));
 				if (package_name.count > 0)
 				{
 					mn::print_to(self.out, "{}", _glsl_name(self, package_name.ptr));
@@ -543,7 +543,7 @@ namespace sabre
 		const char* dot = ".";
 		if (e->dot.lhs->kind == Expr::KIND_ATOM)
 			if (auto decl = e->dot.lhs->atom.decl)
-				if (auto it = mn::map_lookup(decl->tags.table, self.uniform_keyword))
+				if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
 					dot = "_";
 		mn::print_to(self.out, "{}", dot);
 		glsl_expr_gen(self, e->dot.rhs);
@@ -770,7 +770,7 @@ namespace sabre
 	{
 		bool is_builtin = false;
 
-		if (mn::map_lookup(d->tags.table, self.builtin_keyword))
+		if (mn::map_lookup(d->tags.table, KEYWORD_BUILTIN))
 			is_builtin = true;
 
 		if (is_builtin)
@@ -808,7 +808,7 @@ namespace sabre
 	inline static void
 	_glsl_func_gen(GLSL& self, Symbol* sym)
 	{
-		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type, _glsl_symbol_name(self, sym));
+		_glsl_func_gen_internal(self, sym->func_sym.decl, sym->type, _glsl_symbol_name(sym));
 	}
 
 	inline static void
@@ -816,10 +816,10 @@ namespace sabre
 	{
 		auto decl = symbol_decl(sym);
 
-		if (auto it = mn::map_lookup(decl->tags.table, self.uniform_keyword))
+		if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
 		{
 			int binding = -1;
-			if (auto arg_it = mn::map_lookup(it->value.args, self.binding_keyword))
+			if (auto arg_it = mn::map_lookup(it->value.args, KEYWORD_BINDING))
 			{
 				auto value_tkn = arg_it->value.value;
 				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
@@ -833,7 +833,7 @@ namespace sabre
 			if (binding < 0)
 				binding = self.uniform_binding_generator++;
 
-			auto uniform_name = _glsl_name(self, _glsl_symbol_name(self, sym));
+			auto uniform_name = _glsl_name(self, _glsl_symbol_name(sym));
 			mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_name);
 			++self.indent;
 			{
@@ -859,7 +859,7 @@ namespace sabre
 		}
 		else
 		{
-			mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(self, sym)));
+			mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
 			if (sym->var_sym.value != nullptr)
 			{
 				mn::print_to(self.out, " = ");
@@ -876,7 +876,7 @@ namespace sabre
 	inline static void
 	_glsl_const_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(self, sym)));
+		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
 		if (sym->var_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
@@ -892,7 +892,7 @@ namespace sabre
 	inline static void
 	_glsl_struct_gen(GLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "struct {} {{", _glsl_name(self, _glsl_symbol_name(self, sym)));
+		mn::print_to(self.out, "struct {} {{", _glsl_name(self, _glsl_symbol_name(sym)));
 		++self.indent;
 
 		auto d = sym->struct_sym.decl;
@@ -944,7 +944,7 @@ namespace sabre
 				}
 
 				auto pos = _glsl_buffer_position(self);
-				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(self, sym, decl));
+				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(sym, decl));
 				was_last_symbol_generated = _glsl_code_generated_after(self, pos);
 			}
 			break;
@@ -1270,10 +1270,6 @@ namespace sabre
 			auto keyword = unit_intern(self.unit->parent_unit, GLSL_KEYWORDS[i]);
 			mn::map_insert(self.reserved_to_alternative, keyword, (const char*)nullptr);
 		}
-
-		self.builtin_keyword = unit_intern(self.unit->parent_unit, "builtin");
-		self.uniform_keyword = unit_intern(self.unit->parent_unit, "uniform");
-		self.binding_keyword = unit_intern(self.unit->parent_unit, "binding");
 
 		return self;
 	}

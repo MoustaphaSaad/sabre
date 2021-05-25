@@ -18,6 +18,15 @@ namespace sabre
 	struct Unit_Package;
 	struct Unit;
 
+	// this is a list of constant strings that's used across stages
+	// it's placed here so that when we use them as map keyes we don't
+	// need to intern them before doing the search instead we use
+	// these global variables directly because the string interner itself
+	// uses these pointers to represent these string values
+	inline constexpr const char* KEYWORD_UNIFORM = "uniform";
+	inline constexpr const char* KEYWORD_BUILTIN = "builtin";
+	inline constexpr const char* KEYWORD_BINDING = "binding";
+
 	enum COMPILATION_STAGE
 	{
 		COMPILATION_STAGE_NONE,
