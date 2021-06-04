@@ -29,10 +29,10 @@ namespace sabre
 	// loads and typechecks a file, fake_path is used for testing
 	// when you want to make the path uniform across testing environment
 	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
-	check_file(const mn::Str& filepath, const mn::Str& fake_path);
+	check_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry);
 
 	// loads and parses a file, fake_path is used for testing
 	// when you want to make the path uniform across testing environment
 	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
-	glsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path);
+	glsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry);
 }

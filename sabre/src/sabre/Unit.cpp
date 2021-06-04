@@ -224,7 +224,7 @@ namespace sabre
 	}
 
 	Unit*
-	unit_from_file(const mn::Str& filepath)
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry)
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
@@ -236,6 +236,8 @@ namespace sabre
 
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
+		self->mode = COMPILATION_MODE_LIBRARY;
+		self->entry = mn::str_intern(self->str_interner, entry.ptr);
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));

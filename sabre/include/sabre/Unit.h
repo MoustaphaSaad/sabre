@@ -224,6 +224,14 @@ namespace sabre
 	SABRE_EXPORT mn::Result<Unit_Package*>
 	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path, Tkn name);
 
+	// determine the mode of this compilation unit
+	enum COMPILATION_MODE
+	{
+		COMPILATION_MODE_LIBRARY,
+		COMPILATION_MODE_VERTEX,
+		COMPILATION_MODE_PIXEL,
+	};
+
 	struct Unit
 	{
 		// used to intern strings, usually token strings
@@ -238,15 +246,19 @@ namespace sabre
 		mn::Buf<Unit_Package*> packages;
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
+		// mode of this compilation unit
+		COMPILATION_MODE mode;
+		// entry point name
+		const char* entry;
 	};
 
 	SABRE_EXPORT Unit*
-	unit_from_file(const mn::Str& filepath);
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry);
 
 	inline static Unit*
-	unit_from_file(const char* filepath)
+	unit_from_file(const char* filepath, const mn::Str& entry)
 	{
-		return unit_from_file(mn::str_lit(filepath));
+		return unit_from_file(mn::str_lit(filepath), entry);
 	}
 
 	SABRE_EXPORT void
