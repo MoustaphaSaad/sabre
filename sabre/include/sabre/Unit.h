@@ -252,6 +252,9 @@ namespace sabre
 		COMPILATION_MODE mode;
 		// entry point name
 		const char* entry;
+		// entry point symbol which is resolved by the type checker if we provide an entry
+		// option to the command line
+		Symbol* entry_symbol;
 	};
 
 	SABRE_EXPORT Unit*

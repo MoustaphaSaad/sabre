@@ -1248,6 +1248,68 @@ namespace sabre
 		}
 	}
 
+	inline static void
+	_glsl_generate_vertex_shader_io(GLSL& self, Symbol* entry)
+	{
+		auto decl = entry->func_sym.decl;
+		auto entry_type = entry->type;
+		size_t type_index = 0;
+		size_t in_location = 0;
+		// generate input
+		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
+		{
+			const auto& arg = decl->func_decl.args[i];
+
+			for (const auto& name: arg.names)
+			{
+				auto input_name = _glsl_name(self, name.str);
+				auto arg_type = entry_type->func.args.types[type_index++];
+				switch(arg_type->kind)
+				{
+				case Type::KIND_STRUCT:
+					for (auto field: arg_type->struct_type.fields)
+					{
+						auto field_name = mn::str_tmpf("{}_{}", input_name, field.name.str);
+						mn::print_to(self.out, "layout(location = {}) in {};", in_location++, _glsl_write_field(self, field.type, field_name.ptr));
+						_glsl_newline(self);
+					}
+					break;
+				default:
+					assert(false && "unreachable");
+					break;
+				}
+			}
+		}
+
+		if (in_location > 0)
+			_glsl_newline(self);
+
+		size_t out_location = 0;
+		if (entry_type->func.return_type != type_void)
+		{
+			auto ret_type = entry_type->func.return_type;
+			auto output_name = _glsl_name(self, "_entry_point_output");
+
+			switch(ret_type->kind)
+			{
+			case Type::KIND_STRUCT:
+				for (auto field: ret_type->struct_type.fields)
+				{
+					auto field_name = mn::str_tmpf("{}_{}", output_name, field.name.str);
+					mn::print_to(self.out, "layout(location = {}) out {};", out_location++, _glsl_write_field(self, field.type, field_name.ptr));
+					_glsl_newline(self);
+				}
+				break;
+			default:
+				assert(false && "unreachable");
+				break;
+			}
+		}
+
+		if (out_location > 0)
+			_glsl_newline(self);
+	}
+
 
 	// API
 	GLSL
@@ -1361,6 +1423,21 @@ namespace sabre
 	void
 	glsl_gen(GLSL& self)
 	{
+		auto compilation_unit = self.unit->parent_unit;
+		switch (compilation_unit->mode)
+		{
+		case COMPILATION_MODE_LIBRARY:
+			// do nothing
+			break;
+		case COMPILATION_MODE_VERTEX:
+			_glsl_generate_vertex_shader_io(self, compilation_unit->entry_symbol);
+			break;
+		case COMPILATION_MODE_PIXEL:
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+
 		bool last_symbol_was_generated = false;
 		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
 		{

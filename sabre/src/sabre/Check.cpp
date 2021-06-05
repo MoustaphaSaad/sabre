@@ -2024,10 +2024,12 @@ namespace sabre
 				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
 				{
 					compilation_unit->mode = COMPILATION_MODE_VERTEX;
+					compilation_unit->entry_symbol = entry;
 				}
 				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
 				{
 					compilation_unit->mode = COMPILATION_MODE_PIXEL;
+					compilation_unit->entry_symbol = entry;
 				}
 				else
 				{
