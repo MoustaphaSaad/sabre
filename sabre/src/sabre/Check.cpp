@@ -2044,6 +2044,17 @@ namespace sabre
 			{
 				const auto& [field_name, field_type] = return_type->struct_type.fields[struct_type_index];
 
+				if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+				{
+					if (field_type != type_vec4)
+					{
+						Err err{};
+						err.loc = field_name.loc;
+						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", field_type);
+						unit_err(self.unit, err);
+					}
+				}
+
 				if (type_is_shader_input(field_type) == false)
 				{
 					Err err{};

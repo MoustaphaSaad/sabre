@@ -243,6 +243,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BINDING));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_VERTEX));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_PIXEL));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_POSITION));
 
 		if (entry.count > 0)
 			self->entry = mn::str_intern(self->str_interner, entry.ptr);

@@ -1,12 +1,12 @@
 type VS_Input struct {
-	@POSITION position: vec3,
-	@NORMAL normal: vec3,
+	position: vec3,
+	normal: vec3,
 }
 
 type PS_Input struct {
-	@SV_POSITION position: vec4,
-	@POSITION vertex_position: vec3,
-	@NORMAL vertex_normal: vec3,
+	@system_position position: vec4,
+	vertex_position: vec3,
+	vertex_normal: vec3,
 }
 
 type PS_Output struct {

@@ -7,7 +7,7 @@ type VS_Input2 struct {
 }
 
 type PS_Input struct {
-	@SV_POSITION position: vec4,
+	@system_position position: vec4,
 }
 
 @vertex
