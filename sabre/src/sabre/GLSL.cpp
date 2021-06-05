@@ -285,7 +285,7 @@ namespace sabre
 		switch (sym->kind)
 		{
 		// in case the function is a builtin function we don't use it's package name
-		case Symbol::KIND_CONST:
+		case Symbol::KIND_FUNC:
 			use_raw_name = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN) != nullptr;
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
@@ -502,6 +502,11 @@ namespace sabre
 		{
 			if (e->atom.sym)
 			{
+				if (::strcmp(e->atom.tkn.str, "dot") == 0)
+				{
+					int x = 234;
+				}
+
 				auto package_name = mn::str_lit(_glsl_symbol_name(e->atom.sym, e->atom.decl));
 				if (package_name.count > 0)
 				{
@@ -907,6 +912,7 @@ namespace sabre
 				_glsl_newline(self);
 				mn::print_to(self.out, "{};", _glsl_write_field(self, field_type.type, name.str));
 			}
+			i += field.names.count;
 		}
 
 		--self.indent;
@@ -1049,10 +1055,10 @@ namespace sabre
 		auto tmp_name = _glsl_tmp_name(self);
 		mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 		mn::print_to(self.out, "{};", _glsl_write_field(self, e->type, tmp_name));
-		for (size_t i = 0; i < e->complit.fields.count; ++i)
+		size_t field_index = 0;
+		for (const auto& field: e->complit.fields)
 		{
 			_glsl_newline(self);
-			auto field = e->complit.fields[i];
 			mn::print_to(self.out, tmp_name);
 			if (field.selector.count > 0)
 			{
@@ -1067,16 +1073,25 @@ namespace sabre
 				assert(e->type->kind == Type::KIND_STRUCT || e->type->kind == Type::KIND_VEC);
 				if (e->type->kind == Type::KIND_VEC)
 				{
-					assert(i < 4);
+					assert(field_index < 4);
 
-					if (i == 0)
-						mn::print_to(self.out, ".x");
-					else if (i == 1)
-						mn::print_to(self.out, ".y");
-					else if (i == 2)
-						mn::print_to(self.out, ".z");
-					else if (i == 3)
-						mn::print_to(self.out, ".w");
+					auto value_width = 1;
+					if (field.value->type->kind == Type::KIND_VEC)
+						value_width = field.value->type->vec.width;
+
+					mn::print_to(self.out, ".");
+					for (size_t i = 0; i < value_width; ++i)
+					{
+						if (field_index + i == 0)
+							mn::print_to(self.out, "x");
+						else if (field_index + i == 1)
+							mn::print_to(self.out, "y");
+						else if (field_index + i == 2)
+							mn::print_to(self.out, "z");
+						else if (field_index + i == 3)
+							mn::print_to(self.out, "w");
+					}
+					field_index += value_width - 1;
 				}
 				else if (e->type->kind == Type::KIND_STRUCT)
 				{
@@ -1090,6 +1105,7 @@ namespace sabre
 			mn::print_to(self.out, " = ");
 			glsl_expr_gen(self, field.value);
 			mn::print_to(self.out, ";");
+			++field_index;
 		}
 		_glsl_newline(self);
 	}
@@ -1514,6 +1530,9 @@ namespace sabre
 	void
 	glsl_expr_gen(GLSL& self, Expr* e)
 	{
+		if (e->in_parens)
+			mn::print_to(self.out, "(");
+
 		switch (e->kind)
 		{
 		case Expr::KIND_ATOM:
@@ -1544,6 +1563,9 @@ namespace sabre
 			assert(false && "unreachable");
 			break;
 		}
+
+		if (e->in_parens)
+			mn::print_to(self.out, ")");
 	}
 
 	void

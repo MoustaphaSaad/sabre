@@ -10,8 +10,8 @@ struct main_PS_Input {
 
 main_PS_Input main_main(main_VS_Input vs_input) {
 	vec4 _tmp_1;
-	_tmp_1.x = vs_input.position;
-	_tmp_1.y = 1;
+	_tmp_1.xyz = vs_input.position;
+	_tmp_1.w = 1;
 	main_PS_Input _tmp_2;
 	_tmp_2.position = _tmp_1;
 	return _tmp_2;

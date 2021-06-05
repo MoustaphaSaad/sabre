@@ -32,10 +32,6 @@ func max(a, b: float): float
 @builtin
 func dot(a, b: vec3): float
 
-func normalize(a, b: vec4): vec4 {
-	return a + b;
-}
-
 @pixel
 func main(input: PS_Input): PS_Output {
 	var world_pos = model.model_matrix * :vec4{input.vertex_position, 1.0};
@@ -54,6 +50,5 @@ func main(input: PS_Input): PS_Output {
 	var output: PS_Output;
 	output.color.rgb = (ambient_color.rgb + diffuse_color.rgb) * model.color.rgb;
 	output.color.a = model.color.a;
-	var koko = normalize(output.color, output.color);
 	return output;
 }
