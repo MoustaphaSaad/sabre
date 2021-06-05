@@ -24,6 +24,8 @@ namespace sabre
 		mn::Map<const char*, const char*> reserved_to_alternative;
 		// maps the name of a specific AST entity to some generated name, used in compound literals
 		mn::Map<void*, const char*> symbol_to_names;
+		mn::Buf<mn::Str> input_names;
+		mn::Buf<mn::Str> output_names;
 		size_t tmp_id;
 		int uniform_binding_generator;
 	};

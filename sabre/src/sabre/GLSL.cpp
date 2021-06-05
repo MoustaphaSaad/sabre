@@ -1269,7 +1269,8 @@ namespace sabre
 				case Type::KIND_STRUCT:
 					for (auto field: arg_type->struct_type.fields)
 					{
-						auto field_name = mn::str_tmpf("{}_{}", input_name, field.name.str);
+						auto field_name = mn::strf("{}_{}", input_name, field.name.str);
+						mn::buf_push(self.input_names, field_name);
 						mn::print_to(self.out, "layout(location = {}) in {};", in_location++, _glsl_write_field(self, field.type, field_name.ptr));
 						_glsl_newline(self);
 					}
@@ -1295,7 +1296,8 @@ namespace sabre
 			case Type::KIND_STRUCT:
 				for (auto field: ret_type->struct_type.fields)
 				{
-					auto field_name = mn::str_tmpf("{}_{}", output_name, field.name.str);
+					auto field_name = mn::strf("{}_{}", output_name, field.name.str);
+					mn::buf_push(self.output_names, field_name);
 					mn::print_to(self.out, "layout(location = {}) out {};", out_location++, _glsl_write_field(self, field.type, field_name.ptr));
 					_glsl_newline(self);
 				}
@@ -1308,6 +1310,157 @@ namespace sabre
 
 		if (out_location > 0)
 			_glsl_newline(self);
+	}
+
+	inline static void
+	_glsl_generate_pixel_shader_io(GLSL& self, Symbol* entry)
+	{
+		auto decl = entry->func_sym.decl;
+		auto entry_type = entry->type;
+		size_t type_index = 0;
+		size_t in_location = 0;
+		// generate input
+		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
+		{
+			const auto& arg = decl->func_decl.args[i];
+
+			for (const auto& name: arg.names)
+			{
+				auto input_name = _glsl_name(self, name.str);
+				auto arg_type = entry_type->func.args.types[type_index++];
+				switch(arg_type->kind)
+				{
+				case Type::KIND_STRUCT:
+					for (auto field: arg_type->struct_type.fields)
+					{
+						auto field_name = mn::strf("{}_{}", input_name, field.name.str);
+						mn::buf_push(self.input_names, field_name);
+						mn::print_to(self.out, "layout(location = {}) in {};", in_location++, _glsl_write_field(self, field.type, field_name.ptr));
+						_glsl_newline(self);
+					}
+					break;
+				default:
+					assert(false && "unreachable");
+					break;
+				}
+			}
+		}
+
+		if (in_location > 0)
+			_glsl_newline(self);
+
+		size_t out_location = 0;
+		if (entry_type->func.return_type != type_void)
+		{
+			auto ret_type = entry_type->func.return_type;
+			auto output_name = _glsl_name(self, "_entry_point_output");
+
+			switch(ret_type->kind)
+			{
+			case Type::KIND_STRUCT:
+				for (auto field: ret_type->struct_type.fields)
+				{
+					auto field_name = mn::strf("{}_{}", output_name, field.name.str);
+					mn::buf_push(self.output_names, field_name);
+					mn::print_to(self.out, "layout(location = {}) out {};", out_location++, _glsl_write_field(self, field.type, field_name.ptr));
+					_glsl_newline(self);
+				}
+				break;
+			default:
+				assert(false && "unreachable");
+				break;
+			}
+		}
+
+		if (out_location > 0)
+			_glsl_newline(self);
+	}
+
+	inline static void
+	_glsl_generate_main_func(GLSL& self, Symbol* entry)
+	{
+		mn::print_to(self.out, "void main() {{");
+		++self.indent;
+		_glsl_newline(self);
+		{
+			auto type = entry->type;
+			auto decl = symbol_decl(entry);
+
+			size_t type_index = 0;
+			size_t input_index = 0;
+			for (auto arg: decl->func_decl.args)
+			{
+				if (type_index > 0)
+					_glsl_newline(self);
+
+				auto arg_type = type->func.args.types[type_index];
+				for (size_t i = 0; i < arg.names.count; ++i)
+				{
+					if (i > 0)
+						_glsl_newline(self);
+					auto arg_name = _glsl_name(self, arg.names[i].str);
+					mn::print_to(self.out, "{};", _glsl_write_field(self, arg_type, arg_name).ptr);
+
+					if (arg_type->kind == Type::KIND_STRUCT)
+					{
+						for (const auto& field: arg_type->struct_type.fields)
+						{
+							_glsl_newline(self);
+							mn::print_to(self.out, "{}.{} = {};", arg_name, field.name.str, self.input_names[input_index++]);
+						}
+					}
+					else
+					{
+						_glsl_newline(self);
+						mn::print_to(self.out, "{} = {};", arg_name, self.input_names[input_index++]);
+					}
+				}
+				type_index += arg.names.count;
+			}
+
+			// handle function return
+			auto return_type = type->func.return_type;
+			if (return_type != type_void)
+			{
+				_glsl_newline(self);
+				_glsl_newline(self);
+
+				auto output_name = _glsl_tmp_name(self);
+				mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, return_type, output_name), _glsl_symbol_name(entry));
+				size_t arg_index = 0;
+				for (auto arg: decl->func_decl.args)
+				{
+					for (auto name: arg.names)
+					{
+						if (arg_index > 0)
+							mn::print_to(self.out, ", ");
+						auto arg_name = _glsl_name(self, name.str);
+						mn::print_to(self.out, "{}", arg_name);
+						++arg_index;
+					}
+				}
+				mn::print_to(self.out, ");");
+
+				// fill output type
+				size_t output_index = 0;
+				if (return_type->kind == Type::KIND_STRUCT)
+				{
+					for (const auto& field: return_type->struct_type.fields)
+					{
+						_glsl_newline(self);
+						mn::print_to(self.out, "{} = {}.{};", self.output_names[output_index++], output_name, field.name.str);
+					}
+				}
+				else
+				{
+					_glsl_newline(self);
+					mn::print_to(self.out, "{} = {};", self.output_names[output_index++], output_name);
+				}
+			}
+		}
+		--self.indent;
+		_glsl_newline(self);
+		mn::print_to(self.out, "}}");
 	}
 
 
@@ -1342,6 +1495,8 @@ namespace sabre
 		mn::buf_free(self.scope_stack);
 		mn::map_free(self.reserved_to_alternative);
 		mn::map_free(self.symbol_to_names);
+		destruct(self.input_names);
+		destruct(self.output_names);
 	}
 
 	void
@@ -1433,6 +1588,8 @@ namespace sabre
 			_glsl_generate_vertex_shader_io(self, compilation_unit->entry_symbol);
 			break;
 		case COMPILATION_MODE_PIXEL:
+			_glsl_generate_pixel_shader_io(self, compilation_unit->entry_symbol);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -1450,6 +1607,14 @@ namespace sabre
 			auto pos = _glsl_buffer_position(self);
 			_glsl_symbol_gen(self, self.unit->reachable_symbols[i]);
 			last_symbol_was_generated = _glsl_code_generated_after(self, pos);
+		}
+
+		// generate real entry function
+		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
+		{
+			_glsl_newline(self);
+			_glsl_newline(self);
+			_glsl_generate_main_func(self, compilation_unit->entry_symbol);
 		}
 	}
 }
