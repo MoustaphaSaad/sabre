@@ -1,0 +1,14 @@
+type VS_Input struct {
+	position: vec3,
+}
+
+type PS_Input struct {
+	@system_position position: vec4,
+}
+
+@vertex
+func main(vs_input: VS_Input): PS_Input {
+	return :PS_Input {
+		.position = :vec4{vs_input.position, 1},
+	};
+}

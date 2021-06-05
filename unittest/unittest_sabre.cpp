@@ -216,3 +216,38 @@ TEST_CASE("[sabre]: glsl")
 		}
 	}
 }
+
+TEST_CASE("[sabre]: glsl-entry")
+{
+	mn_defer(mn::memory::tmp()->clear_all());
+
+	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "glsl-shader");
+	auto files = mn::path_entries(base_dir, mn::memory::tmp());
+	for (auto f: files)
+	{
+		if (f.kind != mn::Path_Entry::KIND_FILE || f.name == "." || f.name == "..")
+			continue;
+
+		if (mn::str_suffix(f.name, ".out"))
+			continue;
+
+		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		auto out_data = load_out_data(filepath);
+		mn::str_replace(out_data, "\r\n", "\n");
+		mn::str_trim(out_data);
+
+		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit("main"));
+		CHECK(err == false);
+		mn_defer(mn::str_free(answer));
+		mn::str_replace(answer, "\r\n", "\n");
+		mn::str_trim(answer);
+
+		auto match = answer == out_data;
+		CHECK(match == true);
+		if (match == false)
+		{
+			mn::print("expected:\n{}\n", out_data);
+			mn::print("answer:\n{}\n", answer);
+		}
+	}
+}

@@ -1,0 +1,21 @@
+type VS_Input struct {
+	position: vec3,
+	normal: vec3,
+}
+
+type PS_Input struct {
+	@system_position position: vec4,
+	vertex_position: vec3,
+	vertex_normal: vec3,
+}
+
+@uniform{binding = 0} var mvp: mat4;
+
+@vertex
+func main(input: VS_Input): PS_Input {
+	return :PS_Input {
+		.position = mvp * :vec4{input.position, 1.0},
+		.vertex_position = input.position,
+		.vertex_normal = input.normal,
+	};
+}

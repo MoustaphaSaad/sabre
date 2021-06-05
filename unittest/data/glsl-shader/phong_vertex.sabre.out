@@ -1,0 +1,42 @@
+layout(location = 0) in vec3 RESERVED_input_position;
+layout(location = 1) in vec3 RESERVED_input_normal;
+
+layout(location = 0) out vec3 _entry_point_output_vertex_position;
+layout(location = 1) out vec3 _entry_point_output_vertex_normal;
+
+struct main_VS_Input {
+	vec3 position;
+	vec3 normal;
+};
+
+struct main_PS_Input {
+	vec4 position;
+	vec4 vertex_position;
+	vec4 vertex_normal;
+};
+
+layout(binding = 0, std140) uniform main_main_mvp {
+	mat4 main_main_mvp;
+};
+
+main_PS_Input main_main(main_VS_Input RESERVED_input) {
+	vec4 _tmp_1;
+	_tmp_1.x = RESERVED_input.position;
+	_tmp_1.y = 1.0;
+	main_PS_Input _tmp_2;
+	_tmp_2.position = main_main_mvp * _tmp_1;
+	_tmp_2.vertex_position = RESERVED_input.position;
+	_tmp_2.vertex_normal = RESERVED_input.normal;
+	return _tmp_2;
+}
+
+void main() {
+	main_VS_Input RESERVED_input;
+	RESERVED_input.position = RESERVED_input_position;
+	RESERVED_input.normal = RESERVED_input_normal;
+	
+	main_PS_Input _tmp_3 = main_main(RESERVED_input);
+	gl_Position = _tmp_3.position;
+	_entry_point_output_vertex_position = _tmp_3.vertex_position;
+	_entry_point_output_vertex_normal = _tmp_3.vertex_normal;
+}
