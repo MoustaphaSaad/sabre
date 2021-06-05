@@ -839,7 +839,13 @@ namespace sabre
 				binding = self.uniform_binding_generator++;
 
 			auto uniform_name = _glsl_name(self, _glsl_symbol_name(sym));
-			mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_name);
+			auto uniform_block_name = uniform_name;
+			if (sym->type->kind != Type::KIND_STRUCT)
+			{
+				uniform_block_name = _glsl_name(self, mn::str_tmpf("uniform{}", _glsl_tmp_name(self)).ptr);
+			}
+
+			mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_block_name);
 			++self.indent;
 			{
 				auto type = sym->type;
