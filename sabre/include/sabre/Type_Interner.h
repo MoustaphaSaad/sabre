@@ -379,6 +379,30 @@ namespace sabre
 		return false;
 	}
 
+	// returns whether the type can be used in shader input
+	inline static bool
+	type_is_shader_input(Type* a)
+	{
+		return (
+			a == type_int ||
+			a == type_uint ||
+			a == type_float ||
+			a == type_double ||
+			a == type_vec2 ||
+			a == type_vec3 ||
+			a == type_vec4 ||
+			a == type_ivec2 ||
+			a == type_ivec3 ||
+			a == type_ivec4 ||
+			a == type_uvec2 ||
+			a == type_uvec3 ||
+			a == type_uvec4 ||
+			a == type_dvec2 ||
+			a == type_dvec3 ||
+			a == type_dvec4
+		);
+	}
+
 	// creates a new vector type, max width == 4
 	inline static Type*
 	type_vectorize(Type* base, int width)

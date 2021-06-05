@@ -1975,6 +1975,101 @@ namespace sabre
 		}
 	}
 
+	inline static bool
+	_typer_tag_table_has_semantic(const Tag_Table& tags)
+	{
+		// get the first tag without arguments
+		for (const auto& [_, tag]: tags.table)
+		{
+			if (tag.args.count == 0)
+				return true;
+		}
+		return false;
+	}
+
+	inline static void
+	_typer_check_entry_input(Typer& self, Symbol* entry)
+	{
+		auto decl = symbol_decl(entry);
+		auto type = entry->type;
+
+		size_t type_index = 0;
+		for (auto arg: decl->func_decl.args)
+		{
+			auto arg_type = type->func.args.types[type_index];
+			if (arg_type->kind == Type::KIND_STRUCT)
+			{
+				auto struct_decl = symbol_decl(arg_type->struct_type.symbol);
+				size_t struct_type_index = 0;
+				for (const auto& field: struct_decl->struct_decl.fields)
+				{
+					const auto& [field_name, field_type] = arg_type->struct_type.fields[struct_type_index];
+
+					if (type_is_shader_input(field_type) == false)
+					{
+						Err err{};
+						err.loc = field_name.loc;
+						err.msg = mn::strf("type '{}' cannot be used as shader input", field_type);
+						unit_err(self.unit, err);
+					}
+					struct_type_index += field.names.count;
+				}
+			}
+			else
+			{
+				Location err_loc{};
+				if (arg.type.atoms.count > 0)
+					err_loc = mn::buf_top(arg.type.atoms).named.type_name.loc;
+				else if (arg.names.count > 0)
+					err_loc = arg.names[0].loc;
+
+				if (type_is_shader_input(arg_type) == false)
+				{
+					Err err{};
+					err.loc = err_loc;
+					err.msg = mn::strf("type '{}' cannot be used as shader input", arg_type);
+					unit_err(self.unit, err);
+				}
+			}
+			type_index += arg.names.count;
+		}
+
+		// handle return type
+		auto return_type = type->func.return_type;
+		if (return_type->kind == Type::KIND_STRUCT)
+		{
+			auto struct_decl = symbol_decl(return_type->struct_type.symbol);
+			size_t struct_type_index = 0;
+			for (const auto& field: struct_decl->struct_decl.fields)
+			{
+				const auto& [field_name, field_type] = return_type->struct_type.fields[struct_type_index];
+
+				if (type_is_shader_input(field_type) == false)
+				{
+					Err err{};
+					err.loc = field_name.loc;
+					err.msg = mn::strf("type '{}' cannot be used as shader input", field_type);
+					unit_err(self.unit, err);
+				}
+				struct_type_index += field.names.count;
+			}
+		}
+		else
+		{
+			Location err_loc{};
+			if (decl->func_decl.return_type.atoms.count > 0)
+				err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
+
+			if (type_is_shader_input(return_type) == false)
+			{
+				Err err{};
+				err.loc = err_loc;
+				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
+				unit_err(self.unit, err);
+			}
+		}
+	}
+
 	// API
 	Typer
 	typer_new(Unit_Package* unit)
@@ -2052,6 +2147,7 @@ namespace sabre
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
 			_typer_resolve_symbol(self, entry);
+			_typer_check_entry_input(self, entry);
 			break;
 		default:
 			assert(false && "unreachable");

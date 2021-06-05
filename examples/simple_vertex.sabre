@@ -1,0 +1,18 @@
+type VS_Input struct {
+	position: vec3,
+}
+
+type VS_Input2 struct {
+	@COLOR position: vec3,
+}
+
+type PS_Input struct {
+	@SV_POSITION position: vec4,
+}
+
+@vertex
+func vertex(vs_input: VS_Input, vs_input2: VS_Input2): PS_Input {
+	return :PS_Input {
+		.position = :vec4{vs_input.position * vs_input2.position, 1},
+	};
+}
