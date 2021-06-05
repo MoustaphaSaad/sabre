@@ -237,11 +237,15 @@ namespace sabre
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
 		self->mode = COMPILATION_MODE_LIBRARY;
-		self->entry = mn::str_intern(self->str_interner, entry.ptr);
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BINDING));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_VERTEX));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_PIXEL));
+
+		if (entry.count > 0)
+			self->entry = mn::str_intern(self->str_interner, entry.ptr);
 
 		unit_add_package(self, root_package);
 

@@ -26,6 +26,8 @@ namespace sabre
 	inline constexpr const char* KEYWORD_UNIFORM = "uniform";
 	inline constexpr const char* KEYWORD_BUILTIN = "builtin";
 	inline constexpr const char* KEYWORD_BINDING = "binding";
+	inline constexpr const char* KEYWORD_VERTEX = "vertex";
+	inline constexpr const char* KEYWORD_PIXEL = "pixel";
 
 	enum COMPILATION_STAGE
 	{

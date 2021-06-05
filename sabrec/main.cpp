@@ -213,7 +213,7 @@ int main(int argc, char** argv)
 	cli_command_add(cli, mn::str_lit("parse-decl"), mn::str_lit("parses a single declaration from the given files and prints it's AST representation"));
 	cli_command_add(cli, mn::str_lit("check"), mn::str_lit("performs type checking on the given files"));
 	cli_command_add(cli, mn::str_lit("glsl-gen"), mn::str_lit("generates GLSL code from the given files"));
-	cli_option_add(cli, mn::str_lit("-entry"), mn::str_lit("specified the entry point function of the given program"));
+	cli_option_add(cli, mn::str_lit("-entry"), mn::str_lit("specifies the entry point function of the given program"));
 
 	auto err = cli_parse(cli, argc, argv);
 	if (err)

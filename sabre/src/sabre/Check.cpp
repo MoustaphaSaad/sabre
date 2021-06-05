@@ -1998,10 +1998,62 @@ namespace sabre
 	{
 		_typer_shallow_walk(self);
 
-		// library mode for now
-		for (auto sym: self.global_scope->symbols)
-			_typer_resolve_symbol(self, sym);
+		auto compilation_unit = self.unit->parent_unit;
+		Symbol* entry = nullptr;
 
-		return;
+		// check the entry function name if it does exist then we figure out
+		// our compilation mode from the function tags
+		if (compilation_unit->entry != nullptr)
+		{
+			entry = scope_find(self.unit->global_scope, compilation_unit->entry);
+			if (entry == nullptr || entry->kind != Symbol::KIND_FUNC)
+			{
+				Location err_loc{};
+				if (entry)
+					if (auto decl = symbol_decl(entry))
+						err_loc = decl->loc;
+
+				Err err{};
+				err.loc = err_loc;
+				err.msg = mn::strf("entry point '{}' is not a function, or its name is not unique (it may be overloaded)", compilation_unit->entry);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				auto decl = symbol_decl(entry);
+				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
+				{
+					compilation_unit->mode = COMPILATION_MODE_VERTEX;
+				}
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
+				{
+					compilation_unit->mode = COMPILATION_MODE_PIXEL;
+				}
+				else
+				{
+					Err err{};
+					err.loc = decl->loc;
+					err.msg = mn::strf("entry point is not tagged with @vertex or @pixel");
+					unit_err(self.unit, err);
+				}
+			}
+		}
+
+		switch (compilation_unit->mode)
+		{
+		// library mode we check all the available global symbols
+		case COMPILATION_MODE_LIBRARY:
+			for (auto sym: self.global_scope->symbols)
+				_typer_resolve_symbol(self, sym);
+			break;
+		// in case of vertex and pixel we start from the entry point
+		case COMPILATION_MODE_VERTEX:
+		case COMPILATION_MODE_PIXEL:
+			_typer_resolve_symbol(self, entry);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
 	}
 }
