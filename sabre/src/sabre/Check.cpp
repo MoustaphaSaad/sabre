@@ -96,7 +96,7 @@ namespace sabre
 
 		if (rhs->type == type_lit_int)
 		{
-			if (lhs == type_int)
+			if (lhs == type_int || lhs == type_lit_int)
 			{
 				return true;
 			}
@@ -124,7 +124,7 @@ namespace sabre
 				}
 				return mismatch == false;
 			}
-			else if (lhs == type_float)
+			else if (lhs == type_float || lhs == type_lit_float)
 			{
 				return true;
 			}
@@ -132,10 +132,14 @@ namespace sabre
 			{
 				return true;
 			}
+			else
+			{
+				return false;
+			}
 		}
 		else if (rhs->type == type_lit_float)
 		{
-			if (lhs == type_int)
+			if (lhs == type_int || lhs == type_lit_int)
 			{
 				bool mismatch = false;
 				if (rhs->mode == ADDRESS_MODE_CONST)
@@ -184,13 +188,17 @@ namespace sabre
 				}
 				return mismatch == false;
 			}
-			else if (lhs == type_float)
+			else if (lhs == type_float || lhs == type_lit_float)
 			{
 				return true;
 			}
 			else if (lhs == type_double)
 			{
 				return true;
+			}
+			else
+			{
+				return false;
 			}
 		}
 		else
