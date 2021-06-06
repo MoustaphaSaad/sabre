@@ -138,6 +138,14 @@ namespace sabre
 		Type* type;
 	};
 
+	enum TEXTURE_TYPE
+	{
+		TEXTURE_TYPE_1D,
+		TEXTURE_TYPE_2D,
+		TEXTURE_TYPE_3D,
+		TEXTURE_TYPE_CUBE,
+	};
+
 	// represents a data type
 	struct Type
 	{
@@ -156,6 +164,7 @@ namespace sabre
 			KIND_MAT,
 			KIND_FUNC,
 			KIND_STRUCT,
+			KIND_TEXTURE,
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
 		};
@@ -195,6 +204,11 @@ namespace sabre
 				Symbol* symbol;
 				mn::Map<Func_Args_Sign, Type_Overload_Entry, Func_Args_Sign_Hasher> overloads;
 			} func_overload_set_type;
+
+			struct
+			{
+				TEXTURE_TYPE type;
+			} texture;
 		};
 	};
 
@@ -225,6 +239,10 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_mat2;
 	SABRE_EXPORT extern Type* type_mat3;
 	SABRE_EXPORT extern Type* type_mat4;
+	SABRE_EXPORT extern Type* type_texture1d;
+	SABRE_EXPORT extern Type* type_texture2d;
+	SABRE_EXPORT extern Type* type_texture3d;
+	SABRE_EXPORT extern Type* type_texture_cube;
 
 	// given a type name it will return a type
 	inline static Type*
@@ -280,6 +298,14 @@ namespace sabre
 			return type_mat3;
 		else if (str == "mat4")
 			return type_mat4;
+		else if (str == "Texture1D")
+			return type_texture1d;
+		else if (str == "Texture2D")
+			return type_texture2d;
+		else if (str == "Texture3D")
+			return type_texture3d;
+		else if (str == "TextureCube")
+			return type_texture_cube;
 		else
 			return type_void;
 	}
@@ -400,6 +426,33 @@ namespace sabre
 			a == type_dvec2 ||
 			a == type_dvec3 ||
 			a == type_dvec4
+		);
+	}
+
+	// returns whether the type can be used in uniform block
+	inline static bool
+	type_is_uniform(Type* a)
+	{
+		return (
+			a == type_int ||
+			a == type_uint ||
+			a == type_float ||
+			a == type_double ||
+			a == type_vec2 ||
+			a == type_vec3 ||
+			a == type_vec4 ||
+			a == type_ivec2 ||
+			a == type_ivec3 ||
+			a == type_ivec4 ||
+			a == type_uvec2 ||
+			a == type_uvec3 ||
+			a == type_uvec4 ||
+			a == type_dvec2 ||
+			a == type_dvec3 ||
+			a == type_dvec4 ||
+			a == type_mat2 ||
+			a == type_mat3 ||
+			a == type_mat4
 		);
 	}
 
@@ -957,6 +1010,23 @@ namespace fmt
 					format_to(ctx.out(), "):{}", overload.type->func.return_type);
 				}
 				return ctx.out();
+			}
+			else if (t->kind == sabre::Type::KIND_TEXTURE)
+			{
+				switch (t->texture.type)
+				{
+				case sabre::TEXTURE_TYPE_1D:
+					return format_to(ctx.out(), "Texture1D");
+				case sabre::TEXTURE_TYPE_2D:
+					return format_to(ctx.out(), "Texture2D");
+				case sabre::TEXTURE_TYPE_3D:
+					return format_to(ctx.out(), "Texture3D");
+				case sabre::TEXTURE_TYPE_CUBE:
+					return format_to(ctx.out(), "TextureCube");
+				default:
+					assert(false && "unreachable");
+					return format_to(ctx.out(), "<UNKNOWN TYPE>");
+				}
 			}
 			else
 			{

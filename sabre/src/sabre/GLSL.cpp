@@ -478,6 +478,29 @@ namespace sabre
 			can_write_name = true;
 			str = mn::strf(str, "{}", _glsl_name(self, _glsl_symbol_name(type->struct_type.symbol)));
 			break;
+		case Type::KIND_TEXTURE:
+			can_write_name = true;
+			if (type == type_texture1d)
+			{
+				str = mn::strf(str, "sampler1D");
+			}
+			else if (type == type_texture2d)
+			{
+				str = mn::strf(str, "sampler2D");
+			}
+			else if (type == type_texture3d)
+			{
+				str = mn::strf(str, "sampler3D");
+			}
+			else if (type == type_texture_cube)
+			{
+				str = mn::strf(str, "samplerCube");
+			}
+			else
+			{
+				assert(false && "unreachable");
+			}
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -845,28 +868,35 @@ namespace sabre
 				uniform_block_name = _glsl_name(self, mn::str_tmpf("uniform{}", _glsl_tmp_name(self)).ptr);
 			}
 
-			mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_block_name);
-			++self.indent;
+			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				auto type = sym->type;
-				if (type->kind == Type::KIND_STRUCT)
+				mn::print_to(self.out, "layout(binding = {}) uniform {}", binding, _glsl_write_field(self, sym->type, uniform_name));
+			}
+			else
+			{
+				mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_block_name);
+				++self.indent;
 				{
-					for (auto field: type->struct_type.fields)
+					auto type = sym->type;
+					if (type->kind == Type::KIND_STRUCT)
+					{
+						for (auto field: type->struct_type.fields)
+						{
+							_glsl_newline(self);
+							auto name = mn::str_tmpf("{}_{}", uniform_name, field.name.str);
+							mn::print_to(self.out, "{};", _glsl_write_field(self, field.type, name.ptr));
+						}
+					}
+					else
 					{
 						_glsl_newline(self);
-						auto name = mn::str_tmpf("{}_{}", uniform_name, field.name.str);
-						mn::print_to(self.out, "{};", _glsl_write_field(self, field.type, name.ptr));
+						mn::print_to(self.out, "{};", _glsl_write_field(self, type, uniform_name));
 					}
 				}
-				else
-				{
-					_glsl_newline(self);
-					mn::print_to(self.out, "{};", _glsl_write_field(self, type, uniform_name));
-				}
+				--self.indent;
+				_glsl_newline(self);
+				mn::print_to(self.out, "}}");
 			}
-			--self.indent;
-			_glsl_newline(self);
-			mn::print_to(self.out, "}}");
 		}
 		else
 		{

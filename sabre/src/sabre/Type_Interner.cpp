@@ -22,6 +22,15 @@ namespace sabre
 		return self;
 	}
 
+	inline static Type
+	_texture_builtin(TEXTURE_TYPE type)
+	{
+		Type self{};
+		self.kind = Type::KIND_TEXTURE;
+		self.texture.type = type;
+		return self;
+	}
+
 	static Type _type_void { Type::KIND_VOID };
 	static Type _type_bool { Type::KIND_BOOL };
 	static Type _type_int { Type::KIND_INT };
@@ -48,6 +57,10 @@ namespace sabre
 	static Type _type_mat2 = _mat_builtin(type_float, 2);
 	static Type _type_mat3 = _mat_builtin(type_float, 3);
 	static Type _type_mat4 = _mat_builtin(type_float, 4);
+	static Type _type_texture1d = _texture_builtin(TEXTURE_TYPE_1D);
+	static Type _type_texture2d = _texture_builtin(TEXTURE_TYPE_2D);
+	static Type _type_texture3d = _texture_builtin(TEXTURE_TYPE_3D);
+	static Type _type_texture_cube = _texture_builtin(TEXTURE_TYPE_CUBE);
 
 	// API
 	Scope*
@@ -96,6 +109,10 @@ namespace sabre
 	Type* type_mat2 = &_type_mat2;
 	Type* type_mat3 = &_type_mat3;
 	Type* type_mat4 = &_type_mat4;
+	Type* type_texture1d = &_type_texture1d;
+	Type* type_texture2d = &_type_texture2d;
+	Type* type_texture3d = &_type_texture3d;
+	Type* type_texture_cube = &_type_texture_cube;
 
 	Type_Interner
 	type_interner_new()

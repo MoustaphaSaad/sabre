@@ -1,0 +1,21 @@
+type PS_Input struct {
+	@system_position position: vec4,
+	texcoord: vec2,
+	color: vec4,
+}
+
+type Bar struct {
+	x: float,
+}
+
+type Foo struct {
+	bar: Bar,
+}
+
+@uniform{binding = 1} var foo: Foo;
+@uniform{binding = 0} var texture: Texture2D;
+
+@pixel
+func main(input: PS_Input): vec4 {
+	return input.color;
+}

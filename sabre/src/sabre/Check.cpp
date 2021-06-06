@@ -1198,6 +1198,45 @@ namespace sabre
 		return res;
 	}
 
+	inline static bool
+	_typer_check_type_suitable_for_uniform(Typer& self, Type* type, size_t depth)
+	{
+		if (type->kind == Type::KIND_STRUCT)
+		{
+			bool res = true;
+			for (auto field: type->struct_type.fields)
+			{
+				bool field_res = true;
+				if (field.type->kind == Type::KIND_STRUCT)
+				{
+					field_res = _typer_check_type_suitable_for_uniform(self, field.type, depth + 1);
+				}
+				else
+				{
+					field_res = type_is_uniform(field.type);
+				}
+				res &= field_res;
+
+				if (field_res == false)
+				{
+					Err err{};
+					err.loc = field.name.loc;
+					err.msg = mn::strf("field type '{}' cannot be used for uniform", field.type);
+					unit_err(self.unit, err);
+				}
+			}
+			return res;
+		}
+		else if (type->kind == Type::KIND_TEXTURE)
+		{
+			return depth == 0;
+		}
+		else
+		{
+			return type_is_uniform(type);
+		}
+	}
+
 	inline static Type*
 	_typer_resolve_var(Typer& self, Symbol* sym)
 	{
@@ -1235,6 +1274,19 @@ namespace sabre
 					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", res, expr_type);
 					unit_err(self.unit, err);
 				}
+			}
+		}
+
+		// check uniform types
+		auto decl = symbol_decl(sym);
+		if (mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM) != nullptr)
+		{
+			if (_typer_check_type_suitable_for_uniform(self, res, 0) == false)
+			{
+				Err err{};
+				err.loc = symbol_location(sym);
+				err.msg = mn::strf("uniform variable type '{}' contains types which cannot be used in a uniform", res);
+				unit_err(self.unit, err);
 			}
 		}
 
