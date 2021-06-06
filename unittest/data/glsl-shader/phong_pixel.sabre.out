@@ -1,6 +1,5 @@
-layout(location = 0) in vec4 RESERVED_input_position;
-layout(location = 1) in vec3 RESERVED_input_vertex_position;
-layout(location = 2) in vec3 RESERVED_input_vertex_normal;
+layout(location = 0) in vec3 RESERVED_input_vertex_position;
+layout(location = 1) in vec3 RESERVED_input_vertex_normal;
 
 layout(location = 0) out vec4 _entry_point_output_color;
 
@@ -59,7 +58,7 @@ main_PS_Output main_main(main_PS_Input RESERVED_input) {
 
 void main() {
 	main_PS_Input RESERVED_input;
-	RESERVED_input.position = RESERVED_input_position;
+	RESERVED_input.position = gl_FragCoord;
 	RESERVED_input.vertex_position = RESERVED_input_vertex_position;
 	RESERVED_input.vertex_normal = RESERVED_input_vertex_normal;
 	

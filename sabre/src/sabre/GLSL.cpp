@@ -1365,14 +1365,26 @@ namespace sabre
 				switch(arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
-					for (auto field: arg_type->struct_type.fields)
+				{
+					auto decl = symbol_decl(arg_type->struct_type.symbol);
+					size_t field_index = 0;
+					for (auto field: decl->struct_decl.fields)
 					{
-						auto field_name = mn::strf("{}_{}", input_name, field.name.str);
+						if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+						{
+							mn::buf_push(self.input_names, mn::str_lit("gl_FragCoord"));
+							field_index++;
+							continue;
+						}
+
+						auto type_field = arg_type->struct_type.fields[field_index++];
+						auto field_name = mn::strf("{}_{}", input_name, type_field.name.str);
 						mn::buf_push(self.input_names, field_name);
-						mn::print_to(self.out, "layout(location = {}) in {};", in_location++, _glsl_write_field(self, field.type, field_name.ptr));
+						mn::print_to(self.out, "layout(location = {}) in {};", in_location++, _glsl_write_field(self, type_field.type, field_name.ptr));
 						_glsl_newline(self);
 					}
 					break;
+				}
 				default:
 					assert(false && "unreachable");
 					break;
