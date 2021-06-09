@@ -1,0 +1,5 @@
+import libA2 "libA.sabre"
+
+func bar(): int {
+	return libA2.x + 1;
+}

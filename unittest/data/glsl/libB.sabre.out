@@ -1,0 +1,5 @@
+int libA2_x = 0;
+
+int main_bar() {
+	return libA2_x + 1;
+}

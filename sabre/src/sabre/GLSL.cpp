@@ -568,7 +568,9 @@ namespace sabre
 	_glsl_gen_dot_expr(GLSL& self, Expr* e)
 	{
 		auto lhs = e->dot.lhs;
-		bool is_lhs_package = lhs->atom.sym->kind == Symbol::KIND_PACKAGE;
+		bool is_lhs_package = false;
+		if (lhs->kind == Expr::KIND_ATOM)
+			is_lhs_package = lhs->atom.sym->kind == Symbol::KIND_PACKAGE;
 
 		if (is_lhs_package)
 		{

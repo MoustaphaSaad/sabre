@@ -8,23 +8,20 @@ struct main_VS_Input {
 	vec3 position;
 	vec3 normal;
 };
-
 struct main_PS_Input {
 	vec4 position;
 	vec3 vertex_position;
 	vec3 vertex_normal;
 };
-
 layout(binding = 0, std140) uniform uniform_tmp_1 {
-	mat4 main_main_mvp;
+	mat4 main_mvp;
 };
-
 main_PS_Input main_main(main_VS_Input RESERVED_input) {
 	vec4 _tmp_2;
 	_tmp_2.xyz = RESERVED_input.position;
 	_tmp_2.w = 1.0;
 	main_PS_Input _tmp_3;
-	_tmp_3.position = main_main_mvp * _tmp_2;
+	_tmp_3.position = main_mvp * _tmp_2;
 	_tmp_3.vertex_position = RESERVED_input.position;
 	_tmp_3.vertex_normal = RESERVED_input.normal;
 	return _tmp_3;

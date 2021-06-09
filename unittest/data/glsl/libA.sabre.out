@@ -1,0 +1,5 @@
+int main_x = 0;
+int main_y = 12;
+int main_foo() {
+	return main_y;
+}

@@ -1551,8 +1551,8 @@ namespace sabre
 				if (i < d->const_decl.values.count)
 					value = d->const_decl.values[i];
 				auto sym = symbol_const_new(self.unit->symbols_arena, name, d, d->const_decl.type, value);
-				_typer_resolve_symbol(self, sym);
 				_typer_add_symbol(self, sym);
+				_typer_resolve_symbol(self, sym);
 			}
 			break;
 		case Decl::KIND_VAR:
@@ -1563,15 +1563,15 @@ namespace sabre
 				if (i < d->var_decl.values.count)
 					value = d->var_decl.values[i];
 				auto sym = symbol_var_new(self.unit->symbols_arena, name, d, d->var_decl.type, value);
-				_typer_resolve_symbol(self, sym);
 				_typer_add_symbol(self, sym);
+				_typer_resolve_symbol(self, sym);
 			}
 			break;
 		case Decl::KIND_FUNC:
 		{
 			auto sym = _typer_add_func_symbol(self, d);
-			_typer_resolve_symbol(self, sym);
 			_typer_add_symbol(self, sym);
+			_typer_resolve_symbol(self, sym);
 			break;
 		}
 		default:
