@@ -990,10 +990,7 @@ namespace sabre
 				auto type = it->value;
 
 				if (was_last_symbol_generated)
-				{
 					_glsl_newline(self);
-					_glsl_newline(self);
-				}
 
 				auto pos = _glsl_buffer_position(self);
 				_glsl_func_gen_internal(self, decl, type, _glsl_symbol_name(sym, decl));
@@ -1009,11 +1006,14 @@ namespace sabre
 			auto package = sym->package_sym.package;
 			if (package->stage == COMPILATION_STAGE_CODEGEN)
 			{
-				for (auto sym: sym->package_sym.package->reachable_symbols)
+				for (size_t i = 0; i < package->reachable_symbols.count; ++i)
 				{
-					_glsl_symbol_gen(self, sym);
-					_glsl_newline(self);
+					if (i > 0)
+						_glsl_newline(self);
+					_glsl_symbol_gen(self, package->reachable_symbols[i]);
 				}
+				if (package->reachable_symbols.count > 0)
+					_glsl_newline(self);
 				package->stage = COMPILATION_STAGE_SUCCESS;
 			}
 			break;
@@ -1705,10 +1705,7 @@ namespace sabre
 		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
 		{
 			if (last_symbol_was_generated)
-			{
 				_glsl_newline(self);
-				_glsl_newline(self);
-			}
 
 			auto pos = _glsl_buffer_position(self);
 			_glsl_symbol_gen(self, self.unit->reachable_symbols[i]);
