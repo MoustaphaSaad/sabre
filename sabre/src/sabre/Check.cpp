@@ -3,6 +3,7 @@
 
 #include <mn/IO.h>
 #include <mn/Log.h>
+#include <mn/Defer.h>
 
 namespace sabre
 {
@@ -78,6 +79,8 @@ namespace sabre
 			return old_sym;
 		}
 		scope_add(current_scope, sym);
+		sym->package = self.unit;
+		sym->scope = current_scope;
 		return sym;
 	}
 
@@ -218,6 +221,9 @@ namespace sabre
 
 	inline static void
 	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t);
+
+	inline static void
+	_typer_shallow_walk(Typer& self);
 
 	inline static void
 	_typer_add_func_overload(Typer& self, Type* overload_set, Decl* decl)
@@ -928,6 +934,9 @@ namespace sabre
 				unit_err(self.unit, err);
 				return type_void;
 			}
+
+			e->dot.rhs->atom.sym = symbol;
+			e->dot.rhs->atom.decl = symbol_decl(symbol);
 			_typer_resolve_symbol(self, symbol);
 			return symbol->type;
 		}
@@ -1827,9 +1836,9 @@ namespace sabre
 	}
 
 	inline static const char*
-	_typer_generate_package_name_for_symbol(Typer& self, const char* name, bool prepend_scope)
+	_typer_generate_package_name_for_symbol(Typer& self, Symbol* sym, bool prepend_scope)
 	{
-		auto scope = _typer_current_scope(self);
+		auto scope = sym->scope;
 
 		auto res = mn::str_tmp();
 
@@ -1850,11 +1859,11 @@ namespace sabre
 				auto prefix_name = prefix_list[prefix_list.count - i - 1];
 				res = mn::strf(res, "{}_", prefix_name);
 			}
-			res = mn::strf(res, "{}", name);
+			res = mn::strf(res, "{}", sym->name);
 		}
 		else
 		{
-			res = mn::strf(res, "{}", name);
+			res = mn::strf(res, "{}", sym->name);
 		}
 
 		auto interned_res = unit_intern(self.unit->parent_unit, res.ptr);
@@ -1897,6 +1906,19 @@ namespace sabre
 			return;
 		}
 
+		// TODO(Moustapha): maybe cache the typer instead of creating it every time
+		auto old_typer = self;
+		bool create_sub_typer = self.unit != sym->package;
+		if (create_sub_typer)
+			self = typer_new(sym->package);
+		mn_defer({
+			if (create_sub_typer)
+			{
+				typer_free(self);
+				self = old_typer;
+			}
+		});
+
 		sym->state = Symbol::STATE_RESOLVING;
 		switch (sym->kind)
 		{
@@ -1937,8 +1959,23 @@ namespace sabre
 			_typer_resolve_func_overload_set_body(self, sym);
 			break;
 		case Symbol::KIND_PACKAGE:
-			unit_package_check(sym->package_sym.package);
+		{
+			// don't resolve everything in the package just gather the top level symbols and
+			// use it to lookup used symbols then only resolve the used symbols
+			auto package = sym->package_sym.package;
+			if (package->stage == COMPILATION_STAGE_CHECK)
+			{
+				auto sub_typer = typer_new(package);
+				_typer_shallow_walk(sub_typer);
+				typer_free(sub_typer);
+
+				if (unit_package_has_errors(package))
+					package->stage = COMPILATION_STAGE_FAILED;
+				else
+					package->stage = COMPILATION_STAGE_CODEGEN;
+			}
 			break;
+		}
 		case Symbol::KIND_STRUCT:
 			_typer_complete_type(self, sym, symbol_location(sym));
 			break;
@@ -1955,7 +1992,7 @@ namespace sabre
 		if (sym->kind == Symbol::KIND_VAR && is_top_level == false)
 			prepend_scope = false;
 
-		sym->package_name = _typer_generate_package_name_for_symbol(self, sym->name, prepend_scope);
+		sym->package_name = _typer_generate_package_name_for_symbol(self, sym, prepend_scope);
 
 		if (is_top_level ||
 			sym->kind == Symbol::KIND_FUNC ||

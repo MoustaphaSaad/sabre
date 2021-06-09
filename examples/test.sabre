@@ -4,5 +4,5 @@ import libA "libA.sabre"
 var x = 234;
 
 func foo(): int {
-	return libB.bar() + x + libA.x;
+	return libB.bar() + x + libA.x + libA.foo();
 }

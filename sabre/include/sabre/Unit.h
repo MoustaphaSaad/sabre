@@ -38,6 +38,7 @@ namespace sabre
 		COMPILATION_STAGE_PARSE,
 		COMPILATION_STAGE_CHECK,
 		COMPILATION_STAGE_CODEGEN,
+		COMPILATION_STAGE_SUCCESS
 	};
 
 	// represents a file compilation unit

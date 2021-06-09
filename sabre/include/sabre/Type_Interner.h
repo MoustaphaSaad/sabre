@@ -14,6 +14,7 @@ namespace sabre
 	struct Type;
 	struct Symbol;
 	struct Unit_Package;
+	struct Scope;
 
 	// describes a function argument signature
 	struct Func_Args_Sign
@@ -591,6 +592,8 @@ namespace sabre
 		KIND kind;
 		STATE state;
 		Type* type;
+		Unit_Package* package;
+		Scope* scope;
 		const char* name;
 		const char* package_name;
 

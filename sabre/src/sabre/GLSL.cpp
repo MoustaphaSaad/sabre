@@ -567,14 +567,24 @@ namespace sabre
 	inline static void
 	_glsl_gen_dot_expr(GLSL& self, Expr* e)
 	{
-		glsl_expr_gen(self, e->dot.lhs);
-		const char* dot = ".";
-		if (e->dot.lhs->kind == Expr::KIND_ATOM)
-			if (auto decl = e->dot.lhs->atom.decl)
-				if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
-					dot = "_";
-		mn::print_to(self.out, "{}", dot);
-		glsl_expr_gen(self, e->dot.rhs);
+		auto lhs = e->dot.lhs;
+		bool is_lhs_package = lhs->atom.sym->kind == Symbol::KIND_PACKAGE;
+
+		if (is_lhs_package)
+		{
+			glsl_expr_gen(self, e->dot.rhs);
+		}
+		else
+		{
+			glsl_expr_gen(self, e->dot.lhs);
+			const char* dot = ".";
+			if (e->dot.lhs->kind == Expr::KIND_ATOM)
+				if (auto decl = e->dot.lhs->atom.decl)
+					if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
+						dot = "_";
+			mn::print_to(self.out, "{}", dot);
+			glsl_expr_gen(self, e->dot.rhs);
+		}
 	}
 
 	inline static void
@@ -994,6 +1004,20 @@ namespace sabre
 		case Symbol::KIND_STRUCT:
 			_glsl_struct_gen(self, sym);
 			break;
+		case Symbol::KIND_PACKAGE:
+		{
+			auto package = sym->package_sym.package;
+			if (package->stage == COMPILATION_STAGE_CODEGEN)
+			{
+				for (auto sym: sym->package_sym.package->reachable_symbols)
+				{
+					_glsl_symbol_gen(self, sym);
+					_glsl_newline(self);
+				}
+				package->stage = COMPILATION_STAGE_SUCCESS;
+			}
+			break;
+		}
 		default:
 			assert(false && "unreachable");
 			break;
