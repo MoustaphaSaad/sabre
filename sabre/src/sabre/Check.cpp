@@ -935,6 +935,14 @@ namespace sabre
 				return type_void;
 			}
 
+			if (symbol->kind == Symbol::KIND_PACKAGE)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("you can't import a package from inside another package");
+				unit_err(self.unit, err);
+			}
+
 			e->dot.rhs->atom.sym = symbol;
 			e->dot.rhs->atom.decl = symbol_decl(symbol);
 			_typer_resolve_symbol(self, symbol);
