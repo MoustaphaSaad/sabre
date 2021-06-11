@@ -354,7 +354,34 @@ namespace sabre
 
 		if (mn::path_is_folder(absolute_path))
 		{
-			return mn::Err { "folder packages are not supported" };
+			mn::log_debug("path: {}", absolute_path);
+			if (auto it = mn::map_lookup(self->absolute_path_to_package, absolute_path))
+			{
+				auto package = it->value;
+				if (package->state == Unit_Package::STATE_RESOLVING)
+				{
+					return mn::Err { "cyclic import of package '{}'", absolute_path };
+				}
+				return package;
+			}
+
+			auto package = unit_package_new(name);
+			package->absolute_path = clone(absolute_path);
+
+			for (auto entry: mn::path_entries(absolute_path, mn::memory::tmp()))
+			{
+				if (entry.kind != mn::Path_Entry::KIND_FILE)
+					continue;
+
+				if (mn::str_suffix(entry.name, ".sabre") == false)
+					continue;
+
+				auto file_path = mn::path_join(mn::str_tmp(), absolute_path, entry.name);
+				auto file = unit_file_from_path(file_path);
+				unit_package_add_file(package, file);
+			}
+			unit_add_package(self, package);
+			return package;
 		}
 		else
 		{

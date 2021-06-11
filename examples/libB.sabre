@@ -1,4 +1,4 @@
-import libA2 "libA.sabre"
+import libA2 "A"
 
 func bar(): int {
 	return libA2.x + 1;

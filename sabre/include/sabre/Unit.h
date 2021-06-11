@@ -10,6 +10,7 @@
 #include <mn/Str_Intern.h>
 #include <mn/Map.h>
 #include <mn/Result.h>
+#include <mn/Log.h>
 
 namespace sabre
 {
@@ -281,8 +282,11 @@ namespace sabre
 	inline static bool
 	unit_add_package(Unit* self, Unit_Package* package)
 	{
+		mn::log_debug("trying to add unit package '{}'", package->absolute_path);
 		if (mn::map_lookup(self->absolute_path_to_package, package->absolute_path) != nullptr)
 			return false;
+
+		mn::log_debug("unit package '{}' added", package->absolute_path);
 
 		package->parent_unit = self;
 		mn::buf_push(self->packages, package);

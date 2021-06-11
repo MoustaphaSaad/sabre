@@ -1,5 +1,5 @@
 import libB "libB.sabre"
-import libA "libA.sabre"
+import libA "./A"
 
 var x = 234;
 
