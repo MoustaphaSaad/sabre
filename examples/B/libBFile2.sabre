@@ -1,0 +1,3 @@
+func bar(): int {
+	return libA2.y;
+}

@@ -1,8 +1,9 @@
-import libB "libB.sabre"
+import libB "./B"
 import libA "A"
 
 var x = 234;
 
 func foo(): int {
+	var weijr = libB.baz();
 	return libB.bar() + x + libA.x + libA.foo();
 }

@@ -268,7 +268,9 @@ namespace sabre
 
 		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 		// add the function declaration to overload set
-		auto decl_type = _typer_resolve_func_decl(self, decl);
+		auto decl_type = type_void;
+		if (sym->state == Symbol::STATE_RESOLVED)
+			decl_type = _typer_resolve_func_decl(self, decl);
 		mn::map_insert(sym->func_overload_set_sym.decls, decl, decl_type);
 		if (sym->state == Symbol::STATE_RESOLVED)
 		{
@@ -1343,6 +1345,8 @@ namespace sabre
 			decl_type = _typer_resolve_func_decl(self, decl);
 			_typer_add_func_overload(self, type, decl);
 		}
+
+		// TODO(Moustapha): check for duplicate function overloads
 		return type;
 	}
 

@@ -140,9 +140,9 @@ namespace sabre
 	bool
 	unit_package_scan(Unit_Package* self)
 	{
-		bool has_errors = false;
 		if (self->stage == COMPILATION_STAGE_SCAN)
 		{
+			bool has_errors = false;
 			for (auto file: self->files)
 				if (unit_file_scan(file) == false)
 					has_errors = true;
@@ -151,16 +151,20 @@ namespace sabre
 				self->stage = COMPILATION_STAGE_FAILED;
 			else
 				self->stage = COMPILATION_STAGE_PARSE;
+			return has_errors == false;
 		}
-		return has_errors == false;
+		else
+		{
+			return unit_package_has_errors(self) == false;
+		}
 	}
 
 	bool
 	unit_package_parse(Unit_Package* self)
 	{
-		bool has_errors = false;
 		if (self->stage == COMPILATION_STAGE_PARSE)
 		{
+			bool has_errors = false;
 			for (auto file: self->files)
 				if (unit_file_parse(file) == false)
 					has_errors = true;
@@ -169,16 +173,20 @@ namespace sabre
 				self->stage = COMPILATION_STAGE_FAILED;
 			else
 				self->stage = COMPILATION_STAGE_CHECK;
+			return has_errors == false;
 		}
-		return has_errors == false;
+		else
+		{
+			return unit_package_has_errors(self) == false;
+		}
 	}
 
 	bool
 	unit_package_check(Unit_Package* self)
 	{
-		bool has_errors = false;
 		if (self->stage == COMPILATION_STAGE_CHECK)
 		{
+			bool has_errors = false;
 			auto typer = typer_new(self);
 			mn_defer(typer_free(typer));
 			typer_check(typer);
@@ -191,8 +199,12 @@ namespace sabre
 			{
 				self->stage = COMPILATION_STAGE_CODEGEN;
 			}
+			return has_errors == false;
 		}
-		return has_errors == false;
+		else
+		{
+			return unit_package_has_errors(self) == false;
+		}
 	}
 
 	void
