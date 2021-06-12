@@ -64,6 +64,8 @@ namespace sabre
 		mn::memory::Arena* ast_arena;
 		// declarations parsed in this unit
 		mn::Buf<Decl*> decls;
+		// contains the symbols defined in this file
+		Scope* file_scope;
 	};
 
 	// creates a new unit file from a path
@@ -180,17 +182,8 @@ namespace sabre
 	}
 
 	// adds the given file to the package
-	inline static bool
-	unit_package_add_file(Unit_Package* self, Unit_File* file)
-	{
-		if (mn::map_lookup(self->absolute_path_to_file, file->absolute_path) != nullptr)
-			return false;
-
-		file->parent_package = self;
-		mn::buf_push(self->files, file);
-		mn::map_insert(self->absolute_path_to_file, file->absolute_path, file);
-		return true;
-	}
+	SABRE_EXPORT bool
+	unit_package_add_file(Unit_Package* self, Unit_File* file);
 
 	// scans the given package unit, and returns true on success
 	SABRE_EXPORT bool
@@ -282,11 +275,8 @@ namespace sabre
 	inline static bool
 	unit_add_package(Unit* self, Unit_Package* package)
 	{
-		mn::log_debug("trying to add unit package '{}'", package->absolute_path);
 		if (mn::map_lookup(self->absolute_path_to_package, package->absolute_path) != nullptr)
 			return false;
-
-		mn::log_debug("unit package '{}' added", package->absolute_path);
 
 		package->parent_unit = self;
 		mn::buf_push(self->packages, package);

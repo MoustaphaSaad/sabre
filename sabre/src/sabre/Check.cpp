@@ -318,6 +318,12 @@ namespace sabre
 			break;
 		case Decl::KIND_IMPORT:
 		{
+			// we put the import declarations into the file scope to enable users
+			// to include the same library with the same name in different files of
+			// the same folder package
+			_typer_enter_scope(self, file->file_scope);
+			mn_defer(_typer_leave_scope(self));
+
 			// TODO(Moustapha): unescape the string
 			auto package_path = mn::str_from_c(decl->import_decl.path.str, mn::memory::tmp());
 			mn::str_trim(package_path, "\"");
@@ -1168,6 +1174,11 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_const(Typer& self, Symbol* sym)
 	{
+		// enter file scope to make import symbols visible
+		auto location = symbol_location(sym);
+		_typer_enter_scope(self, location.file->file_scope);
+		mn_defer(_typer_leave_scope(self));
+
 		// we should infer if the declaration has no type signature
 		auto infer = sym->const_sym.sign.atoms.count == 0;
 
@@ -1259,6 +1270,11 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_var(Typer& self, Symbol* sym)
 	{
+		// enter file scope to make import symbols visible
+		auto location = symbol_location(sym);
+		_typer_enter_scope(self, location.file->file_scope);
+		mn_defer(_typer_leave_scope(self));
+
 		// we should infer if the declaration has no type signature
 		auto infer = sym->var_sym.sign.atoms.count == 0;
 
@@ -1317,6 +1333,10 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_func_decl(Typer& self, Decl* d)
 	{
+		// enter file scope to make import symbols visible
+		_typer_enter_scope(self, d->loc.file->file_scope);
+		mn_defer(_typer_leave_scope(self));
+
 		auto sign = func_sign_new();
 		for (auto arg: d->func_decl.args)
 		{
@@ -1342,6 +1362,10 @@ namespace sabre
 		auto type = type_interner_overload_set(self.unit->parent_unit->type_interner, sym);
 		for (auto& [decl, decl_type]: sym->func_overload_set_sym.decls)
 		{
+			// enter file scope to make import symbols visible
+			_typer_enter_scope(self, decl->loc.file->file_scope);
+			mn_defer(_typer_leave_scope(self));
+
 			decl_type = _typer_resolve_func_decl(self, decl);
 			_typer_add_func_overload(self, type, decl);
 		}
@@ -1738,6 +1762,10 @@ namespace sabre
 	inline static void
 	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t)
 	{
+		// enter file scope to make import symbols visible
+		_typer_enter_scope(self, d->loc.file->file_scope);
+		mn_defer(_typer_leave_scope(self));
+
 		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->func.return_type, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
@@ -1796,6 +1824,11 @@ namespace sabre
 	inline static void
 	_typer_complete_type(Typer& self, Symbol* sym, Location used_from)
 	{
+		// enter file scope to make import symbols visible
+		auto location = symbol_location(sym);
+		_typer_enter_scope(self, location.file->file_scope);
+		mn_defer(_typer_leave_scope(self));
+
 		auto type = sym->type;
 		if (type->kind == Type::KIND_COMPLETING)
 		{
@@ -1998,6 +2031,11 @@ namespace sabre
 
 		// if sym is top level we add it to reachable symbols
 		auto is_top_level = scope_is_top_level(self.global_scope, sym);
+		if (sym->kind == Symbol::KIND_PACKAGE)
+		{
+			auto location = symbol_location(sym);
+			is_top_level |= scope_is_top_level(location.file->file_scope, sym);
+		}
 
 		// we don't prepend scope for local variables
 		bool prepend_scope = true;

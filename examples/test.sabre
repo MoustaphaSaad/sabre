@@ -5,5 +5,5 @@ var x = 234;
 
 func foo(): int {
 	var weijr = libB.baz();
-	return libB.bar() + x + libA.x + libA.foo();
+	return libB.bar() + x + libA.x + libA.foo() + libB.bar2();
 }

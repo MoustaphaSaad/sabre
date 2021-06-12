@@ -39,6 +39,7 @@ namespace sabre
 		mn::buf_free(self->lines);
 		mn::allocator_free(self->ast_arena);
 		mn::buf_free(self->decls);
+		scope_free(self->file_scope);
 		mn::free(self);
 	}
 
@@ -135,6 +136,19 @@ namespace sabre
 		scope_free(self->global_scope);
 		mn::map_free(self->imported_packages);
 		mn::free(self);
+	}
+
+	bool
+	unit_package_add_file(Unit_Package* self, Unit_File* file)
+	{
+		if (mn::map_lookup(self->absolute_path_to_file, file->absolute_path) != nullptr)
+			return false;
+
+		file->parent_package = self;
+		mn::buf_push(self->files, file);
+		mn::map_insert(self->absolute_path_to_file, file->absolute_path, file);
+		file->file_scope = scope_new(self->global_scope, "", nullptr, Scope::FLAG_NONE);
+		return true;
 	}
 
 	bool
@@ -366,7 +380,6 @@ namespace sabre
 
 		if (mn::path_is_folder(absolute_path))
 		{
-			mn::log_debug("path: {}", absolute_path);
 			if (auto it = mn::map_lookup(self->absolute_path_to_package, absolute_path))
 			{
 				auto package = it->value;

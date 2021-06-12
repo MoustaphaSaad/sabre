@@ -1,3 +1,5 @@
-func bar(): int {
+import libA2 "../A"
+
+func bar2(): int {
 	return libA2.y;
 }

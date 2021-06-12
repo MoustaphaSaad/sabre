@@ -715,6 +715,9 @@ namespace sabre
 			auto decl = _parser_parse_decl_var(self, false);
 			if (decl == nullptr)
 				return nullptr;
+			decl->loc.pos = tkn.loc.pos;
+			decl->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			decl->loc.file = self.unit;
 			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_CONST)
@@ -722,6 +725,9 @@ namespace sabre
 			auto decl = _parser_parse_decl_const(self, false);
 			if (decl == nullptr)
 				return nullptr;
+			decl->loc.pos = tkn.loc.pos;
+			decl->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+			decl->loc.file = self.unit;
 			res = stmt_decl_new(self.unit->ast_arena, decl);
 		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_FUNC)
