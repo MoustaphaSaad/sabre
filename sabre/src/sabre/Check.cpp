@@ -255,7 +255,20 @@ namespace sabre
 		auto sym = _typer_find_symbol(self, decl->name.str);
 		// if we didn't find any function with this name then we'll try to add a symbol
 		if (sym == nullptr || (sym->kind != Symbol::KIND_FUNC && sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET))
-			return _typer_add_symbol(self, symbol_func_new(self.unit->symbols_arena, decl->name, decl));
+		{
+			// add symbol twice, once in file scope an another one in package scope
+			auto sym = symbol_func_new(self.unit->symbols_arena, decl->name, decl);
+			auto res = _typer_add_symbol(self, sym);
+
+			// if (file_scope != nullptr)
+			// {
+			// 	// add symbol to file scope
+			// 	_typer_enter_scope(self, file_scope);
+			// 	_typer_add_symbol(self, sym);
+			// 	_typer_leave_scope(self);
+			// }
+			return res;
+		}
 
 		if (sym->kind == Symbol::KIND_FUNC)
 		{
@@ -295,7 +308,14 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < decl->const_decl.values.count)
 					value = decl->const_decl.values[i];
-				_typer_add_symbol(self, symbol_const_new(self.unit->symbols_arena, name, decl, sign, value));
+				// add symbol twice, once in file scope an another one in package scope
+				auto sym = symbol_const_new(self.unit->symbols_arena, name, decl, sign, value);
+				_typer_add_symbol(self, sym);
+
+				// add symbol to file scope
+				// _typer_enter_scope(self, file->file_scope);
+				// _typer_add_symbol(self, sym);
+				// _typer_leave_scope(self);
 			}
 			break;
 		case Decl::KIND_VAR:
@@ -307,15 +327,32 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < decl->var_decl.values.count)
 					value = decl->var_decl.values[i];
-				_typer_add_symbol(self, symbol_var_new(self.unit->symbols_arena, name, decl, sign, value));
+
+				// add symbol twice, once in file scope an another one in package scope
+				auto sym = symbol_var_new(self.unit->symbols_arena, name, decl, sign, value);
+				_typer_add_symbol(self, sym);
+
+				// add symbol to file scope
+				// _typer_enter_scope(self, file->file_scope);
+				// _typer_add_symbol(self, sym);
+				// _typer_leave_scope(self);
 			}
 			break;
 		case Decl::KIND_FUNC:
 			_typer_add_func_symbol(self, decl);
 			break;
 		case Decl::KIND_STRUCT:
-			_typer_add_symbol(self, symbol_struct_new(self.unit->symbols_arena, decl->name, decl));
+		{
+			// add symbol twice, once in file scope an another one in package scope
+			auto sym = symbol_struct_new(self.unit->symbols_arena, decl->name, decl);
+			_typer_add_symbol(self, sym);
+
+			// add symbol to file scope
+			// _typer_enter_scope(self, file->file_scope);
+			// _typer_add_symbol(self, sym);
+			// _typer_leave_scope(self);
 			break;
+		}
 		case Decl::KIND_IMPORT:
 		{
 			// we put the import declarations into the file scope to enable users
@@ -354,6 +391,13 @@ namespace sabre
 				{
 					// package sym
 					auto package_sym = _typer_find_symbol(self, atom.named.package_name.str);
+					// search for package import in the same file as usage
+					if (package_sym == nullptr)
+					{
+						auto file_scope = atom.named.package_name.loc.file->file_scope;
+						package_sym = scope_find(file_scope, atom.named.package_name.str);
+					}
+
 					if (package_sym == nullptr)
 					{
 						Err err{};
@@ -437,7 +481,17 @@ namespace sabre
 			e->const_value = expr_value_bool(true);
 			return type_bool;
 		case Tkn::KIND_ID:
-			if (auto sym = _typer_find_symbol(self, e->atom.tkn.str))
+		{
+			// try to find the symbol in the current scope
+			auto sym = _typer_find_symbol(self, e->atom.tkn.str);
+			// if you don't find it then maybe it's an import so we have to search in file scope as well
+			if (sym == nullptr)
+			{
+				auto file_scope = e->loc.file->file_scope;
+				sym = scope_find(file_scope, e->atom.tkn.str);
+			}
+
+			if (sym)
 			{
 				e->atom.sym = sym;
 				e->atom.decl = symbol_decl(sym);
@@ -463,6 +517,7 @@ namespace sabre
 				unit_err(self.unit, err);
 				return type_void;
 			}
+		}
 		default:
 			assert(false && "unreachable");
 			return type_void;
@@ -1174,11 +1229,6 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_const(Typer& self, Symbol* sym)
 	{
-		// enter file scope to make import symbols visible
-		auto location = symbol_location(sym);
-		_typer_enter_scope(self, location.file->file_scope);
-		mn_defer(_typer_leave_scope(self));
-
 		// we should infer if the declaration has no type signature
 		auto infer = sym->const_sym.sign.atoms.count == 0;
 
@@ -1270,11 +1320,6 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_var(Typer& self, Symbol* sym)
 	{
-		// enter file scope to make import symbols visible
-		auto location = symbol_location(sym);
-		_typer_enter_scope(self, location.file->file_scope);
-		mn_defer(_typer_leave_scope(self));
-
 		// we should infer if the declaration has no type signature
 		auto infer = sym->var_sym.sign.atoms.count == 0;
 
@@ -1333,10 +1378,6 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_func_decl(Typer& self, Decl* d)
 	{
-		// enter file scope to make import symbols visible
-		_typer_enter_scope(self, d->loc.file->file_scope);
-		mn_defer(_typer_leave_scope(self));
-
 		auto sign = func_sign_new();
 		for (auto arg: d->func_decl.args)
 		{
@@ -1762,10 +1803,6 @@ namespace sabre
 	inline static void
 	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t)
 	{
-		// enter file scope to make import symbols visible
-		_typer_enter_scope(self, d->loc.file->file_scope);
-		mn_defer(_typer_leave_scope(self));
-
 		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->func.return_type, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
@@ -1824,11 +1861,6 @@ namespace sabre
 	inline static void
 	_typer_complete_type(Typer& self, Symbol* sym, Location used_from)
 	{
-		// enter file scope to make import symbols visible
-		auto location = symbol_location(sym);
-		_typer_enter_scope(self, location.file->file_scope);
-		mn_defer(_typer_leave_scope(self));
-
 		auto type = sym->type;
 		if (type->kind == Type::KIND_COMPLETING)
 		{
@@ -2031,10 +2063,9 @@ namespace sabre
 
 		// if sym is top level we add it to reachable symbols
 		auto is_top_level = scope_is_top_level(self.global_scope, sym);
-		if (sym->kind == Symbol::KIND_PACKAGE)
+		if (auto decl = symbol_decl(sym))
 		{
-			auto location = symbol_location(sym);
-			is_top_level |= scope_is_top_level(location.file->file_scope, sym);
+			is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
 		}
 
 		// we don't prepend scope for local variables
