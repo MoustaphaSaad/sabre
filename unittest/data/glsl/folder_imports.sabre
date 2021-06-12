@@ -1,0 +1,9 @@
+import libBar "./Bar"
+import libFoo "Foo"
+
+var x = 234;
+
+func foo(): int {
+	var weijr = libBar.baz();
+	return libBar.bar() + x + libFoo.x + libFoo.foo() + libBar.bar2();
+}
