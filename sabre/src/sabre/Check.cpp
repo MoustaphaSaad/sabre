@@ -311,11 +311,6 @@ namespace sabre
 				// add symbol twice, once in file scope an another one in package scope
 				auto sym = symbol_const_new(self.unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
-
-				// add symbol to file scope
-				// _typer_enter_scope(self, file->file_scope);
-				// _typer_add_symbol(self, sym);
-				// _typer_leave_scope(self);
 			}
 			break;
 		case Decl::KIND_VAR:
@@ -331,11 +326,6 @@ namespace sabre
 				// add symbol twice, once in file scope an another one in package scope
 				auto sym = symbol_var_new(self.unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
-
-				// add symbol to file scope
-				// _typer_enter_scope(self, file->file_scope);
-				// _typer_add_symbol(self, sym);
-				// _typer_leave_scope(self);
 			}
 			break;
 		case Decl::KIND_FUNC:
@@ -346,28 +336,37 @@ namespace sabre
 			// add symbol twice, once in file scope an another one in package scope
 			auto sym = symbol_struct_new(self.unit->symbols_arena, decl->name, decl);
 			_typer_add_symbol(self, sym);
-
-			// add symbol to file scope
-			// _typer_enter_scope(self, file->file_scope);
-			// _typer_add_symbol(self, sym);
-			// _typer_leave_scope(self);
 			break;
 		}
 		case Decl::KIND_IMPORT:
 		{
-			// we put the import declarations into the file scope to enable users
-			// to include the same library with the same name in different files of
-			// the same folder package
-			_typer_enter_scope(self, file->file_scope);
-			mn_defer(_typer_leave_scope(self));
-
 			// TODO(Moustapha): unescape the string
 			auto package_path = mn::str_from_c(decl->import_decl.path.str, mn::memory::tmp());
 			mn::str_trim(package_path, "\"");
 
 			auto [package, resolve_err] = unit_file_resolve_package(file, package_path, decl->import_decl.name);
 			if (resolve_err == false)
-				_typer_add_symbol(self, symbol_package_new(self.unit->symbols_arena, decl->name, decl, package));
+			{
+				auto sym = symbol_package_new(self.unit->symbols_arena, decl->name, decl, package);
+				// we put the import declarations into the file scope to enable users
+				// to include the same library with the same name in different files of
+				// the same folder package
+				_typer_enter_scope(self, file->file_scope);
+				_typer_add_symbol(self, sym);
+				_typer_leave_scope(self);
+
+				if (auto old_sym = scope_shallow_find(self.global_scope, sym->name))
+				{
+					if (old_sym->kind != Symbol::KIND_PACKAGE || old_sym->package_sym.package != sym->package_sym.package)
+					{
+						_typer_add_symbol(self, sym);
+					}
+				}
+				else
+				{
+					_typer_add_symbol(self, sym);
+				}
+			}
 			break;
 		}
 		default:

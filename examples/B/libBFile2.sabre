@@ -3,3 +3,5 @@ import libA2 "../A"
 func bar2(): int {
 	return libA2.y;
 }
+
+var libA2 = 23;
