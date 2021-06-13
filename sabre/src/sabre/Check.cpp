@@ -355,6 +355,8 @@ namespace sabre
 				_typer_add_symbol(self, sym);
 				_typer_leave_scope(self);
 
+				// add symbol in global scope only once to avoid symbol redefinition and get symbol redefinition
+				// detection between namespaces and other declaration
 				if (auto old_sym = scope_shallow_find(self.global_scope, sym->name))
 				{
 					if (old_sym->kind != Symbol::KIND_PACKAGE || old_sym->package_sym.package != sym->package_sym.package)
