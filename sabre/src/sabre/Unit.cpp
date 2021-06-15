@@ -348,9 +348,21 @@ namespace sabre
 	unit_check(Unit* self)
 	{
 		bool has_errors = false;
-		for (auto package: self->packages)
+		for (size_t i = 0; i < self->packages.count; ++i)
+		{
+			auto package = self->packages[i];
 			if (unit_package_check(package) == false)
 				has_errors = true;
+
+			// if we have a unit which is not in library mode
+			// then it's enough to check the first/main package only
+			// we don't need to go through other packages because we
+			// check only their used symbols
+			if (self->mode != COMPILATION_MODE_LIBRARY)
+			{
+				break;
+			}
+		}
 		return has_errors == false;
 	}
 
