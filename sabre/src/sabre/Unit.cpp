@@ -101,12 +101,26 @@ namespace sabre
 		auto old_pwd = mn::path_current(mn::memory::tmp());
 		mn_defer(mn::path_current_change(old_pwd));
 
-		auto file_dir = mn::file_directory(self->absolute_path, mn::memory::tmp());
-		mn::path_current_change(file_dir);
+		// search for package in std library
+		if (self->parent_package->parent_unit->std_library_folder_path.count > 0)
+		{
+			auto unit = self->parent_package->parent_unit;
+			mn::path_current_change(unit->std_library_folder_path);
 
-		auto absolute_path = mn::path_absolute(path, mn::memory::tmp());
+			auto absolute_path = mn::path_absolute(path, mn::memory::tmp());
+			if (mn::path_exists(absolute_path))
+				return unit_package_resolve_package(self->parent_package, absolute_path, name);
+		}
 
-		return unit_package_resolve_package(self->parent_package, absolute_path, name);
+		// search for package relative to the file
+		{
+			auto file_dir = mn::file_directory(self->absolute_path, mn::memory::tmp());
+			mn::path_current_change(file_dir);
+
+			auto absolute_path = mn::path_absolute(path, mn::memory::tmp());
+
+			return unit_package_resolve_package(self->parent_package, absolute_path, name);
+		}
 	}
 
 	Unit_Package*
@@ -250,10 +264,11 @@ namespace sabre
 	}
 
 	Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry)
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry, const mn::Str& std_path)
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
+		self->std_library_folder_path = clone(std_path);
 		auto root_file = unit_file_from_path(filepath);
 		auto root_package = unit_package_new("main");
 		// single file packages has their paths be the file path
@@ -292,6 +307,7 @@ namespace sabre
 		destruct(self->scope_table);
 		destruct(self->packages);
 		mn::map_free(self->absolute_path_to_package);
+		mn::str_free(self->std_library_folder_path);
 		mn::free(self);
 	}
 

@@ -232,6 +232,8 @@ namespace sabre
 
 	struct Unit
 	{
+		// path of the standard library of the compiler
+		mn::Str std_library_folder_path;
 		// used to intern strings, usually token strings
 		mn::Str_Intern str_interner;
 		// all the types live here, it makes it simple to manage this memory and compare types
@@ -254,12 +256,12 @@ namespace sabre
 	};
 
 	SABRE_EXPORT Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry);
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry, const mn::Str& std_path);
 
 	inline static Unit*
-	unit_from_file(const char* filepath, const mn::Str& entry)
+	unit_from_file(const char* filepath, const mn::Str& entry, const mn::Str& std_path)
 	{
-		return unit_from_file(mn::str_lit(filepath), entry);
+		return unit_from_file(mn::str_lit(filepath), entry, std_path);
 	}
 
 	SABRE_EXPORT void

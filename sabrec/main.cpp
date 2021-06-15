@@ -1,5 +1,6 @@
 #include <mn/IO.h>
 #include <mn/Defer.h>
+#include <mn/Path.h>
 
 #include <sabre/Utils.h>
 
@@ -205,6 +206,10 @@ cli_print_help(CLI& self)
 
 int main(int argc, char** argv)
 {
+	auto compiler_folder = mn::path_absolute(mn::file_directory(argv[0], mn::memory::tmp()));
+	auto std_library_folder = mn::path_join(compiler_folder, "std");
+	mn_defer(mn::str_free(std_library_folder));
+
 	auto cli = cli_new(mn::str_lit("sabrec the sabre compiler"), mn::memory::tmp());
 	cli_command_add(cli, mn::str_lit("help"), mn::str_lit("prints this message"));
 	cli_command_add(cli, mn::str_lit("scan"), mn::str_lit("scans the given input files and prints a token stream"));
@@ -320,7 +325,7 @@ int main(int argc, char** argv)
 
 		auto entry = cli_option_value(cli, mn::str_lit("-entry"));
 
-		auto [answer, err] = sabre::check_file(path, mn::str_lit(""), entry);
+		auto [answer, err] = sabre::check_file(path, mn::str_lit(""), entry, std_library_folder);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
@@ -342,7 +347,7 @@ int main(int argc, char** argv)
 
 		auto entry = cli_option_value(cli, mn::str_lit("-entry"));
 
-		auto [answer, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""), entry);
+		auto [answer, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""), entry, std_library_folder);
 		if (err)
 		{
 			mn::printerr("{}\n", err);

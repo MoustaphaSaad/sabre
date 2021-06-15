@@ -1,0 +1,48 @@
+import std "std"
+
+type VS_Input struct {
+	pos, uv: vec3,
+	color: vec4
+}
+
+type PS_Input struct {
+	@system_position pos: vec4,
+	uv: vec2,
+	color: vec4
+}
+
+@uniform{binding = 0} var viewproj: mat4;
+
+@vertex
+func vertex(input: VS_Input): PS_Input {
+	var output = :PS_Input{
+		.pos = viewproj * :vec4{input.pos, 1},
+		.uv = input.uv.xy,
+		.color = input.color,
+	};
+
+	if input.uv.z == 1 {
+		// horizontal flip
+		output.uv.x = 1 - output.uv.x;
+	} else if input.uv.z == 2 {
+		// vertical flip
+		output.uv.y = 1 - output.uv.y;
+	} else if input.uv.z == 3 {
+		// both
+		output.uv = :vec2{1, 1} - output.uv;
+	}
+	return output;
+}
+
+type PS_Output struct {
+	color: vec4,
+}
+
+@uniform{binding = 0} var texture0: Texture2D;
+
+@pixel
+func pixel(input: PS_Input): PS_Output {
+	return :PS_Output {
+		.color = std.texture_sample(texture0, input.uv) * input.color,
+	};
+}

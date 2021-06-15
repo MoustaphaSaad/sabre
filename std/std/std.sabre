@@ -1,0 +1,26 @@
+@builtin
+func texture_sample(:Texture2D, :vec2): vec4
+
+@builtin
+func normalize(:vec4): vec4
+
+@builtin
+func normalize(:vec3): vec3
+
+@builtin
+func normalize(:vec2): vec2
+
+@builtin
+func normalize(:float): float
+
+@builtin
+func max(a, b: float): float
+
+@builtin
+func dot(a, b: vec4): float
+
+@builtin
+func dot(a, b: vec3): float
+
+@builtin
+func dot(a, b: vec2): float

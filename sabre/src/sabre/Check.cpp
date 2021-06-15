@@ -259,14 +259,6 @@ namespace sabre
 			// add symbol twice, once in file scope an another one in package scope
 			auto sym = symbol_func_new(self.unit->symbols_arena, decl->name, decl);
 			auto res = _typer_add_symbol(self, sym);
-
-			// if (file_scope != nullptr)
-			// {
-			// 	// add symbol to file scope
-			// 	_typer_enter_scope(self, file_scope);
-			// 	_typer_add_symbol(self, sym);
-			// 	_typer_leave_scope(self);
-			// }
 			return res;
 		}
 
@@ -1383,8 +1375,15 @@ namespace sabre
 		for (auto arg: d->func_decl.args)
 		{
 			auto arg_type = _typer_resolve_type_sign(self, arg.type);
-			for (size_t i = 0; i < arg.names.count; ++i)
+			if (arg.names.count > 0)
+			{
+				for (size_t i = 0; i < arg.names.count; ++i)
+					mn::buf_push(sign.args.types, arg_type);
+			}
+			else
+			{
 				mn::buf_push(sign.args.types, arg_type);
+			}
 		}
 		sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
 		return type_interner_func(self.unit->parent_unit->type_interner, sign);
@@ -2325,6 +2324,7 @@ namespace sabre
 				}
 			}
 		}
+
 
 		switch (compilation_unit->mode)
 		{
