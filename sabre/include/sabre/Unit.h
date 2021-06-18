@@ -30,6 +30,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_VERTEX = "vertex";
 	inline constexpr const char* KEYWORD_PIXEL = "pixel";
 	inline constexpr const char* KEYWORD_SV_POSITION = "system_position";
+	inline constexpr const char* KEYWORD_GLSL = "glsl";
 
 	enum COMPILATION_STAGE
 	{

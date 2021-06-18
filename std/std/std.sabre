@@ -1,4 +1,6 @@
-@builtin
+@builtin {
+	glsl = "texture"
+}
 func texture_sample(:Texture2D, :vec2): vec4
 
 @builtin

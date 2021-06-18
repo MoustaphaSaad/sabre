@@ -282,25 +282,55 @@ namespace sabre
 	{
 		bool use_raw_name = false;
 
+		const char* res = sym->package_name;
 		switch (sym->kind)
 		{
 		// in case the function is a builtin function we don't use it's package name
 		case Symbol::KIND_FUNC:
-			use_raw_name = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN) != nullptr;
+			if (auto tag = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN))
+			{
+				if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
+				{
+					res = arg->value.value.str;
+				}
+				else
+				{
+					res = sym->name;
+				}
+			}
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			if (decl)
 			{
-				use_raw_name = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN) != nullptr;
+				if (auto tag = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN))
+				{
+					if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
+					{
+						res = arg->value.value.str;
+					}
+					else
+					{
+						res = sym->name;
+					}
+				}
 			}
 			else
 			{
 				// NOTE(Moustapha): this is very bad, we should know which decl we're using
 				for (auto [decl, _]: sym->func_overload_set_sym.decls)
 				{
-					use_raw_name = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN) != nullptr;
-					if (use_raw_name)
+					if (auto tag = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN))
+					{
+						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
+						{
+							res = arg->value.value.str;
+						}
+						else
+						{
+							res = sym->name;
+						}
 						break;
+					}
 				}
 			}
 			break;
@@ -308,14 +338,7 @@ namespace sabre
 			break;
 		}
 
-		if (use_raw_name)
-		{
-			return sym->name;
-		}
-		else
-		{
-			return sym->package_name;
-		}
+		return res;
 	}
 
 	inline static const char*
@@ -1687,6 +1710,13 @@ namespace sabre
 	glsl_gen(GLSL& self)
 	{
 		auto compilation_unit = self.unit->parent_unit;
+
+		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
+		{
+			mn::print_to(self.out, "#version 450");
+			_glsl_newline(self);
+		}
+
 		switch (compilation_unit->mode)
 		{
 		case COMPILATION_MODE_LIBRARY:
