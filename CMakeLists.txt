@@ -26,7 +26,6 @@ option(SABRE_UNITY_BUILD       "Combine all sabre source files into one jumbo bu
 
 # external dependencies
 include(CPM)
-set(MN_INSTALL ${SABRE_INSTALL} CACHE INTERNAL "")
 CPMAddPackage(
 	NAME             mn
 	GIT_REPOSITORY   https://github.com/MoustaphaSaad/mn.git
