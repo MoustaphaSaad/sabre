@@ -14,7 +14,7 @@ add_executable(unittest
 target_link_libraries(unittest
 	PRIVATE
 		MoustaphaSaad::sabre
-		doctest
+		doctest::doctest
 )
 
 target_compile_definitions(unittest
