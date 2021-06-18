@@ -16,3 +16,8 @@ add_custom_target(
 			${SABREC_OUTPUT_DIR}/std/
 )
 add_dependencies(sabrec deploy_std)
+
+if (SABRE_INSTALL)
+	install(TARGETS sabrec)
+	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../std DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif (SABRE_INSTALL)

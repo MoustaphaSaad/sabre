@@ -68,3 +68,8 @@ target_include_directories(sabre
 	PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+if (SABRE_INSTALL)
+	install(TARGETS sabre)
+	install(DIRECTORY include/sabre DESTINATION include)
+endif (SABRE_INSTALL)
