@@ -354,8 +354,14 @@ int main(int argc, char** argv)
 
 		auto entry = cli_option_value(cli, mn::str_lit("-entry"));
 
-		mn::print("reflect on '{}'\n", path);
-
+		auto [answer, err] = sabre::reflect_file(path, entry, std_library_folder);
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
 	else

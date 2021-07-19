@@ -2,6 +2,7 @@
 #include "sabre/Scan.h"
 #include "sabre/Parse.h"
 #include "sabre/Check.h"
+#include "sabre/Reflect.h"
 
 #include <mn/Path.h>
 #include <mn/IO.h>
@@ -309,6 +310,8 @@ namespace sabre
 		destruct(self->packages);
 		mn::map_free(self->absolute_path_to_package);
 		mn::str_free(self->std_library_folder_path);
+		mn::map_free(self->input_layout);
+		mn::buf_free(self->reachable_uniforms);
 		mn::free(self);
 	}
 
@@ -363,6 +366,18 @@ namespace sabre
 			{
 				break;
 			}
+		}
+		return has_errors == false;
+	}
+
+	bool
+	unit_reflect(Unit* self)
+	{
+		bool has_errors = false;
+		if (self->entry_symbol)
+		{
+			auto package = self->entry_symbol->package;
+			reflect_package(package);
 		}
 		return has_errors == false;
 	}
