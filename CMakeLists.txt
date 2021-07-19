@@ -29,7 +29,7 @@ include(CPM)
 CPMAddPackage(
 	NAME             mn
 	GIT_REPOSITORY   https://github.com/MoustaphaSaad/mn.git
-	GIT_TAG          2caf13002d03494e052948a12da4bdb52f3608a1
+	GIT_TAG          a4bf47d428a602cff30625e8108535b808360a4a
 	GIT_SHALLOW      TRUE
 )
 

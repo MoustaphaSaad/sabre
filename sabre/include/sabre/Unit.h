@@ -231,6 +231,12 @@ namespace sabre
 		COMPILATION_MODE_PIXEL,
 	};
 
+	struct Reachable_Uniform
+	{
+		size_t binding;
+		Symbol* symbol;
+	};
+
 	struct Unit
 	{
 		// path of the standard library of the compiler
@@ -254,6 +260,11 @@ namespace sabre
 		// entry point symbol which is resolved by the type checker if we provide an entry
 		// option to the command line
 		Symbol* entry_symbol;
+		// reflection information
+		// input layout of above entry point
+		mn::Map<const char*, Type*> input_layout;
+		// reachable uniforms info
+		mn::Buf<Reachable_Uniform> reachable_uniforms;
 	};
 
 	SABRE_EXPORT Unit*
@@ -298,6 +309,11 @@ namespace sabre
 	// typecheckes the given unit and returns whether it finishes correctly
 	SABRE_EXPORT bool
 	unit_check(Unit* self);
+
+	// generates reflection information for the given unit
+	// it should have an entry point specifed
+	SABRE_EXPORT bool
+	unit_reflect(Unit* self);
 
 	// dumps all the scanned tokens to a string
 	SABRE_EXPORT mn::Str

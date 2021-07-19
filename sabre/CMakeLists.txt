@@ -13,6 +13,7 @@ set(HEADER_FILES
 	include/sabre/Type_Interner.h
 	include/sabre/Check.h
 	include/sabre/GLSL.h
+	include/sabre/Reflect.h
 )
 
 # list the source files
@@ -26,6 +27,7 @@ set(SOURCE_FILES
 	src/sabre/Type_Interner.cpp
 	src/sabre/Check.cpp
 	src/sabre/GLSL.cpp
+	src/sabre/Reflect.cpp
 )
 
 add_library(sabre)

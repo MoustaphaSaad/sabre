@@ -4,22 +4,6 @@
 
 #include <sabre/Utils.h>
 
-static const char* HELP = R"(sabrec the sabre compiler
-sabrec command [options] PATH...
-
-COMMAND:
-  help:       prints this message
-  scan:       scans the given input files and prints a token stream
-  parse-expr: parses a single expression from the given files and prints it's AST representation
-  parse-stmt: parses a single statement from the given files and prints it's AST representation
-  parse-decl: parses a single declaration from the given files and prints it's AST representation
-  check:      performs type checking on the given files
-  glsl-gen:   generates GLSL code from the given files
-
-OPTIONS:
-  -entry string: specifies the entry point function of the given program
-)";
-
 struct CLI_Option
 {
 	mn::Str name;
@@ -218,6 +202,7 @@ int main(int argc, char** argv)
 	cli_command_add(cli, mn::str_lit("parse-decl"), mn::str_lit("parses a single declaration from the given files and prints it's AST representation"));
 	cli_command_add(cli, mn::str_lit("check"), mn::str_lit("performs type checking on the given files"));
 	cli_command_add(cli, mn::str_lit("glsl-gen"), mn::str_lit("generates GLSL code from the given files"));
+	cli_command_add(cli, mn::str_lit("reflect"), mn::str_lit("generates reflection information for the given files"));
 	cli_option_add(cli, mn::str_lit("-entry"), mn::str_lit("specifies the entry point function of the given program"));
 
 	auto err = cli_parse(cli, argc, argv);
@@ -348,6 +333,28 @@ int main(int argc, char** argv)
 		auto entry = cli_option_value(cli, mn::str_lit("-entry"));
 
 		auto [answer, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""), entry, std_library_folder);
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
+		return EXIT_SUCCESS;
+	}
+	else if (cli.cmd == "reflect")
+	{
+		if (cli.input.count != 1)
+		{
+			mn::printerr("no input files, you should provide path for the entry point file\n\n");
+			cli_print_help(cli);
+			return EXIT_FAILURE;
+		}
+		auto path = cli.input[0];
+
+		auto entry = cli_option_value(cli, mn::str_lit("-entry"));
+
+		auto [answer, err] = sabre::reflect_file(path, entry, std_library_folder);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
