@@ -115,6 +115,22 @@ namespace sabre
 				type_sign_push(type, type_sign_atom_named(type_name, package_name));
 				break;
 			}
+			else if (tkn.kind == Tkn::KIND_OPEN_BRACKET)
+			{
+				// eat open bracket
+				_parser_eat(self);
+
+				if (_parser_eat_kind(self, Tkn::KIND_CLOSE_BRACKET))
+				{
+					type_sign_push(type, type_sign_atom_array(nullptr));
+				}
+				else
+				{
+					auto static_size = parser_parse_expr(self);
+					type_sign_push(type, type_sign_atom_array(static_size));
+					_parser_eat_must(self, Tkn::KIND_CLOSE_BRACKET);
+				}
+			}
 			else
 			{
 				break;

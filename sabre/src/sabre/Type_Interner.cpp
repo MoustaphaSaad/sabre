@@ -128,6 +128,7 @@ namespace sabre
 		mn::allocator_free(self.arena);
 		destruct(self.func_table);
 		mn::map_free(self.package_table);
+		mn::map_free(self.array_table);
 	}
 
 	Type*
@@ -183,6 +184,19 @@ namespace sabre
 		new_type->kind = Type::KIND_FUNC_OVERLOAD_SET;
 		new_type->func_overload_set_type.symbol = symbol;
 		new_type->func_overload_set_type.overloads = mn::map_with_allocator<Func_Args_Sign, Type_Overload_Entry, Func_Args_Sign_Hasher>(self.arena);
+		return new_type;
+	}
+
+	Type*
+	type_interner_array(Type_Interner& self, Array_Sign sign)
+	{
+		if (auto it = mn::map_lookup(self.array_table, sign))
+			return it->value;
+		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		new_type->kind = Type::KIND_ARRAY;
+		new_type->array.base = sign.base;
+		new_type->array.count = sign.count;
+		mn::map_insert(self.array_table, sign, new_type);
 		return new_type;
 	}
 }

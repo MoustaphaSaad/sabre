@@ -444,6 +444,47 @@ namespace sabre
 					}
 				}
 				break;
+			case Type_Sign_Atom::KIND_ARRAY:
+			{
+				if (atom.array.static_size)
+				{
+					auto array_count_type = _typer_resolve_expr(self, atom.array.static_size);
+					if (type_is_equal(array_count_type, type_int) == false &&
+						type_is_equal(array_count_type, type_uint))
+					{
+						Err err{};
+						err.loc = atom.array.static_size->loc;
+						err.msg = mn::strf("array count should be integer but found '{}'", array_count_type);
+						unit_err(self.unit, err);
+					}
+
+					if (atom.array.static_size->const_value.kind == Expr_Value::KIND_INT)
+					{
+						auto array_count = atom.array.static_size->const_value.as_int;
+						if (array_count < 0)
+						{
+							Err err{};
+							err.loc = atom.array.static_size->loc;
+							err.msg = mn::strf("array count should be >= but found '{}'", array_count);
+							unit_err(self.unit, err);
+						}
+						Array_Sign sign{};
+						sign.base = res;
+						sign.count = array_count;
+						res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+					}
+				}
+				else
+				{
+					// we have a dynamically sized array
+					// TODO(Moustapha): maybe add support for array slices later
+					Array_Sign sign{};
+					sign.base = res;
+					sign.count = -1;
+					res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+				}
+				break;
+			}
 			default:
 				assert(false && "unreachable");
 				break;
@@ -1139,6 +1180,23 @@ namespace sabre
 						failed = true;
 					}
 				}
+				else if (type_it->kind == Type::KIND_ARRAY)
+				{
+					// array count can be -1, to indicate an array which we don't know the size of yet
+					if (type_field_index < type_it->array.count)
+					{
+						type_it = type_it->array.base;
+						++type_field_index;
+					}
+					else
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("array '{}' contains only {} elements", type_it, type_it->array.count);
+						unit_err(self.unit, err);
+						failed = true;
+					}
+				}
 				else
 				{
 					Err err{};
@@ -1177,6 +1235,14 @@ namespace sabre
 					break;
 				}
 			}
+		}
+		// if this is an array with unknown size we set the size according to the number of elements in complit
+		if (type_is_unbounded_array(type))
+		{
+			Array_Sign sign{};
+			sign.base = type->array.base;
+			sign.count = type_field_index;
+			type = type_interner_array(self.unit->parent_unit->type_interner, sign);
 		}
 		return type;
 	}
@@ -1249,6 +1315,15 @@ namespace sabre
 			if (e != nullptr)
 			{
 				auto expr_type = _typer_resolve_expr(self, e);
+
+				// check if left handside is an unknown array and complete it from the rhs
+				if (type_is_unbounded_array(res) &&
+					type_is_bounded_array(expr_type) &&
+					type_is_equal(res->array.base, expr_type->array.base))
+				{
+					res = expr_type;
+				}
+
 				if (type_is_equal(expr_type, res) == false)
 				{
 					Err err{};
@@ -1340,6 +1415,15 @@ namespace sabre
 			if (e != nullptr)
 			{
 				auto expr_type = _typer_resolve_expr(self, e);
+
+				// check if left handside is an unknown array and complete it from the rhs
+				if (type_is_unbounded_array(res) &&
+					type_is_bounded_array(expr_type) &&
+					type_is_equal(res->array.base, expr_type->array.base))
+				{
+					res = expr_type;
+				}
+
 				if (_typer_can_assign(res, e) == false)
 				{
 					Err err{};
