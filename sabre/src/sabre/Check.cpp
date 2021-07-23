@@ -1093,6 +1093,20 @@ namespace sabre
 			unit_err(self.unit, err);
 		}
 
+		if (e->indexed.base->mode == ADDRESS_MODE_CONST &&
+			e->indexed.index->mode == ADDRESS_MODE_CONST)
+		{
+			if (e->indexed.base->const_value.kind == Expr_Value::KIND_ARRAY &&
+				e->indexed.index->const_value.kind == Expr_Value::KIND_INT)
+			{
+				if (e->indexed.index->const_value.as_int < e->indexed.base->type->array.count)
+				{
+					e->mode = ADDRESS_MODE_CONST;
+					e->const_value = e->indexed.base->const_value.as_array[e->indexed.index->const_value.as_int];
+				}
+			}
+		}
+
 		return base_type->array.base;
 	}
 
@@ -1100,6 +1114,7 @@ namespace sabre
 	_typer_resolve_complit_expr(Typer& self, Expr* e)
 	{
 		auto type = _typer_resolve_type_sign(self, e->complit.type);
+		bool is_const = true;
 		size_t type_field_index = 0;
 		for (size_t i = 0; i < e->complit.fields.count; ++i)
 		{
@@ -1239,6 +1254,7 @@ namespace sabre
 			}
 
 			auto value_type = _typer_resolve_expr(self, field.value);
+			is_const &= field.value->mode == ADDRESS_MODE_CONST && field.value->const_value.kind != Expr_Value::KIND_NONE;
 			if (failed == false)
 			{
 				// special case vector upcast
@@ -1267,6 +1283,7 @@ namespace sabre
 				}
 			}
 		}
+
 		// if this is an array with unknown size we set the size according to the number of elements in complit
 		if (type_is_unbounded_array(type))
 		{
@@ -1275,6 +1292,32 @@ namespace sabre
 			sign.count = type_field_index;
 			type = type_interner_array(self.unit->parent_unit->type_interner, sign);
 		}
+
+		// if all the field values are constant we'll consider the entire complit to be constant
+		if (is_const)
+		{
+			// we currently handle arrays only
+			if (type_is_array(type))
+			{
+				auto array_values = mn::buf_with_allocator<Expr_Value>(e->loc.file->ast_arena);
+				mn::buf_reserve(array_values, type->array.count);
+				for (size_t i = 0; i < e->complit.fields.count; ++i)
+				{
+					auto field = e->complit.fields[i];
+					// TODO(Moustapha): add type zero values to fix when arrays are larger than complit
+					mn::buf_push(array_values, field.value->const_value);
+				}
+
+				e->mode = ADDRESS_MODE_CONST;
+				e->const_value = expr_value_array(array_values);
+			}
+			else
+			{
+				// TODO(Moustapha): handle constant structs later
+				assert(false && "only constant arrays are handled now");
+			}
+		}
+
 		return type;
 	}
 

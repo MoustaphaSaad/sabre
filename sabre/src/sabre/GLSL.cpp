@@ -1100,57 +1100,60 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e);
+	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e, bool is_const);
 
 	inline static void
-	_glsl_rewrite_complits_in_binary_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_binary_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->binary.left);
-		_glsl_rewrite_complits_in_expr(self, e->binary.right);
+		_glsl_rewrite_complits_in_expr(self, e->binary.left, is_const);
+		_glsl_rewrite_complits_in_expr(self, e->binary.right, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_unary_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_unary_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->unary.base);
+		_glsl_rewrite_complits_in_expr(self, e->unary.base, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_dot_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_dot_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->dot.lhs);
-		_glsl_rewrite_complits_in_expr(self, e->dot.rhs);
+		_glsl_rewrite_complits_in_expr(self, e->dot.lhs, is_const);
+		_glsl_rewrite_complits_in_expr(self, e->dot.rhs, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_indexed_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_indexed_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->indexed.base);
-		_glsl_rewrite_complits_in_expr(self, e->indexed.index);
+		_glsl_rewrite_complits_in_expr(self, e->indexed.base, is_const);
+		_glsl_rewrite_complits_in_expr(self, e->indexed.index, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_call_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_call_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->call.base);
+		_glsl_rewrite_complits_in_expr(self, e->call.base, is_const);
 		for (auto arg: e->call.args)
-			_glsl_rewrite_complits_in_expr(self, arg);
+			_glsl_rewrite_complits_in_expr(self, arg, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_cast_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_cast_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->cast.base);
+		_glsl_rewrite_complits_in_expr(self, e->cast.base, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e, bool is_const)
 	{
 		for (size_t i = 0; i < e->complit.fields.count; ++i)
 		{
 			if (e->complit.fields[i].value)
-				_glsl_rewrite_complits_in_expr(self, e->complit.fields[i].value);
+				_glsl_rewrite_complits_in_expr(self, e->complit.fields[i].value, is_const);
 		}
+
+		if (is_const)
+			mn::print_to(self.out, "const ");
 
 		// handle arrays differently
 		if (type_is_array(e->type))
@@ -1229,7 +1232,7 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e)
+	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e, bool is_const)
 	{
 		switch (e->kind)
 		{
@@ -1237,25 +1240,25 @@ namespace sabre
 			// do nothing, no complit here
 			break;
 		case Expr::KIND_BINARY:
-			_glsl_rewrite_complits_in_binary_expr(self, e);
+			_glsl_rewrite_complits_in_binary_expr(self, e, is_const);
 			break;
 		case Expr::KIND_UNARY:
-			_glsl_rewrite_complits_in_unary_expr(self, e);
+			_glsl_rewrite_complits_in_unary_expr(self, e, is_const);
 			break;
 		case Expr::KIND_DOT:
-			_glsl_rewrite_complits_in_dot_expr(self, e);
+			_glsl_rewrite_complits_in_dot_expr(self, e, is_const);
 			break;
 		case Expr::KIND_INDEXED:
-			_glsl_rewrite_complits_in_indexed_expr(self, e);
+			_glsl_rewrite_complits_in_indexed_expr(self, e, is_const);
 			break;
 		case Expr::KIND_CALL:
-			_glsl_rewrite_complits_in_call_expr(self, e);
+			_glsl_rewrite_complits_in_call_expr(self, e, is_const);
 			break;
 		case Expr::KIND_CAST:
-			_glsl_rewrite_complits_in_cast_expr(self, e);
+			_glsl_rewrite_complits_in_cast_expr(self, e, is_const);
 			break;
 		case Expr::KIND_COMPLIT:
-			_glsl_rewrite_complits_in_complit_expr(self, e);
+			_glsl_rewrite_complits_in_complit_expr(self, e, is_const);
 			break;
 		default:
 			assert(false && "unreachable");
@@ -1264,51 +1267,51 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_stmt(GLSL& self, Stmt* s);
+	_glsl_rewrite_complits_in_stmt(GLSL& self, Stmt* s, bool is_const);
 
 	inline static void
-	_glsl_rewrite_complits_in_return_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_return_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, s->return_stmt);
+		_glsl_rewrite_complits_in_expr(self, s->return_stmt, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_if_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_if_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
 		for (auto cond: s->if_stmt.cond)
-			_glsl_rewrite_complits_in_expr(self, cond);
+			_glsl_rewrite_complits_in_expr(self, cond, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_for_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_for_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
 		if (s->for_stmt.init)
-			_glsl_rewrite_complits_in_stmt(self, s->for_stmt.init);
+			_glsl_rewrite_complits_in_stmt(self, s->for_stmt.init, is_const);
 		if (s->for_stmt.cond)
-			_glsl_rewrite_complits_in_expr(self, s->for_stmt.cond);
+			_glsl_rewrite_complits_in_expr(self, s->for_stmt.cond, is_const);
 		if (s->for_stmt.post)
-			_glsl_rewrite_complits_in_stmt(self, s->for_stmt.post);
+			_glsl_rewrite_complits_in_stmt(self, s->for_stmt.post, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_assign_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_assign_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
 		for (auto e: s->assign_stmt.lhs)
-			_glsl_rewrite_complits_in_expr(self, e);
+			_glsl_rewrite_complits_in_expr(self, e, is_const);
 
 		for (auto e: s->assign_stmt.rhs)
-			_glsl_rewrite_complits_in_expr(self, e);
+			_glsl_rewrite_complits_in_expr(self, e, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_block_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_block_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
 		for (auto stmt: s->block_stmt)
-			_glsl_rewrite_complits_in_stmt(self, stmt);
+			_glsl_rewrite_complits_in_stmt(self, stmt, is_const);
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_decl_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_decl_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
 		auto scope = _glsl_current_scope(self);
 		auto d = s->decl_stmt;
@@ -1322,7 +1325,7 @@ namespace sabre
 				if (auto sym = scope_find(scope, name.str))
 				{
 					if (sym->var_sym.value)
-						_glsl_rewrite_complits_in_expr(self, sym->var_sym.value);
+						_glsl_rewrite_complits_in_expr(self, sym->var_sym.value, is_const);
 				}
 			}
 			break;
@@ -1335,7 +1338,7 @@ namespace sabre
 				if (auto sym = scope_find(scope, name.str))
 				{
 					if (sym->const_sym.value)
-						_glsl_rewrite_complits_in_expr(self, sym->const_sym.value);
+						_glsl_rewrite_complits_in_expr(self, sym->const_sym.value, is_const);
 				}
 			}
 			break;
@@ -1347,7 +1350,7 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_stmt(GLSL& self, Stmt* s)
+	_glsl_rewrite_complits_in_stmt(GLSL& self, Stmt* s, bool is_const)
 	{
 		switch (s->kind)
 		{
@@ -1356,25 +1359,25 @@ namespace sabre
 			// do nothing, no complits here
 			break;
 		case Stmt::KIND_RETURN:
-			_glsl_rewrite_complits_in_return_stmt(self, s);
+			_glsl_rewrite_complits_in_return_stmt(self, s, is_const);
 			break;
 		case Stmt::KIND_IF:
-			_glsl_rewrite_complits_in_if_stmt(self, s);
+			_glsl_rewrite_complits_in_if_stmt(self, s, is_const);
 			break;
 		case Stmt::KIND_FOR:
-			_glsl_rewrite_complits_in_for_stmt(self, s);
+			_glsl_rewrite_complits_in_for_stmt(self, s, is_const);
 			break;
 		case Stmt::KIND_ASSIGN:
-			_glsl_rewrite_complits_in_assign_stmt(self, s);
+			_glsl_rewrite_complits_in_assign_stmt(self, s, is_const);
 			break;
 		case Stmt::KIND_EXPR:
-			_glsl_rewrite_complits_in_expr(self, s->expr_stmt);
+			_glsl_rewrite_complits_in_expr(self, s->expr_stmt, is_const);
 			break;
 		case Stmt::KIND_BLOCK:
-			_glsl_rewrite_complits_in_block_stmt(self, s);
+			_glsl_rewrite_complits_in_block_stmt(self, s, is_const);
 			break;
 		case Stmt::KIND_DECL:
-			_glsl_rewrite_complits_in_decl_stmt(self, s);
+			_glsl_rewrite_complits_in_decl_stmt(self, s, is_const);
 			break;
 		default:
 			assert(false && "unreachable");
@@ -1702,7 +1705,8 @@ namespace sabre
 	glsl_stmt_gen(GLSL& self, Stmt* s)
 	{
 		// handle compound literal expressions
-		_glsl_rewrite_complits_in_stmt(self, s);
+		bool is_const = s->kind == Stmt::KIND_DECL && s->decl_stmt->kind == Decl::KIND_CONST;
+		_glsl_rewrite_complits_in_stmt(self, s, is_const);
 
 		switch (s->kind)
 		{

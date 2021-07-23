@@ -107,7 +107,8 @@ namespace sabre
 			KIND_NONE,
 			KIND_BOOL,
 			KIND_INT,
-			KIND_DOUBLE
+			KIND_DOUBLE,
+			KIND_ARRAY,
 		};
 
 		KIND kind;
@@ -116,6 +117,7 @@ namespace sabre
 			bool as_bool;
 			int64_t as_int;
 			double as_double;
+			mn::Buf<Expr_Value> as_array;
 		};
 	};
 
@@ -146,6 +148,16 @@ namespace sabre
 		Expr_Value self{};
 		self.kind = Expr_Value::KIND_DOUBLE;
 		self.as_double = v;
+		return self;
+	}
+
+	// creates a new array expression value
+	inline static Expr_Value
+	expr_value_array(mn::Buf<Expr_Value> values)
+	{
+		Expr_Value self{};
+		self.kind = Expr_Value::KIND_ARRAY;
+		self.as_array = values;
 		return self;
 	}
 
