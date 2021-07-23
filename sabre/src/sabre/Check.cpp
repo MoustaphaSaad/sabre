@@ -1058,11 +1058,42 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_indexed_expr(Typer& self, Expr* e)
 	{
-		Err err{};
-		err.loc = e->loc;
-		err.msg = mn::strf("arrays are not supported yet");
-		unit_err(self.unit, err);
-		return type_void;
+		auto base_type = _typer_resolve_expr(self, e->indexed.base);
+		if (type_is_array(base_type) == false)
+		{
+			Err err{};
+			err.loc = e->loc;
+			err.msg = mn::strf("type '{}' is not array", base_type);
+			unit_err(self.unit, err);
+			return base_type;
+		}
+
+		auto index_type = _typer_resolve_expr(self, e->indexed.index);
+		if (type_is_equal(index_type, type_int) == false &&
+			type_is_equal(index_type, type_uint) == false)
+		{
+			Err err{};
+			err.loc = e->indexed.index->loc;
+			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", index_type);
+			unit_err(self.unit, err);
+			return base_type->array.base;
+		}
+
+		if (e->indexed.index->mode == ADDRESS_MODE_CONST &&
+			e->indexed.index->const_value.kind == Expr_Value::KIND_INT &&
+			e->indexed.index->const_value.as_int >= base_type->array.count)
+		{
+			Err err{};
+			err.loc = e->indexed.index->loc;
+			err.msg = mn::strf(
+				"array index out of range, array count is '{}' but index is '{}'",
+				base_type->array.count,
+				e->indexed.index->const_value.as_int
+			);
+			unit_err(self.unit, err);
+		}
+
+		return base_type->array.base;
 	}
 
 	inline static Type*

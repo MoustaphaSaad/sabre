@@ -1,4 +1,7 @@
 #include "sabre/GLSL.h"
+#include "mn/Fmt.h"
+#include "mn/Rune.h"
+#include "mn/Str.h"
 #include "sabre/Unit.h"
 #include "sabre/Type_Interner.h"
 #include "sabre/AST.h"
@@ -524,6 +527,13 @@ namespace sabre
 				assert(false && "unreachable");
 			}
 			break;
+		case Type::KIND_ARRAY:
+		{
+			auto str_name = mn::str_lit(name);
+			auto array_name = mn::str_tmpf("{}[{}]", str_name, type->array.count);
+			str = _glsl_write_field(self, str, type->array.base, array_name.ptr);
+			break;
+		}
 		default:
 			assert(false && "unreachable");
 			break;
@@ -531,7 +541,12 @@ namespace sabre
 
 		auto str_name = mn::str_lit(name);
 		if (can_write_name && str_name.count > 0)
-			str = mn::strf(str, " {}", _glsl_name(self, name));
+		{
+			if (str_name[0] == '[')
+				str = mn::strf(str, "{}", str_name);
+			else
+				str = mn::strf(str, " {}", _glsl_name(self, name));
+		}
 		return str;
 	}
 
@@ -1137,60 +1152,78 @@ namespace sabre
 				_glsl_rewrite_complits_in_expr(self, e->complit.fields[i].value);
 		}
 
-		auto tmp_name = _glsl_tmp_name(self);
-		mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
-		mn::print_to(self.out, "{};", _glsl_write_field(self, e->type, tmp_name));
-		size_t field_index = 0;
-		for (const auto& field: e->complit.fields)
+		// handle arrays differently
+		if (type_is_array(e->type))
 		{
-			_glsl_newline(self);
-			mn::print_to(self.out, tmp_name);
-			if (field.selector.count > 0)
+			auto tmp_name = _glsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
+			size_t field_index = 0;
+			for (size_t i = 0; i < e->complit.fields.count; ++i)
 			{
-				for (auto selector: field.selector)
-				{
-					mn::print_to(self.out, ".");
-					glsl_expr_gen(self, selector);
-				}
+				const auto& field = e->complit.fields[i];
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				glsl_expr_gen(self, field.value);
 			}
-			else
+			mn::print_to(self.out, ");");
+		}
+		else
+		{
+			auto tmp_name = _glsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{};", _glsl_write_field(self, e->type, tmp_name));
+			size_t field_index = 0;
+			for (const auto& field: e->complit.fields)
 			{
-				assert(e->type->kind == Type::KIND_STRUCT || e->type->kind == Type::KIND_VEC);
-				if (e->type->kind == Type::KIND_VEC)
+				_glsl_newline(self);
+				mn::print_to(self.out, tmp_name);
+				if (field.selector.count > 0)
 				{
-					assert(field_index < 4);
-
-					auto value_width = 1;
-					if (field.value->type->kind == Type::KIND_VEC)
-						value_width = field.value->type->vec.width;
-
-					mn::print_to(self.out, ".");
-					for (size_t i = 0; i < value_width; ++i)
+					for (auto selector: field.selector)
 					{
-						if (field_index + i == 0)
-							mn::print_to(self.out, "x");
-						else if (field_index + i == 1)
-							mn::print_to(self.out, "y");
-						else if (field_index + i == 2)
-							mn::print_to(self.out, "z");
-						else if (field_index + i == 3)
-							mn::print_to(self.out, "w");
+						mn::print_to(self.out, ".");
+						glsl_expr_gen(self, selector);
 					}
-					field_index += value_width - 1;
-				}
-				else if (e->type->kind == Type::KIND_STRUCT)
-				{
-					mn::print_to(self.out, ".{}", e->type->struct_type.fields[0].name.str);
 				}
 				else
 				{
-					assert(false && "unreachable");
+					if (e->type->kind == Type::KIND_VEC)
+					{
+						assert(field_index < 4);
+
+						auto value_width = 1;
+						if (field.value->type->kind == Type::KIND_VEC)
+							value_width = field.value->type->vec.width;
+
+						mn::print_to(self.out, ".");
+						for (size_t i = 0; i < value_width; ++i)
+						{
+							if (field_index + i == 0)
+								mn::print_to(self.out, "x");
+							else if (field_index + i == 1)
+								mn::print_to(self.out, "y");
+							else if (field_index + i == 2)
+								mn::print_to(self.out, "z");
+							else if (field_index + i == 3)
+								mn::print_to(self.out, "w");
+						}
+						field_index += value_width - 1;
+					}
+					else if (e->type->kind == Type::KIND_STRUCT)
+					{
+						mn::print_to(self.out, ".{}", e->type->struct_type.fields[field_index++].name.str);
+					}
+					else
+					{
+						assert(false && "unreachable");
+					}
 				}
+				mn::print_to(self.out, " = ");
+				glsl_expr_gen(self, field.value);
+				mn::print_to(self.out, ";");
+				++field_index;
 			}
-			mn::print_to(self.out, " = ");
-			glsl_expr_gen(self, field.value);
-			mn::print_to(self.out, ";");
-			++field_index;
 		}
 		_glsl_newline(self);
 	}

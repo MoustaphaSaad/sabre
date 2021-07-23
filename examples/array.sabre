@@ -1,5 +1,8 @@
 func main() {
-	var numbers = :[]int{1, 2, 3, 4, 5};
-	var xo: []int = numbers;
-	var xo2: [2]int = xo;
+	// TODO(Moustapha): handle const arrays
+	// TODO(Moustapha): handle larger arrays than complit
+	// TODO(Moustapha): handle backwards type inference
+	var numbers = :[2][5]int{:[]int{1, 2, 3, 4, 5}};
+	var xo: []int = numbers[0];
+	var xo2: [5]int = xo;
 }
