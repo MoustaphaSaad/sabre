@@ -149,6 +149,101 @@ namespace sabre
 		);
 	}
 
+	inline static void
+	_parser_enter_complit_state(Parser& self, Type_Sign expected_type)
+	{
+		Parse_State new_state{};
+		new_state.within_complit = true;
+		new_state.expected_type = expected_type;
+		mn::buf_push(self.state_stack, new_state);
+	}
+
+	inline static void
+	_parser_leave_current_state(Parser& self)
+	{
+		assert(self.state_stack.count > 1);
+		mn::buf_pop(self.state_stack);
+	}
+
+	inline static Parse_State
+	_parser_current_state(Parser& self)
+	{
+		return mn::buf_top(self.state_stack);
+	}
+
+	inline static bool
+	_parser_has_expected_type(const Type_Sign& t)
+	{
+		if (t.atoms.count == 0)
+			return false;
+
+		const auto& first_atom = t.atoms[0];
+		return first_atom.kind == Type_Sign_Atom::KIND_ARRAY;
+	}
+
+	inline static Type_Sign
+	_parser_peel_top_type_sign_atom(const Type_Sign& t)
+	{
+		assert(t.atoms.count > 0);
+
+		Type_Sign res{};
+		res.atoms = mn::buf_with_allocator<Type_Sign_Atom>(t.atoms.allocator);
+		mn::buf_resize(res.atoms, t.atoms.count - 1);
+		for (size_t i = 1; i < t.atoms.count; ++i)
+			res.atoms[i - 1] = t.atoms[i];
+		return res;
+	}
+
+	inline static Expr*
+	_parser_parse_complit_body(Parser& self, Type_Sign type)
+	{
+		bool has_expected_type = _parser_has_expected_type(type);
+		if (has_expected_type)
+			_parser_enter_complit_state(self, _parser_peel_top_type_sign_atom(type));
+		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
+
+		auto fields = mn::buf_with_allocator<Complit_Field>(self.unit->ast_arena);
+		bool named = false;
+		while (_parser_should_stop_at_curly_with_optional_comma(self) == false)
+		{
+			if (fields.count > 0)
+				_parser_eat_must(self, Tkn::KIND_COMMA);
+
+			auto selector = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+			while (_parser_eat_kind(self, Tkn::KIND_DOT))
+			{
+				named = true;
+				auto id = _parser_eat_must(self, Tkn::KIND_ID);
+				auto atom_expr = expr_atom_new(self.unit->ast_arena, id);
+				atom_expr->loc = id.loc;
+				mn::buf_push(selector, atom_expr);
+			}
+
+			if (selector.count > 0)
+			{
+				_parser_eat_must(self, Tkn::KIND_EQUAL);
+
+				if (named == false && fields.count > 0)
+				{
+					Err err{};
+					err.loc = selector[0]->loc;
+					err.msg = mn::strf("mixing named compound literal fields with unnamed fields is forbidden");
+					unit_err(self.unit, err);
+				}
+			}
+
+			auto right = parser_parse_expr(self);
+			mn::buf_push(fields, complit_field_member(selector, right));
+		}
+		// last comma is optional
+		_parser_eat_kind(self, Tkn::KIND_COMMA);
+		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
+		if (has_expected_type)
+			_parser_leave_current_state(self);
+
+		return expr_complit_new(self.unit->ast_arena, type, fields);
+	}
+
 	inline static Expr*
 	_parser_parse_expr_atom(Parser& self)
 	{
@@ -187,46 +282,15 @@ namespace sabre
 		{
 			_parser_eat(self); // for the :
 			auto type = _parser_parse_type(self);
-			_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
-
-			auto fields = mn::buf_with_allocator<Complit_Field>(self.unit->ast_arena);
-			bool named = false;
-			while (_parser_should_stop_at_curly_with_optional_comma(self) == false)
+			expr = _parser_parse_complit_body(self, type);
+		}
+		else if (tkn.kind == Tkn::KIND_OPEN_CURLY)
+		{
+			auto state = _parser_current_state(self);
+			if (state.within_complit)
 			{
-				if (fields.count > 0)
-					_parser_eat_must(self, Tkn::KIND_COMMA);
-
-				auto selector = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
-				while (_parser_eat_kind(self, Tkn::KIND_DOT))
-				{
-					named = true;
-					auto id = _parser_eat_must(self, Tkn::KIND_ID);
-					auto atom_expr = expr_atom_new(self.unit->ast_arena, id);
-					atom_expr->loc = id.loc;
-					mn::buf_push(selector, atom_expr);
-				}
-
-				if (selector.count > 0)
-				{
-					_parser_eat_must(self, Tkn::KIND_EQUAL);
-
-					if (named == false && fields.count > 0)
-					{
-						Err err{};
-						err.loc = selector[0]->loc;
-						err.msg = mn::strf("mixing named compound literal fields with unnamed fields is forbidden");
-						unit_err(self.unit, err);
-					}
-				}
-
-				auto right = parser_parse_expr(self);
-				mn::buf_push(fields, complit_field_member(selector, right));
+				expr = _parser_parse_complit_body(self, state.expected_type);
 			}
-			// last comma is optional
-			_parser_eat_kind(self, Tkn::KIND_COMMA);
-			_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
-
-			expr = expr_complit_new(self.unit->ast_arena, type, fields);
 		}
 
 		if (expr != nullptr)
@@ -1081,6 +1145,7 @@ namespace sabre
 	{
 		Parser self{};
 		self.unit = unit;
+		mn::buf_push(self.state_stack, Parse_State{});
 		self.tokens = mn::buf_memcpy_clone(unit->tkns);
 		mn::buf_remove_if(self.tokens, [](const auto& tkn) {
 			return tkn_can_ignore(tkn.kind);
@@ -1091,6 +1156,7 @@ namespace sabre
 	void
 	parser_free(Parser& self)
 	{
+		mn::buf_free(self.state_stack);
 		mn::buf_free(self.tokens);
 	}
 

@@ -1,8 +1,20 @@
 func main() {
-	// TODO(Moustapha): handle larger arrays than complit
 	// TODO(Moustapha): handle backwards type inference
-	const numbers = :[][7]int{:[7]int{1, 2, 3, 4, 5}};
+	const numbers = :[][7]int{
+		{1, 2, 3, 4, 5}
+	};
 	const xo: []int = numbers[0];
 	const my_number = numbers[0][3];
 	var xo2: [7]int = xo;
+
+	var kokos = :[]koko{
+		{
+			.x = :vec3{1, 2, 3},
+			.y = :vec3{4, 5, 6},
+		},
+	};
+}
+
+type koko struct {
+	x, y: vec3,
 }
