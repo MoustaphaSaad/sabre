@@ -1110,10 +1110,78 @@ namespace sabre
 		return base_type->array.base;
 	}
 
+	inline static void
+	_typer_push_expected_expression_type(Typer& self, Type* t)
+	{
+		mn::buf_push(self.expected_expr_type, t);
+	}
+
+	inline static void
+	_typer_pop_expected_expression_type(Typer& self)
+	{
+		mn:buf_pop(self.expected_expr_type);
+	}
+
+	inline static Type*
+	_typer_expected_expression_type(Typer& self)
+	{
+		if (self.expected_expr_type.count > 0)
+			return mn::buf_top(self.expected_expr_type);
+		else
+			return nullptr;
+	}
+
+	inline static Type*
+	_typer_peel_top_type(Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_VEC:
+			return t->vec.base;
+		case Type::KIND_ARRAY:
+			return t->array.base;
+		case Type::KIND_INCOMPLETE:
+		case Type::KIND_COMPLETING:
+		case Type::KIND_VOID:
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_FUNC:
+		case Type::KIND_STRUCT:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+		case Type::KIND_MAT:
+		default:
+			return nullptr;
+		}
+	}
+
 	inline static Type*
 	_typer_resolve_complit_expr(Typer& self, Expr* e)
 	{
-		auto type = _typer_resolve_type_sign(self, e->complit.type);
+		Type* type = type_void;
+		if (e->complit.type.atoms.count > 0)
+		{
+			type = _typer_resolve_type_sign(self, e->complit.type);
+		}
+		else
+		{
+			if (auto expected_type = _typer_expected_expression_type(self))
+			{
+				type = expected_type;
+			}
+			else
+			{
+				Err err{};
+				err.loc = e->loc;
+				err.msg = mn::strf("could not infer composite literal type");
+				unit_err(self.unit, err);
+			}
+		}
+
 		bool is_const = true;
 		size_t type_field_index = 0;
 		for (size_t i = 0; i < e->complit.fields.count; ++i)
@@ -1253,7 +1321,20 @@ namespace sabre
 				}
 			}
 
+			Type* expected_type = nullptr;
+			if (field.selector.count > 0 && failed == false)
+				expected_type = type_it;
+			else
+				expected_type = _typer_peel_top_type(type);
+
+			if (expected_type != nullptr)
+				_typer_push_expected_expression_type(self, expected_type);
+
 			auto value_type = _typer_resolve_expr(self, field.value);
+
+			if (expected_type != nullptr)
+				_typer_pop_expected_expression_type(self);
+
 			is_const &= field.value->mode == ADDRESS_MODE_CONST && field.value->const_value.kind != Expr_Value::KIND_NONE;
 			if (failed == false)
 			{
@@ -1271,6 +1352,15 @@ namespace sabre
 						err.msg = mn::strf("type mismatch in compound literal value, type '{}' cannot be constructed from '{}'", type, value_type);
 						unit_err(self.unit, err);
 						break;
+					}
+				}
+				else if (type_is_unbounded_array(type_it) && type_is_bounded_array(value_type))
+				{
+					// okay we can assign bounded arrays into unbounded ones because we are transferring
+					// the size down in the code
+					if (type_is_array(type) && type_is_unbounded_array(type->array.base))
+					{
+						type->array.base = value_type;
 					}
 				}
 				else if (_typer_can_assign(type_it, field.value) == false)
@@ -1612,8 +1702,12 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_return_stmt(Typer& self, Stmt* s)
 	{
-		auto ret = _typer_resolve_expr(self, s->return_stmt);
 		auto expected = _typer_expected_return_type(self);
+
+		_typer_push_expected_expression_type(self, expected);
+		auto ret = _typer_resolve_expr(self, s->return_stmt);
+		_typer_pop_expected_expression_type(self);
+
 		if (expected == nullptr)
 		{
 			Err err{};
@@ -2438,6 +2532,7 @@ namespace sabre
 	typer_free(Typer& self)
 	{
 		mn::buf_free(self.scope_stack);
+		mn::buf_free(self.expected_expr_type);
 	}
 
 	void

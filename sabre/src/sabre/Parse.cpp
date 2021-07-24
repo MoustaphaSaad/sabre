@@ -149,57 +149,9 @@ namespace sabre
 		);
 	}
 
-	inline static void
-	_parser_enter_complit_state(Parser& self, Type_Sign expected_type)
-	{
-		Parse_State new_state{};
-		new_state.within_complit = true;
-		new_state.expected_type = expected_type;
-		mn::buf_push(self.state_stack, new_state);
-	}
-
-	inline static void
-	_parser_leave_current_state(Parser& self)
-	{
-		assert(self.state_stack.count > 1);
-		mn::buf_pop(self.state_stack);
-	}
-
-	inline static Parse_State
-	_parser_current_state(Parser& self)
-	{
-		return mn::buf_top(self.state_stack);
-	}
-
-	inline static bool
-	_parser_has_expected_type(const Type_Sign& t)
-	{
-		if (t.atoms.count == 0)
-			return false;
-
-		const auto& first_atom = t.atoms[0];
-		return first_atom.kind == Type_Sign_Atom::KIND_ARRAY;
-	}
-
-	inline static Type_Sign
-	_parser_peel_top_type_sign_atom(const Type_Sign& t)
-	{
-		assert(t.atoms.count > 0);
-
-		Type_Sign res{};
-		res.atoms = mn::buf_with_allocator<Type_Sign_Atom>(t.atoms.allocator);
-		mn::buf_resize(res.atoms, t.atoms.count - 1);
-		for (size_t i = 1; i < t.atoms.count; ++i)
-			res.atoms[i - 1] = t.atoms[i];
-		return res;
-	}
-
 	inline static Expr*
 	_parser_parse_complit_body(Parser& self, Type_Sign type)
 	{
-		bool has_expected_type = _parser_has_expected_type(type);
-		if (has_expected_type)
-			_parser_enter_complit_state(self, _parser_peel_top_type_sign_atom(type));
 		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
 
 		auto fields = mn::buf_with_allocator<Complit_Field>(self.unit->ast_arena);
@@ -238,8 +190,6 @@ namespace sabre
 		// last comma is optional
 		_parser_eat_kind(self, Tkn::KIND_COMMA);
 		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
-		if (has_expected_type)
-			_parser_leave_current_state(self);
 
 		return expr_complit_new(self.unit->ast_arena, type, fields);
 	}
@@ -286,11 +236,7 @@ namespace sabre
 		}
 		else if (tkn.kind == Tkn::KIND_OPEN_CURLY)
 		{
-			auto state = _parser_current_state(self);
-			if (state.within_complit)
-			{
-				expr = _parser_parse_complit_body(self, state.expected_type);
-			}
+			expr = _parser_parse_complit_body(self, {});
 		}
 
 		if (expr != nullptr)
@@ -1145,7 +1091,6 @@ namespace sabre
 	{
 		Parser self{};
 		self.unit = unit;
-		mn::buf_push(self.state_stack, Parse_State{});
 		self.tokens = mn::buf_memcpy_clone(unit->tkns);
 		mn::buf_remove_if(self.tokens, [](const auto& tkn) {
 			return tkn_can_ignore(tkn.kind);
@@ -1156,7 +1101,6 @@ namespace sabre
 	void
 	parser_free(Parser& self)
 	{
-		mn::buf_free(self.state_stack);
 		mn::buf_free(self.tokens);
 	}
 

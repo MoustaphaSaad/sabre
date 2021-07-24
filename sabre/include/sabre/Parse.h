@@ -12,17 +12,10 @@ namespace sabre
 	struct Stmt;
 	struct Decl;
 
-	struct Parse_State
-	{
-		bool within_complit;
-		Type_Sign expected_type;
-	};
-
 	// contains the parser state
 	struct Parser
 	{
 		Unit_File* unit;
-		mn::Buf<Parse_State> state_stack;
 		mn::Buf<Tkn> tokens;
 		size_t it;
 		size_t prev_it;
