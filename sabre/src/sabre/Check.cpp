@@ -1313,8 +1313,13 @@ namespace sabre
 			}
 			else
 			{
-				// TODO(Moustapha): handle constant structs later
-				assert(false && "only constant arrays are handled now");
+				// TODO(Moustapha): handle arbitrary constant types later
+				// we need to have distinction between expression being const and having a constant value
+				// for example `const x = 1.0` is a constant and the expression value should be a constant
+				// while `var x = 1.0` is not a constant but it has a constant value, if we need to exploit
+				// such things we'll need to have data flow analysis to ensure that x is not being changed
+				// after the constant assignment and in this case we can treat it as const
+				// assert(false && "only constant arrays are handled now");
 			}
 		}
 

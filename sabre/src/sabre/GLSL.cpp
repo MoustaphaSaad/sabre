@@ -557,6 +557,65 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_zero_value(GLSL& self, Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_BOOL:
+			mn::print_to(self.out, "false");
+			break;
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+			mn::print_to(self.out, "0");
+			break;
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+			mn::print_to(self.out, "0.0");
+			break;
+		case Type::KIND_VEC:
+			mn::print_to(self.out, "{}(", _glsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->vec.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_glsl_zero_value(self, t->vec.base);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_MAT:
+			mn::print_to(self.out, "{}(", _glsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->mat.width * t->mat.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_glsl_zero_value(self, t->mat.base);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_ARRAY:
+			mn::print_to(self.out, "{}(", _glsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->array.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_glsl_zero_value(self, t->array.base);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_VOID:
+		case Type::KIND_FUNC:
+		case Type::KIND_STRUCT:
+			// revisit structure zero values later
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
 	_glsl_gen_atom_expr(GLSL& self, Expr* e)
 	{
 		if (e->atom.tkn.kind == Tkn::KIND_ID)
@@ -1162,12 +1221,14 @@ namespace sabre
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
 			size_t field_index = 0;
-			for (size_t i = 0; i < e->complit.fields.count; ++i)
+			for (size_t i = 0; i < e->type->array.count; ++i)
 			{
-				const auto& field = e->complit.fields[i];
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				glsl_expr_gen(self, field.value);
+				if (i < e->complit.fields.count)
+					glsl_expr_gen(self, e->complit.fields[i].value);
+				else
+					_glsl_zero_value(self, e->type->array.base);
 			}
 			mn::print_to(self.out, ");");
 		}
