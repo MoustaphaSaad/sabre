@@ -40,6 +40,18 @@ namespace sabre
 					mn::print_to(self.out, "{}.", atom.named.package_name.str);
 				mn::print_to(self.out, "{}", atom.named.type_name.str);
 				break;
+			case Type_Sign_Atom::KIND_ARRAY:
+				if (atom.array.static_size)
+				{
+					mn::print_to(self.out, "[");
+					ast_printer_print_expr(self, atom.array.static_size);
+					mn::print_to(self.out, "]");
+				}
+				else
+				{
+					mn::print_to(self.out, "[]");
+				}
+				break;
 			default:
 				assert(false && "unsupported type sign atom type");
 				break;

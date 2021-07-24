@@ -7,12 +7,15 @@
 
 namespace sabre
 {
+	struct Expr;
+
 	// represents a type signature atom
 	struct Type_Sign_Atom
 	{
 		enum KIND
 		{
 			KIND_NAMED,
+			KIND_ARRAY,
 		};
 
 		KIND kind;
@@ -24,6 +27,12 @@ namespace sabre
 				// optional, used in case we reference types from imported packages
 				Tkn package_name;
 			} named;
+
+			struct
+			{
+				// optional, if the user specifies the size of the array manually
+				Expr* static_size;
+			} array;
 		};
 	};
 
@@ -35,6 +44,16 @@ namespace sabre
 		self.kind = Type_Sign_Atom::KIND_NAMED;
 		self.named.type_name = type_name;
 		self.named.package_name = package_name;
+		return self;
+	}
+
+	// creates a new type sign array with the given size tkn
+	inline static Type_Sign_Atom
+	type_sign_atom_array(Expr* static_size)
+	{
+		Type_Sign_Atom self{};
+		self.kind = Type_Sign_Atom::KIND_ARRAY;
+		self.array.static_size = static_size;
 		return self;
 	}
 
@@ -88,7 +107,8 @@ namespace sabre
 			KIND_NONE,
 			KIND_BOOL,
 			KIND_INT,
-			KIND_DOUBLE
+			KIND_DOUBLE,
+			KIND_ARRAY,
 		};
 
 		KIND kind;
@@ -97,6 +117,7 @@ namespace sabre
 			bool as_bool;
 			int64_t as_int;
 			double as_double;
+			mn::Buf<Expr_Value> as_array;
 		};
 	};
 
@@ -127,6 +148,16 @@ namespace sabre
 		Expr_Value self{};
 		self.kind = Expr_Value::KIND_DOUBLE;
 		self.as_double = v;
+		return self;
+	}
+
+	// creates a new array expression value
+	inline static Expr_Value
+	expr_value_array(mn::Buf<Expr_Value> values)
+	{
+		Expr_Value self{};
+		self.kind = Expr_Value::KIND_ARRAY;
+		self.as_array = values;
 		return self;
 	}
 

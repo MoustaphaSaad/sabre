@@ -8,6 +8,7 @@ namespace sabre
 {
 	struct Unit_Package;
 	struct Scope;
+	struct Type;
 
 	// type checker state
 	struct Typer
@@ -15,6 +16,7 @@ namespace sabre
 		Unit_Package* unit;
 		Scope* global_scope;
 		mn::Buf<Scope*> scope_stack;
+		mn::Buf<Type*> expected_expr_type;
 	};
 
 	// creates a new type checker

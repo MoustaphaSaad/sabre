@@ -5,6 +5,7 @@
 #include <mn/Path.h>
 #include <mn/IO.h>
 #include <mn/Defer.h>
+#include <mn/Log.h>
 
 inline static mn::Str
 load_out_data(const mn::Str& filepath)
@@ -29,6 +30,7 @@ TEST_CASE("[sabre]: lex")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
@@ -62,6 +64,7 @@ TEST_CASE("[sabre]: parse-expr")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
@@ -95,6 +98,7 @@ TEST_CASE("[sabre]: parse-stmt")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
@@ -128,6 +132,7 @@ TEST_CASE("[sabre]: parse-decl")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
@@ -161,6 +166,7 @@ TEST_CASE("[sabre]: typecheck")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
@@ -197,6 +203,7 @@ TEST_CASE("[sabre]: glsl")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
@@ -232,6 +239,7 @@ TEST_CASE("[sabre]: glsl-entry")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);

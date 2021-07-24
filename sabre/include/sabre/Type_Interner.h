@@ -127,6 +127,35 @@ namespace sabre
 		}
 	};
 
+	// array signature, which consists of the underlying type alongside the count
+	struct Array_Sign
+	{
+		Type* base;
+		int64_t count;
+
+		bool
+		operator==(const Array_Sign& other) const
+		{
+			return base == other.base && count == other.count;
+		}
+
+		bool
+		operator!=(const Array_Sign& other) const
+		{
+			return !operator==(other);
+		}
+	};
+
+	// used to hash array signature
+	struct Array_Sign_Hasher
+	{
+		inline size_t
+		operator()(const Array_Sign& sign) const
+		{
+			return mn::hash_mix(mn::Hash<Type*>{}(sign.base), mn::Hash<int64_t>{}(sign.count));
+		}
+	};
+
 	struct Field_Type
 	{
 		Tkn name;
@@ -168,6 +197,7 @@ namespace sabre
 			KIND_TEXTURE,
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
+			KIND_ARRAY,
 		};
 
 		KIND kind;
@@ -210,6 +240,12 @@ namespace sabre
 			{
 				TEXTURE_TYPE type;
 			} texture;
+
+			struct
+			{
+				Type* base;
+				int64_t count;
+			} array;
 		};
 	};
 
@@ -457,6 +493,27 @@ namespace sabre
 		);
 	}
 
+	// returns whether a type is an array
+	inline static bool
+	type_is_array(Type* t)
+	{
+		return t->kind == Type::KIND_ARRAY;
+	}
+
+	// returns whether the type is an unbounded array
+	inline static bool
+	type_is_unbounded_array(Type* t)
+	{
+		return type_is_array(t) && t->array.count == -1;
+	}
+
+	// returns whether the type is an bounded array
+	inline static bool
+	type_is_bounded_array(Type* t)
+	{
+		return type_is_array(t) && t->array.count > -1;
+	}
+
 	// creates a new vector type, max width == 4
 	inline static Type*
 	type_vectorize(Type* base, int width)
@@ -533,6 +590,7 @@ namespace sabre
 		mn::memory::Arena* arena;
 		mn::Map<Func_Sign, Type*, Func_Sign_Hasher> func_table;
 		mn::Map<Unit_Package*, Type*> package_table;
+		mn::Map<Array_Sign, Type*, Array_Sign_Hasher> array_table;
 	};
 
 	// creates a new type interner
@@ -568,6 +626,10 @@ namespace sabre
 	// creates a new overload set type
 	SABRE_EXPORT Type*
 	type_interner_overload_set(Type_Interner& self, Symbol* symbol);
+
+	// creates a new array type
+	SABRE_EXPORT Type*
+	type_interner_array(Type_Interner& self, Array_Sign sign);
 
 	// represents a symbol in the code
 	struct Symbol
@@ -1030,6 +1092,13 @@ namespace fmt
 					assert(false && "unreachable");
 					return format_to(ctx.out(), "<UNKNOWN TYPE>");
 				}
+			}
+			else if (t->kind == sabre::Type::KIND_ARRAY)
+			{
+				if (t->array.count == -1)
+					return format_to(ctx.out(), "[]{}", t->array.base);
+				else
+					return format_to(ctx.out(), "[{}]{}", t->array.count, t->array.base);
 			}
 			else
 			{

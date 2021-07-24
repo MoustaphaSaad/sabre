@@ -444,6 +444,47 @@ namespace sabre
 					}
 				}
 				break;
+			case Type_Sign_Atom::KIND_ARRAY:
+			{
+				if (atom.array.static_size)
+				{
+					auto array_count_type = _typer_resolve_expr(self, atom.array.static_size);
+					if (type_is_equal(array_count_type, type_int) == false &&
+						type_is_equal(array_count_type, type_uint))
+					{
+						Err err{};
+						err.loc = atom.array.static_size->loc;
+						err.msg = mn::strf("array count should be integer but found '{}'", array_count_type);
+						unit_err(self.unit, err);
+					}
+
+					if (atom.array.static_size->const_value.kind == Expr_Value::KIND_INT)
+					{
+						auto array_count = atom.array.static_size->const_value.as_int;
+						if (array_count < 0)
+						{
+							Err err{};
+							err.loc = atom.array.static_size->loc;
+							err.msg = mn::strf("array count should be >= but found '{}'", array_count);
+							unit_err(self.unit, err);
+						}
+						Array_Sign sign{};
+						sign.base = res;
+						sign.count = array_count;
+						res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+					}
+				}
+				else
+				{
+					// we have a dynamically sized array
+					// TODO(Moustapha): maybe add support for array slices later
+					Array_Sign sign{};
+					sign.base = res;
+					sign.count = -1;
+					res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+				}
+				break;
+			}
 			default:
 				assert(false && "unreachable");
 				break;
@@ -1017,17 +1058,131 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_indexed_expr(Typer& self, Expr* e)
 	{
-		Err err{};
-		err.loc = e->loc;
-		err.msg = mn::strf("arrays are not supported yet");
-		unit_err(self.unit, err);
-		return type_void;
+		auto base_type = _typer_resolve_expr(self, e->indexed.base);
+		if (type_is_array(base_type) == false)
+		{
+			Err err{};
+			err.loc = e->loc;
+			err.msg = mn::strf("type '{}' is not array", base_type);
+			unit_err(self.unit, err);
+			return base_type;
+		}
+
+		auto index_type = _typer_resolve_expr(self, e->indexed.index);
+		if (type_is_equal(index_type, type_int) == false &&
+			type_is_equal(index_type, type_uint) == false)
+		{
+			Err err{};
+			err.loc = e->indexed.index->loc;
+			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", index_type);
+			unit_err(self.unit, err);
+			return base_type->array.base;
+		}
+
+		if (e->indexed.index->mode == ADDRESS_MODE_CONST &&
+			e->indexed.index->const_value.kind == Expr_Value::KIND_INT &&
+			e->indexed.index->const_value.as_int >= base_type->array.count)
+		{
+			Err err{};
+			err.loc = e->indexed.index->loc;
+			err.msg = mn::strf(
+				"array index out of range, array count is '{}' but index is '{}'",
+				base_type->array.count,
+				e->indexed.index->const_value.as_int
+			);
+			unit_err(self.unit, err);
+		}
+
+		if (e->indexed.base->mode == ADDRESS_MODE_CONST &&
+			e->indexed.index->mode == ADDRESS_MODE_CONST)
+		{
+			if (e->indexed.base->const_value.kind == Expr_Value::KIND_ARRAY &&
+				e->indexed.index->const_value.kind == Expr_Value::KIND_INT)
+			{
+				if (e->indexed.index->const_value.as_int < e->indexed.base->type->array.count)
+				{
+					e->mode = ADDRESS_MODE_CONST;
+					e->const_value = e->indexed.base->const_value.as_array[e->indexed.index->const_value.as_int];
+				}
+			}
+		}
+
+		return base_type->array.base;
+	}
+
+	inline static void
+	_typer_push_expected_expression_type(Typer& self, Type* t)
+	{
+		mn::buf_push(self.expected_expr_type, t);
+	}
+
+	inline static void
+	_typer_pop_expected_expression_type(Typer& self)
+	{
+		mn:buf_pop(self.expected_expr_type);
+	}
+
+	inline static Type*
+	_typer_expected_expression_type(Typer& self)
+	{
+		if (self.expected_expr_type.count > 0)
+			return mn::buf_top(self.expected_expr_type);
+		else
+			return nullptr;
+	}
+
+	inline static Type*
+	_typer_peel_top_type(Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_VEC:
+			return t->vec.base;
+		case Type::KIND_ARRAY:
+			return t->array.base;
+		case Type::KIND_INCOMPLETE:
+		case Type::KIND_COMPLETING:
+		case Type::KIND_VOID:
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_FUNC:
+		case Type::KIND_STRUCT:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+		case Type::KIND_MAT:
+		default:
+			return nullptr;
+		}
 	}
 
 	inline static Type*
 	_typer_resolve_complit_expr(Typer& self, Expr* e)
 	{
-		auto type = _typer_resolve_type_sign(self, e->complit.type);
+		Type* type = type_void;
+		if (e->complit.type.atoms.count > 0)
+		{
+			type = _typer_resolve_type_sign(self, e->complit.type);
+		}
+		else
+		{
+			if (auto expected_type = _typer_expected_expression_type(self))
+			{
+				type = expected_type;
+			}
+			else
+			{
+				Err err{};
+				err.loc = e->loc;
+				err.msg = mn::strf("could not infer composite literal type");
+				unit_err(self.unit, err);
+			}
+		}
+
+		bool is_const = true;
 		size_t type_field_index = 0;
 		for (size_t i = 0; i < e->complit.fields.count; ++i)
 		{
@@ -1139,6 +1294,23 @@ namespace sabre
 						failed = true;
 					}
 				}
+				else if (type_it->kind == Type::KIND_ARRAY)
+				{
+					// array count can be -1, to indicate an array which we don't know the size of yet
+					if (type_field_index < type_it->array.count)
+					{
+						type_it = type_it->array.base;
+						++type_field_index;
+					}
+					else
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("array '{}' contains only {} elements", type_it, type_it->array.count);
+						unit_err(self.unit, err);
+						failed = true;
+					}
+				}
 				else
 				{
 					Err err{};
@@ -1149,7 +1321,21 @@ namespace sabre
 				}
 			}
 
+			Type* expected_type = nullptr;
+			if (field.selector.count > 0 && failed == false)
+				expected_type = type_it;
+			else
+				expected_type = _typer_peel_top_type(type);
+
+			if (expected_type != nullptr)
+				_typer_push_expected_expression_type(self, expected_type);
+
 			auto value_type = _typer_resolve_expr(self, field.value);
+
+			if (expected_type != nullptr)
+				_typer_pop_expected_expression_type(self);
+
+			is_const &= field.value->mode == ADDRESS_MODE_CONST && field.value->const_value.kind != Expr_Value::KIND_NONE;
 			if (failed == false)
 			{
 				// special case vector upcast
@@ -1168,6 +1354,15 @@ namespace sabre
 						break;
 					}
 				}
+				else if (type_is_unbounded_array(type_it) && type_is_bounded_array(value_type))
+				{
+					// okay we can assign bounded arrays into unbounded ones because we are transferring
+					// the size down in the code
+					if (type_is_array(type) && type_is_unbounded_array(type->array.base))
+					{
+						type->array.base = value_type;
+					}
+				}
 				else if (_typer_can_assign(type_it, field.value) == false)
 				{
 					Err err{};
@@ -1178,6 +1373,46 @@ namespace sabre
 				}
 			}
 		}
+
+		// if this is an array with unknown size we set the size according to the number of elements in complit
+		if (type_is_unbounded_array(type))
+		{
+			Array_Sign sign{};
+			sign.base = type->array.base;
+			sign.count = type_field_index;
+			type = type_interner_array(self.unit->parent_unit->type_interner, sign);
+		}
+
+		// if all the field values are constant we'll consider the entire complit to be constant
+		if (is_const)
+		{
+			// we currently handle arrays only
+			if (type_is_array(type))
+			{
+				auto array_values = mn::buf_with_allocator<Expr_Value>(e->loc.file->ast_arena);
+				mn::buf_reserve(array_values, type->array.count);
+				for (size_t i = 0; i < e->complit.fields.count; ++i)
+				{
+					auto field = e->complit.fields[i];
+					// TODO(Moustapha): add type zero values to fix when arrays are larger than complit
+					mn::buf_push(array_values, field.value->const_value);
+				}
+
+				e->mode = ADDRESS_MODE_CONST;
+				e->const_value = expr_value_array(array_values);
+			}
+			else
+			{
+				// TODO(Moustapha): handle arbitrary constant types later
+				// we need to have distinction between expression being const and having a constant value
+				// for example `const x = 1.0` is a constant and the expression value should be a constant
+				// while `var x = 1.0` is not a constant but it has a constant value, if we need to exploit
+				// such things we'll need to have data flow analysis to ensure that x is not being changed
+				// after the constant assignment and in this case we can treat it as const
+				// assert(false && "only constant arrays are handled now");
+			}
+		}
+
 		return type;
 	}
 
@@ -1249,6 +1484,15 @@ namespace sabre
 			if (e != nullptr)
 			{
 				auto expr_type = _typer_resolve_expr(self, e);
+
+				// check if left handside is an unknown array and complete it from the rhs
+				if (type_is_unbounded_array(res) &&
+					type_is_bounded_array(expr_type) &&
+					type_is_equal(res->array.base, expr_type->array.base))
+				{
+					res = expr_type;
+				}
+
 				if (type_is_equal(expr_type, res) == false)
 				{
 					Err err{};
@@ -1317,8 +1561,12 @@ namespace sabre
 		auto infer = sym->var_sym.sign.atoms.count == 0;
 
 		auto res = type_void;
+		Type* expected_type = nullptr;
 		if (infer == false)
+		{
 			res = _typer_resolve_type_sign(self, sym->var_sym.sign);
+			expected_type = res;
+		}
 
 		auto e = sym->var_sym.value;
 		if (infer)
@@ -1339,7 +1587,22 @@ namespace sabre
 		{
 			if (e != nullptr)
 			{
+				if (expected_type)
+					_typer_push_expected_expression_type(self, expected_type);
+
 				auto expr_type = _typer_resolve_expr(self, e);
+
+				if (expected_type)
+					_typer_pop_expected_expression_type(self);
+
+				// check if left handside is an unknown array and complete it from the rhs
+				if (type_is_unbounded_array(res) &&
+					type_is_bounded_array(expr_type) &&
+					type_is_equal(res->array.base, expr_type->array.base))
+				{
+					res = expr_type;
+				}
+
 				if (_typer_can_assign(res, e) == false)
 				{
 					Err err{};
@@ -1449,8 +1712,12 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_return_stmt(Typer& self, Stmt* s)
 	{
-		auto ret = _typer_resolve_expr(self, s->return_stmt);
 		auto expected = _typer_expected_return_type(self);
+
+		_typer_push_expected_expression_type(self, expected);
+		auto ret = _typer_resolve_expr(self, s->return_stmt);
+		_typer_pop_expected_expression_type(self);
+
 		if (expected == nullptr)
 		{
 			Err err{};
@@ -2275,6 +2542,7 @@ namespace sabre
 	typer_free(Typer& self)
 	{
 		mn::buf_free(self.scope_stack);
+		mn::buf_free(self.expected_expr_type);
 	}
 
 	void
