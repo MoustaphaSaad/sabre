@@ -1561,8 +1561,12 @@ namespace sabre
 		auto infer = sym->var_sym.sign.atoms.count == 0;
 
 		auto res = type_void;
+		Type* expected_type = nullptr;
 		if (infer == false)
+		{
 			res = _typer_resolve_type_sign(self, sym->var_sym.sign);
+			expected_type = res;
+		}
 
 		auto e = sym->var_sym.value;
 		if (infer)
@@ -1583,7 +1587,13 @@ namespace sabre
 		{
 			if (e != nullptr)
 			{
+				if (expected_type)
+					_typer_push_expected_expression_type(self, expected_type);
+
 				auto expr_type = _typer_resolve_expr(self, e);
+
+				if (expected_type)
+					_typer_pop_expected_expression_type(self);
 
 				// check if left handside is an unknown array and complete it from the rhs
 				if (type_is_unbounded_array(res) &&
