@@ -1,0 +1,32 @@
+func main() {
+	const numbers = :[][]int{
+		{1, 2, 3, 4, 5}
+	};
+	const xo: []int = numbers[0];
+	const my_number = numbers[0][1];
+	var xo2: [5]int = xo;
+
+	var point: vec3 = {1, 2, 3};
+
+	var kokos: []koko = {
+		{
+			.x = {.z = 3},
+			.y = {4, 5, 6},
+		},
+	};
+
+	var k: koko = {
+		.y = {7, 8, 9}
+	};
+}
+
+func get_koko(): koko {
+	return {
+		.x = {1},
+		.y = {0, 1, 2},
+	};
+}
+
+type koko struct {
+	x, y: vec3,
+}

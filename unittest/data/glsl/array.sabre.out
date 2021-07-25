@@ -1,0 +1,47 @@
+struct main_koko {
+	vec3 x;
+	vec3 y;
+};
+void main_main() {
+	const int _tmp_1[5] = int[5](1, 2, 3, 4, 5);
+	const int _tmp_2[1][5] = int[1][5](_tmp_1);
+	const int main_main_numbers[1][5] = _tmp_2;
+	const int main_main_xo[5] = main_main_numbers[0];
+	const int main_main_my_number = main_main_numbers[0][1];
+	int xo2[5] = main_main_xo;
+	vec3 _tmp_3;
+	_tmp_3.x = 1;
+	_tmp_3.y = 2;
+	_tmp_3.z = 3;
+	vec3 point = _tmp_3;
+	vec3 _tmp_4;
+	_tmp_4.z = 3;
+	vec3 _tmp_5;
+	_tmp_5.x = 4;
+	_tmp_5.y = 5;
+	_tmp_5.z = 6;
+	main_koko _tmp_6;
+	_tmp_6.x = _tmp_4;
+	_tmp_6.y = _tmp_5;
+	main_koko _tmp_7[1] = main_koko[1](_tmp_6);
+	main_koko kokos[1] = _tmp_7;
+	vec3 _tmp_8;
+	_tmp_8.x = 7;
+	_tmp_8.y = 8;
+	_tmp_8.z = 9;
+	main_koko _tmp_9;
+	_tmp_9.y = _tmp_8;
+	main_koko k = _tmp_9;
+}
+main_koko main_get_koko() {
+	vec3 _tmp_10;
+	_tmp_10.x = 1;
+	vec3 _tmp_11;
+	_tmp_11.x = 0;
+	_tmp_11.y = 1;
+	_tmp_11.z = 2;
+	main_koko _tmp_12;
+	_tmp_12.x = _tmp_10;
+	_tmp_12.y = _tmp_11;
+	return _tmp_12;
+}
