@@ -662,6 +662,34 @@ namespace sabre
 			_ast_printer_newline(self);
 			mn::print_to(self.out, ")");
 			break;
+		case Decl::KIND_ENUM:
+			mn::print_to(self.out, "(enum-decl");
+			_ast_printer_enter_scope(self);
+			{
+				for (const auto& field: decl->enum_decl.fields)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(field");
+					_ast_printer_enter_scope(self);
+					{
+						_ast_printer_newline(self);
+						mn::print_to(self.out, "(name '{}')", field.name.str);
+
+						if (field.value)
+						{
+							_ast_printer_newline(self);
+							ast_printer_print_expr(self, field.value);
+						}
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+			}
+			_ast_printer_leave_scope(self);
+			_ast_printer_newline(self);
+			mn::print_to(self.out, ")");
+			break;
 		default:
 			assert(false && "declaration type is not handled");
 			break;

@@ -870,6 +870,12 @@ namespace sabre
 		return self;
 	}
 
+	struct Enum_Field
+	{
+		Tkn name;
+		Expr* value;
+	};
+
 	// Decl
 	struct Decl
 	{
@@ -881,6 +887,7 @@ namespace sabre
 			KIND_STRUCT,
 			KIND_IMPORT,
 			KIND_IF,
+			KIND_ENUM,
 		};
 
 		KIND kind;
@@ -927,6 +934,11 @@ namespace sabre
 				mn::Buf<mn::Buf<Decl*>> body;
 				mn::Buf<Decl*> else_body;
 			} if_decl;
+
+			struct
+			{
+				mn::Buf<Enum_Field> fields;
+			} enum_decl;
 		};
 	};
 
@@ -999,6 +1011,17 @@ namespace sabre
 		self->if_decl.cond = cond;
 		self->if_decl.body = body;
 		self->if_decl.else_body = else_body;
+		return self;
+	}
+
+	// creates a new enum declaration
+	inline static Decl*
+	decl_enum_new(mn::Allocator arena, Tkn name, mn::Buf<Enum_Field> fields)
+	{
+		auto self = mn::alloc_zerod_from<Decl>(arena);
+		self->kind = Decl::KIND_ENUM;
+		self->name = name;
+		self->enum_decl.fields = fields;
 		return self;
 	}
 }

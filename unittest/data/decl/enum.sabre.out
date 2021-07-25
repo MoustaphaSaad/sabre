@@ -1,0 +1,19 @@
+(enum-decl
+  (field
+    (name 'up')
+  )
+  (field
+    (name 'down')
+    (atom '123')
+  )
+  (field
+    (name 'left')
+  )
+  (field
+    (name 'right')
+    (binary '*'
+      (atom '44')
+      (atom '2')
+    )
+  )
+)

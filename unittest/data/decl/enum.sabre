@@ -1,0 +1,6 @@
+type direction enum {
+	up,
+	down = 123,
+	left,
+	right = 44 * 2,
+}

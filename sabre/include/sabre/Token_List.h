@@ -57,5 +57,5 @@
 	TOKEN(KEYWORD_FOR, "for"), \
 	TOKEN(KEYWORD_FALSE, "false"), \
 	TOKEN(KEYWORD_TRUE, "true"), \
-	TOKEN(KEYWORD_PROGRAM, "program"), \
+	TOKEN(KEYWORD_ENUM, "enum"), \
 	TOKEN(KEYWORDS__END, ""),

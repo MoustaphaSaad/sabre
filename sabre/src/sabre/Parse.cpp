@@ -931,10 +931,8 @@ namespace sabre
 	}
 
 	inline static Decl*
-	_parser_parse_decl_type(Parser& self)
+	_parser_parse_decl_struct_type(Parser& self, Tkn name)
 	{
-		_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
-		auto name = _parser_eat_must(self, Tkn::KIND_ID);
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_STRUCT);
 
 		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
@@ -952,6 +950,59 @@ namespace sabre
 		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
 
 		return decl_struct_new(self.unit->ast_arena, name, fields);
+	}
+
+	inline static Enum_Field
+	_parser_parse_enum_field(Parser& self)
+	{
+		Enum_Field field{};
+		field.name = _parser_eat_must(self, Tkn::KIND_ID);
+		if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
+		{
+			field.value = parser_parse_expr(self);
+		}
+		return field;
+	}
+
+	inline static Decl*
+	_parser_parse_decl_enum_type(Parser& self, Tkn name)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_ENUM);
+
+		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
+		auto fields = mn::buf_with_allocator<Enum_Field>(self.unit->ast_arena);
+
+		while (_parser_should_stop_at_curly_with_optional_comma(self) == false)
+		{
+			if (fields.count > 0)
+				_parser_eat_must(self, Tkn::KIND_COMMA);
+
+			mn::buf_push(fields, _parser_parse_enum_field(self));
+		}
+		// last comma is optional
+		_parser_eat_kind(self, Tkn::KIND_COMMA);
+		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
+
+		return decl_enum_new(self.unit->ast_arena, name, fields);
+	}
+
+	inline static Decl*
+	_parser_parse_decl_type(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
+		auto name = _parser_eat_must(self, Tkn::KIND_ID);
+		if (_parser_look_kind(self, Tkn::KIND_KEYWORD_STRUCT))
+		{
+			return _parser_parse_decl_struct_type(self, name);
+		}
+		else if (_parser_look_kind(self, Tkn::KIND_KEYWORD_ENUM))
+		{
+			return _parser_parse_decl_enum_type(self, name);
+		}
+		else
+		{
+			return nullptr;
+		}
 	}
 
 	inline static Decl*

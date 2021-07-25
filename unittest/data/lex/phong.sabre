@@ -1,5 +1,3 @@
-program phong
-
 type VS_Input struct {
 	position: vec3;
 	normal: vec3;
