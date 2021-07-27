@@ -534,6 +534,10 @@ namespace sabre
 			str = _glsl_write_field(self, str, type->array.base, array_name.ptr);
 			break;
 		}
+		case Type::KIND_ENUM:
+			can_write_name = true;
+			str = mn::strf(str, "int");
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -666,11 +670,18 @@ namespace sabre
 	{
 		auto lhs = e->dot.lhs;
 		bool is_lhs_package = false;
-		if (lhs->kind == Expr::KIND_ATOM)
+		bool is_lhs_enum = type_is_enum(e->type);
+
+		if (lhs && lhs->kind == Expr::KIND_ATOM)
 			is_lhs_package = lhs->atom.sym->kind == Symbol::KIND_PACKAGE;
 
 		if (is_lhs_package)
 		{
+			glsl_expr_gen(self, e->dot.rhs);
+		}
+		else if (is_lhs_enum)
+		{
+			mn::print_to(self.out, "{}_", _glsl_symbol_name(e->type->enum_type.symbol));
 			glsl_expr_gen(self, e->dot.rhs);
 		}
 		else
@@ -1066,6 +1077,23 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_enum_gen(GLSL& self, Symbol* sym)
+	{
+		auto d = sym->enum_sym.decl;
+		auto t = sym->type;
+
+		size_t i = 0;
+		for (auto field: d->enum_decl.fields)
+		{
+			auto field_type = t->enum_type.fields[i];
+			assert(field_type.value.kind == Expr_Value::KIND_INT);
+			_glsl_newline(self);
+			mn::print_to(self.out, "#define {}_{} {}", _glsl_symbol_name(sym), field.name.str, field_type.value.as_int);
+			++i;
+		}
+	}
+
+	inline static void
 	_glsl_symbol_gen(GLSL& self, Symbol* sym)
 	{
 		switch (sym->kind)
@@ -1117,6 +1145,9 @@ namespace sabre
 			}
 			break;
 		}
+		case Symbol::KIND_ENUM:
+			_glsl_enum_gen(self, sym);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -1177,7 +1208,8 @@ namespace sabre
 	inline static void
 	_glsl_rewrite_complits_in_dot_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		_glsl_rewrite_complits_in_expr(self, e->dot.lhs, is_const);
+		if (e->dot.lhs)
+			_glsl_rewrite_complits_in_expr(self, e->dot.lhs, is_const);
 		_glsl_rewrite_complits_in_expr(self, e->dot.rhs, is_const);
 	}
 

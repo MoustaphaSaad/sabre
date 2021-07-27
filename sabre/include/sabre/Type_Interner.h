@@ -528,6 +528,13 @@ namespace sabre
 		return type_is_array(t) && t->array.count > -1;
 	}
 
+	// returns whether the type is an enum
+	inline static bool
+	type_is_enum(Type* t)
+	{
+		return t->kind == Type::KIND_ENUM;
+	}
+
 	// creates a new vector type, max width == 4
 	inline static Type*
 	type_vectorize(Type* base, int width)

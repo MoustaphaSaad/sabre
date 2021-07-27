@@ -1,0 +1,32 @@
+
+#define main_Dir_Up 0
+#define main_Dir_Down 13
+#define main_Dir_Left 123
+#define main_Dir_Right 124
+const int main_koko = main_Dir_Left;
+vec2 main_offset(int d) {
+	if (d == main_Dir_Up) {
+		vec2 _tmp_1;
+		_tmp_1.x = 0;
+		_tmp_1.y = -1;
+		return _tmp_1;
+	} else if (d == main_Dir_Down) {
+		vec2 _tmp_2;
+		_tmp_2.x = 0;
+		_tmp_2.y = 1;
+		return _tmp_2;
+	} else if (d == main_Dir_Left) {
+		vec2 _tmp_3;
+		_tmp_3.x = -1;
+		_tmp_3.y = 0;
+		return _tmp_3;
+	} else if (d == main_Dir_Right) {
+		vec2 _tmp_4;
+		_tmp_4.x = 1;
+		_tmp_4.y = 0;
+		return _tmp_4;
+	} else {
+		vec2 _tmp_5;
+		return _tmp_5;
+	}
+}

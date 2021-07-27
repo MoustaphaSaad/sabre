@@ -1,0 +1,6 @@
+>> 	if d == .Ups {
+>> 	         ^^^  
+Error[enum_with_error.sabre:12:11]: unknown enum field
+>> 	if d == .Ups {
+>> 	   ^^^^^^^^^  
+Error[enum_with_error.sabre:12:5]: type mismatch in binary expression, lhs is 'enum Dir' and rhs is 'void'

@@ -374,6 +374,55 @@ namespace sabre
 		}
 	}
 
+	inline static void
+	_typer_push_expected_expression_type(Typer& self, Type* t)
+	{
+		mn::buf_push(self.expected_expr_type, t);
+	}
+
+	inline static void
+	_typer_pop_expected_expression_type(Typer& self)
+	{
+		mn:buf_pop(self.expected_expr_type);
+	}
+
+	inline static Type*
+	_typer_expected_expression_type(Typer& self)
+	{
+		if (self.expected_expr_type.count > 0)
+			return mn::buf_top(self.expected_expr_type);
+		else
+			return nullptr;
+	}
+
+	inline static Type*
+	_typer_peel_top_type(Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_VEC:
+			return t->vec.base;
+		case Type::KIND_ARRAY:
+			return t->array.base;
+		case Type::KIND_INCOMPLETE:
+		case Type::KIND_COMPLETING:
+		case Type::KIND_VOID:
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_FUNC:
+		case Type::KIND_STRUCT:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+		case Type::KIND_MAT:
+		default:
+			return nullptr;
+		}
+	}
+
 	inline static Type*
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign)
 	{
@@ -567,7 +616,14 @@ namespace sabre
 	_typer_resolve_binary_expr(Typer& self, Expr* e)
 	{
 		auto lhs_type = _typer_resolve_expr(self, e->binary.left);
+
+		if (type_is_enum(lhs_type))
+			_typer_push_expected_expression_type(self, lhs_type);
+
 		auto rhs_type = _typer_resolve_expr(self, e->binary.right);
+
+		if (type_is_enum(lhs_type))
+			_typer_pop_expected_expression_type(self);
 
 		bool failed = false;
 
@@ -934,7 +990,12 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_dot_expr(Typer& self, Expr* e)
 	{
-		auto type = _typer_resolve_expr(self, e->dot.lhs);
+		Type* type = type_void;
+		if (e->dot.lhs)
+			type = _typer_resolve_expr(self, e->dot.lhs);
+		else
+			type = _typer_expected_expression_type(self);
+
 		if (type->kind == Type::KIND_VEC)
 		{
 			bool outside_range = false;
@@ -1138,55 +1199,6 @@ namespace sabre
 		}
 
 		return base_type->array.base;
-	}
-
-	inline static void
-	_typer_push_expected_expression_type(Typer& self, Type* t)
-	{
-		mn::buf_push(self.expected_expr_type, t);
-	}
-
-	inline static void
-	_typer_pop_expected_expression_type(Typer& self)
-	{
-		mn:buf_pop(self.expected_expr_type);
-	}
-
-	inline static Type*
-	_typer_expected_expression_type(Typer& self)
-	{
-		if (self.expected_expr_type.count > 0)
-			return mn::buf_top(self.expected_expr_type);
-		else
-			return nullptr;
-	}
-
-	inline static Type*
-	_typer_peel_top_type(Type* t)
-	{
-		switch (t->kind)
-		{
-		case Type::KIND_VEC:
-			return t->vec.base;
-		case Type::KIND_ARRAY:
-			return t->array.base;
-		case Type::KIND_INCOMPLETE:
-		case Type::KIND_COMPLETING:
-		case Type::KIND_VOID:
-		case Type::KIND_BOOL:
-		case Type::KIND_INT:
-		case Type::KIND_UINT:
-		case Type::KIND_FLOAT:
-		case Type::KIND_DOUBLE:
-		case Type::KIND_FUNC:
-		case Type::KIND_STRUCT:
-		case Type::KIND_TEXTURE:
-		case Type::KIND_PACKAGE:
-		case Type::KIND_FUNC_OVERLOAD_SET:
-		case Type::KIND_MAT:
-		default:
-			return nullptr;
-		}
 	}
 
 	inline static Type*
@@ -1491,8 +1503,12 @@ namespace sabre
 		auto infer = sym->const_sym.sign.atoms.count == 0;
 
 		auto res = type_void;
+		Type* expected_type = nullptr;
 		if (infer == false)
+		{
 			res = _typer_resolve_type_sign(self, sym->const_sym.sign);
+			expected_type = res;
+		}
 
 		auto e = sym->const_sym.value;
 		if (infer)
@@ -1513,7 +1529,13 @@ namespace sabre
 		{
 			if (e != nullptr)
 			{
+				if (expected_type)
+					_typer_push_expected_expression_type(self, expected_type);
+
 				auto expr_type = _typer_resolve_expr(self, e);
+
+				if (expected_type)
+					_typer_pop_expected_expression_type(self);
 
 				// check if left handside is an unknown array and complete it from the rhs
 				if (type_is_unbounded_array(res) &&

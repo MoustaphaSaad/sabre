@@ -1,0 +1,23 @@
+const koko = 9 + 324;
+const koko2 = koko / 2;
+
+type Dir enum {
+	Up,
+	Down = koko2,
+	Left = 234,
+	Right
+}
+
+func offset(d: Dir): vec2 {
+	if d == .Ups {
+		return {0, -1};
+	} else if d == .Down {
+		return {0, 1};
+	} else if d == .Left {
+		return {-1, 0};
+	} else if d == .Right {
+		return {1, 0};
+	} else {
+		return {};
+	}
+}

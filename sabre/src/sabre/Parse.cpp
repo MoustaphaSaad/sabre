@@ -259,49 +259,62 @@ namespace sabre
 	_parser_parse_expr_base(Parser& self)
 	{
 		auto tkn = _parser_look(self);
-		auto expr = _parser_parse_expr_atom(self);
-
-		while (true)
+		Expr* expr = nullptr;
+		if (tkn.kind == Tkn::KIND_DOT)
 		{
-			if (_parser_eat_kind(self, Tkn::KIND_OPEN_PAREN))
+			// eat the dot
+			_parser_eat(self);
+
+			auto rhs = _parser_parse_expr_atom(self);
+			if (rhs != nullptr)
+				expr = expr_dot_new(self.unit->ast_arena, nullptr, rhs);
+		}
+		else
+		{
+			expr = _parser_parse_expr_atom(self);
+
+			while (true)
 			{
-				auto args = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
-				if (_parser_eat_kind(self, Tkn::KIND_CLOSE_PAREN) == false)
+				if (_parser_eat_kind(self, Tkn::KIND_OPEN_PAREN))
 				{
-					while (true)
+					auto args = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+					if (_parser_eat_kind(self, Tkn::KIND_CLOSE_PAREN) == false)
 					{
-						if (auto arg = parser_parse_expr(self))
-							mn::buf_push(args, arg);
+						while (true)
+						{
+							if (auto arg = parser_parse_expr(self))
+								mn::buf_push(args, arg);
 
-						if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
-							break;
+							if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+								break;
+						}
+						_parser_eat_must(self, Tkn::KIND_CLOSE_PAREN);
 					}
-					_parser_eat_must(self, Tkn::KIND_CLOSE_PAREN);
+					expr = expr_call_new(self.unit->ast_arena, expr, args);
 				}
-				expr = expr_call_new(self.unit->ast_arena, expr, args);
-			}
-			else if (_parser_eat_kind(self, Tkn::KIND_OPEN_BRACKET))
-			{
-				auto index = parser_parse_expr(self);
-				_parser_eat_must(self, Tkn::KIND_CLOSE_BRACKET);
-				expr = expr_indexed_new(self.unit->ast_arena, expr, index);
-			}
-			else if (_parser_eat_kind(self, Tkn::KIND_DOT))
-			{
-				auto rhs = _parser_parse_expr_atom(self);
-				if (rhs != nullptr)
-					expr = expr_dot_new(self.unit->ast_arena, expr, rhs);
-			}
-			else
-			{
-				break;
-			}
+				else if (_parser_eat_kind(self, Tkn::KIND_OPEN_BRACKET))
+				{
+					auto index = parser_parse_expr(self);
+					_parser_eat_must(self, Tkn::KIND_CLOSE_BRACKET);
+					expr = expr_indexed_new(self.unit->ast_arena, expr, index);
+				}
+				else if (_parser_eat_kind(self, Tkn::KIND_DOT))
+				{
+					auto rhs = _parser_parse_expr_atom(self);
+					if (rhs != nullptr)
+						expr = expr_dot_new(self.unit->ast_arena, expr, rhs);
+				}
+				else
+				{
+					break;
+				}
 
-			if (expr != nullptr)
-			{
-				expr->loc.pos = tkn.loc.pos;
-				expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
-				expr->loc.file = self.unit;
+				if (expr != nullptr)
+				{
+					expr->loc.pos = tkn.loc.pos;
+					expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+					expr->loc.file = self.unit;
+				}
 			}
 		}
 
