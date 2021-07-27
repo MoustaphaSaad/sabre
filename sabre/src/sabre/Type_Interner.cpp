@@ -157,12 +157,21 @@ namespace sabre
 	}
 
 	void
-	type_interner_complete(Type_Interner& self, Type* type, mn::Buf<Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	type_interner_complete_struct(Type_Interner& self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
 	{
 		assert(type->kind == Type::KIND_COMPLETING);
 		type->kind = Type::KIND_STRUCT;
 		type->struct_type.fields = fields;
 		type->struct_type.fields_by_name = fields_table;
+	}
+
+	void
+	type_interner_complete_enum(Type_Interner& self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	{
+		assert(type->kind == Type::KIND_COMPLETING);
+		type->kind = Type::KIND_ENUM;
+		type->enum_type.fields = fields;
+		type->enum_type.fields_by_name = fields_table;
 	}
 
 	Type*

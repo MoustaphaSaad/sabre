@@ -1,0 +1,20 @@
+type Dir enum {
+	Up,
+	Down,
+	Left,
+	Right
+}
+
+func offset(d: Dir): vec2 {
+	if d == Dir.Up {
+		return {0, -1};
+	} else if d == Dir.Down {
+		return {0, 1};
+	} else if d == Dir.Left {
+		return {-1, 0};
+	} else if d == Dir.Right {
+		return {1, 0};
+	} else {
+		return {};
+	}
+}

@@ -325,7 +325,6 @@ namespace sabre
 			break;
 		case Decl::KIND_STRUCT:
 		{
-			// add symbol twice, once in file scope an another one in package scope
 			auto sym = symbol_struct_new(self.unit->symbols_arena, decl->name, decl);
 			_typer_add_symbol(self, sym);
 			break;
@@ -361,6 +360,12 @@ namespace sabre
 					_typer_add_symbol(self, sym);
 				}
 			}
+			break;
+		}
+		case Decl::KIND_ENUM:
+		{
+			auto sym = symbol_enum_new(self.unit->symbols_arena, decl->name, decl);
+			_typer_add_symbol(self, sym);
 			break;
 		}
 		default:
@@ -1044,6 +1049,31 @@ namespace sabre
 			e->dot.rhs->atom.decl = symbol_decl(symbol);
 			_typer_resolve_symbol(self, symbol);
 			return symbol->type;
+		}
+		else if (type->kind == Type::KIND_ENUM)
+		{
+			if (e->dot.rhs->kind != Expr::KIND_ATOM)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("unknown structure field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			auto it = mn::map_lookup(type->enum_type.fields_by_name, e->dot.rhs->atom.tkn.str);
+			if (it == nullptr)
+			{
+				Err err{};
+				err.loc = e->dot.rhs->loc;
+				err.msg = mn::strf("unknown enum field");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+
+			e->mode = ADDRESS_MODE_CONST;
+			e->const_value = type->enum_type.fields[it->value].value;
+			return type;
 		}
 		else
 		{
@@ -2146,7 +2176,7 @@ namespace sabre
 		if (sym->kind == Symbol::KIND_STRUCT)
 		{
 			auto d = sym->struct_sym.decl;
-			auto struct_fields = mn::buf_with_allocator<Field_Type>(self.unit->parent_unit->type_interner.arena);
+			auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner.arena);
 			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner.arena);
 			for (auto field: d->struct_decl.fields)
 			{
@@ -2155,7 +2185,7 @@ namespace sabre
 					_typer_complete_type(self, field_type->struct_type.symbol, type_sign_location(field.type));
 				for (auto name: field.names)
 				{
-					Field_Type struct_field{};
+					Struct_Field_Type struct_field{};
 					struct_field.name = name;
 					struct_field.type = field_type;
 					mn::buf_push(struct_fields, struct_field);
@@ -2175,7 +2205,61 @@ namespace sabre
 					}
 				}
 			}
-			type_interner_complete(self.unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name);
+			type_interner_complete_struct(self.unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name);
+		}
+		else if (sym->kind == Symbol::KIND_ENUM)
+		{
+			auto d = sym->enum_sym.decl;
+			auto enum_fields = mn::buf_with_allocator<Enum_Field_Type>(self.unit->parent_unit->type_interner.arena);
+			auto enum_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner.arena);
+			auto enum_value = expr_value_int(0);
+			for (auto field: d->enum_decl.fields)
+			{
+				if (field.value)
+				{
+					auto value_type = _typer_resolve_expr(self, field.value);
+					if (type_is_equal(value_type, type_int) == false)
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("enum type should be integer, but instead we found '{}'", value_type);
+						unit_err(self.unit, err);
+						continue;
+					}
+
+					if (field.value->mode != ADDRESS_MODE_CONST)
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("enum values should be constant");
+						unit_err(self.unit, err);
+					}
+
+					enum_value = field.value->const_value;
+				}
+
+				Enum_Field_Type enum_field{};
+				enum_field.name = field.name;
+				enum_field.value = enum_value;
+				mn::buf_push(enum_fields, enum_field);
+
+				if (auto it = mn::map_lookup(enum_fields_by_name, field.name.str))
+				{
+					auto old_loc = enum_fields[it->value].name.loc;
+
+					Err err{};
+					err.loc = field.name.loc;
+					err.msg = mn::strf("'{}' field redefinition, first declared in {}:{}", field.name.str, old_loc.pos.line, old_loc.pos.col);
+					unit_err(self.unit, err);
+				}
+				else
+				{
+					mn::map_insert(enum_fields_by_name, field.name.str, enum_fields.count - 1);
+				}
+
+				++enum_value.as_int;
+			}
+			type_interner_complete_enum(self.unit->parent_unit->type_interner, type, enum_fields, enum_fields_by_name);
 		}
 	}
 
@@ -2284,6 +2368,9 @@ namespace sabre
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			sym->type = _typer_resolve_func_overload_set(self, sym);
 			break;
+		case Symbol::KIND_ENUM:
+			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -2321,6 +2408,7 @@ namespace sabre
 			break;
 		}
 		case Symbol::KIND_STRUCT:
+		case Symbol::KIND_ENUM:
 			_typer_complete_type(self, sym, symbol_location(sym));
 			break;
 		default:

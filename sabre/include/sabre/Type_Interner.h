@@ -156,10 +156,16 @@ namespace sabre
 		}
 	};
 
-	struct Field_Type
+	struct Struct_Field_Type
 	{
 		Tkn name;
 		Type* type;
+	};
+
+	struct Enum_Field_Type
+	{
+		Tkn name;
+		Expr_Value value;
 	};
 
 	struct Type_Overload_Entry
@@ -198,6 +204,7 @@ namespace sabre
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ARRAY,
+			KIND_ENUM,
 		};
 
 		KIND kind;
@@ -221,7 +228,7 @@ namespace sabre
 			struct
 			{
 				Symbol* symbol;
-				mn::Buf<Field_Type> fields;
+				mn::Buf<Struct_Field_Type> fields;
 				mn::Map<const char*, size_t> fields_by_name;
 			} struct_type;
 
@@ -246,6 +253,13 @@ namespace sabre
 				Type* base;
 				int64_t count;
 			} array;
+
+			struct
+			{
+				Symbol* symbol;
+				mn::Buf<Enum_Field_Type> fields;
+				mn::Map<const char*, size_t> fields_by_name;
+			} enum_type;
 		};
 	};
 
@@ -617,7 +631,11 @@ namespace sabre
 
 	// completes the given struct/aggregate types
 	SABRE_EXPORT void
-	type_interner_complete(Type_Interner& self, Type* type, mn::Buf<Field_Type> fields, mn::Map<const char*, size_t> fields_table);
+	type_interner_complete_struct(Type_Interner& self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
+
+	// completes an enum type
+	SABRE_EXPORT void
+	type_interner_complete_enum(Type_Interner& self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
 
 	// creates a new package type
 	SABRE_EXPORT Type*
@@ -642,6 +660,7 @@ namespace sabre
 			KIND_STRUCT,
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
+			KIND_ENUM,
 		};
 
 		enum STATE
@@ -688,6 +707,11 @@ namespace sabre
 				Decl* decl;
 				Tkn name;
 			} struct_sym;
+
+			struct
+			{
+				Decl* decl;
+			} enum_sym;
 
 			struct
 			{
@@ -765,6 +789,19 @@ namespace sabre
 		return self;
 	}
 
+	// creates a new symbol for enum declaration
+	inline static Symbol*
+	symbol_enum_new(mn::Allocator arena, Tkn name, Decl* decl)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_ENUM;
+		self->state = Symbol::STATE_UNRESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->enum_sym.decl = decl;
+		return self;
+	}
+
 	// creates a new symbol for package declaration
 	inline static Symbol*
 	symbol_package_new(mn::Allocator arena, Tkn name, Decl* decl, Unit_Package* package)
@@ -821,6 +858,8 @@ namespace sabre
 			return self->struct_sym.decl->loc;
 		case Symbol::KIND_PACKAGE:
 			return self->package_sym.decl->loc;
+		case Symbol::KIND_ENUM:
+			return self->enum_sym.decl->loc;
 		default:
 			assert(false && "unreachable");
 			return Location{};
@@ -845,6 +884,8 @@ namespace sabre
 			return self->package_sym.decl;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			return nullptr;
+		case Symbol::KIND_ENUM:
+			return self->enum_sym.decl;
 		default:
 			assert(false && "unreachable");
 			return nullptr;
@@ -1099,6 +1140,10 @@ namespace fmt
 					return format_to(ctx.out(), "[]{}", t->array.base);
 				else
 					return format_to(ctx.out(), "[{}]{}", t->array.count, t->array.base);
+			}
+			else if (t->kind == sabre::Type::KIND_ENUM)
+			{
+				return format_to(ctx.out(), "enum {}", t->enum_type.symbol->name);
 			}
 			else
 			{
