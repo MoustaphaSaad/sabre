@@ -1086,7 +1086,7 @@ namespace sabre
 		for (auto field: d->enum_decl.fields)
 		{
 			auto field_type = t->enum_type.fields[i];
-			assert(field_type.value.kind == Expr_Value::KIND_INT);
+			assert(field_type.value.type == type_int);
 			_glsl_newline(self);
 			mn::print_to(self.out, "#define {}_{} {}", _glsl_symbol_name(sym), field.name.str, field_type.value.as_int);
 			++i;

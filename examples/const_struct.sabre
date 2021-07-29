@@ -1,0 +1,8 @@
+type Point struct {
+	x, y: float,
+}
+
+const p: Point = {
+	.x = 12,
+	.y = 32,
+};

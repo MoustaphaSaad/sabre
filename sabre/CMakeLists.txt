@@ -14,6 +14,7 @@ set(HEADER_FILES
 	include/sabre/Check.h
 	include/sabre/GLSL.h
 	include/sabre/Reflect.h
+	include/sabre/Expr_Value.h
 )
 
 # list the source files
@@ -28,6 +29,7 @@ set(SOURCE_FILES
 	src/sabre/Check.cpp
 	src/sabre/GLSL.cpp
 	src/sabre/Reflect.cpp
+	src/sabre/Expr_Value.cpp
 )
 
 add_library(sabre)

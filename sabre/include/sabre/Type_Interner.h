@@ -507,6 +507,13 @@ namespace sabre
 		);
 	}
 
+	// returns whether a type is a struct
+	inline static bool
+	type_is_struct(Type* t)
+	{
+		return t->kind == Type::KIND_STRUCT;
+	}
+
 	// returns whether a type is an array
 	inline static bool
 	type_is_array(Type* t)

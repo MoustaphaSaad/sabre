@@ -108,17 +108,17 @@ namespace sabre
 				bool mismatch = false;
 				if (rhs->mode == ADDRESS_MODE_CONST)
 				{
-					switch (rhs->const_value.kind)
+					if (rhs->const_value.type == type_int)
 					{
-					case Expr_Value::KIND_INT:
 						mismatch = rhs->const_value.as_int < 0;
-						break;
-					case Expr_Value::KIND_DOUBLE:
+					}
+					else if (rhs->const_value.type == type_double)
+					{
 						mismatch = rhs->const_value.as_double < 0;
-						break;
-					default:
+					}
+					else
+					{
 						mismatch = true;
-						break;
 					}
 				}
 				else
@@ -147,17 +147,17 @@ namespace sabre
 				bool mismatch = false;
 				if (rhs->mode == ADDRESS_MODE_CONST)
 				{
-					switch (rhs->const_value.kind)
+					if (rhs->const_value.type == type_int)
 					{
-					case Expr_Value::KIND_INT:
 						mismatch = false;
-						break;
-					case Expr_Value::KIND_DOUBLE:
+					}
+					else if (rhs->const_value.type == type_double)
+					{
 						mismatch = (rhs->const_value.as_double - (int64_t)rhs->const_value.as_double) != 0;
-						break;
-					default:
+					}
+					else
+					{
 						mismatch = true;
-						break;
 					}
 				}
 				else
@@ -171,18 +171,18 @@ namespace sabre
 				bool mismatch = false;
 				if (rhs->mode == ADDRESS_MODE_CONST)
 				{
-					switch (rhs->const_value.kind)
+					if (rhs->const_value.type == type_int)
 					{
-					case Expr_Value::KIND_INT:
 						mismatch = rhs->const_value.as_int < 0;
-						break;
-					case Expr_Value::KIND_DOUBLE:
+					}
+					else if (rhs->const_value.type == type_double)
+					{
 						mismatch = rhs->const_value.as_double < 0;
 						mismatch |= (rhs->const_value.as_double - (int64_t)rhs->const_value.as_double) != 0;
-						break;
-					default:
+					}
+					else
+					{
 						mismatch = true;
-						break;
 					}
 				}
 				else
@@ -512,7 +512,7 @@ namespace sabre
 						unit_err(self.unit, err);
 					}
 
-					if (atom.array.static_size->const_value.kind == Expr_Value::KIND_INT)
+					if (atom.array.static_size->const_value.type == type_int)
 					{
 						auto array_count = atom.array.static_size->const_value.as_int;
 						if (array_count < 0)
@@ -812,7 +812,7 @@ namespace sabre
 			unit_err(self.unit, err);
 		}
 
-		if (e->unary.base->const_value.kind != Expr_Value::KIND_NONE)
+		if (e->unary.base->const_value.type != nullptr)
 			e->const_value = expr_value_unary_op(e->unary.base->const_value, e->unary.op.kind);
 
 		if (e->unary.base->mode == ADDRESS_MODE_CONST)
@@ -950,7 +950,7 @@ namespace sabre
 		auto from_type = _typer_resolve_expr(self, e->cast.base);
 		auto to_type = _typer_resolve_type_sign(self, e->cast.type);
 
-		if (e->cast.base->const_value.kind != Expr_Value::KIND_NONE)
+		if (e->cast.base->const_value.type != nullptr)
 			e->const_value = e->cast.base->const_value;
 
 		auto res = to_type;
@@ -1171,7 +1171,7 @@ namespace sabre
 		}
 
 		if (e->indexed.index->mode == ADDRESS_MODE_CONST &&
-			e->indexed.index->const_value.kind == Expr_Value::KIND_INT &&
+			e->indexed.index->const_value.type == type_int &&
 			e->indexed.index->const_value.as_int >= base_type->array.count)
 		{
 			Err err{};
@@ -1187,8 +1187,8 @@ namespace sabre
 		if (e->indexed.base->mode == ADDRESS_MODE_CONST &&
 			e->indexed.index->mode == ADDRESS_MODE_CONST)
 		{
-			if (e->indexed.base->const_value.kind == Expr_Value::KIND_ARRAY &&
-				e->indexed.index->const_value.kind == Expr_Value::KIND_INT)
+			if ((e->indexed.base->const_value.type && type_is_array(e->indexed.base->const_value.type)) &&
+				e->indexed.index->const_value.type == type_int)
 			{
 				if (e->indexed.index->const_value.as_int < e->indexed.base->type->array.count)
 				{
@@ -1377,7 +1377,7 @@ namespace sabre
 			if (expected_type != nullptr)
 				_typer_pop_expected_expression_type(self);
 
-			is_const &= field.value->mode == ADDRESS_MODE_CONST && field.value->const_value.kind != Expr_Value::KIND_NONE;
+			is_const &= field.value->mode == ADDRESS_MODE_CONST && field.value->const_value.type != nullptr;
 			if (failed == false)
 			{
 				// special case vector upcast
@@ -1441,7 +1441,7 @@ namespace sabre
 				}
 
 				e->mode = ADDRESS_MODE_CONST;
-				e->const_value = expr_value_array(array_values);
+				e->const_value = expr_value_array(type, array_values);
 			}
 			else
 			{
@@ -1555,7 +1555,7 @@ namespace sabre
 			}
 		}
 
-		if (e->const_value.kind == Expr_Value::KIND_NONE)
+		if (e->const_value.type == nullptr)
 		{
 			Err err{};
 			err.loc = e->loc;
@@ -2500,7 +2500,7 @@ namespace sabre
 					unit_err(self.unit, err);
 				}
 
-				if (cond_expr->const_value.kind == Expr_Value::KIND_BOOL && cond_expr->const_value.as_bool)
+				if (cond_expr->const_value.type == type_bool && cond_expr->const_value.as_bool)
 				{
 					winner_if_index = j;
 					break;
