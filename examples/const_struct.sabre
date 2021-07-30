@@ -1,11 +1,11 @@
 type Point struct {
-	x, y: float,
+	p: vec2,
 }
 
 const v: vec2 = { 1, 2 };
 const v2: bvec3 = {true};
 
-// var p: Point = {
-// 	.x = 12,
-// 	.y = 32,
-// };
+var p: Point = {
+	.p.x = 12,
+	.p.y = 32,
+};

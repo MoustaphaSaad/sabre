@@ -1275,7 +1275,6 @@ namespace sabre
 			auto tmp_name = _glsl_tmp_name(self);
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
-			size_t field_index = 0;
 			for (size_t i = 0; i < e->type->array.count; ++i)
 			{
 				if (i > 0)
@@ -1292,7 +1291,6 @@ namespace sabre
 			auto tmp_name = _glsl_tmp_name(self);
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
-			size_t field_index = 0;
 			for (size_t i = 0; i < e->type->vec.width; ++i)
 			{
 				if (i > 0)
@@ -1301,7 +1299,24 @@ namespace sabre
 				if (auto v = _glsl_complit_field_value_by_index(e, i))
 					glsl_expr_gen(self, v);
 				else
-					_glsl_zero_value(self, e->type->array.base);
+					_glsl_zero_value(self, e->type->vec.base);
+			}
+			mn::print_to(self.out, ");");
+		}
+		else if (type_is_struct(e->type))
+		{
+			auto tmp_name = _glsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
+			for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+
+				if (auto v = _glsl_complit_field_value_by_index(e, i))
+					glsl_expr_gen(self, v);
+				else
+					_glsl_zero_value(self, e->type->struct_type.fields[i].type);
 			}
 			mn::print_to(self.out, ");");
 		}
