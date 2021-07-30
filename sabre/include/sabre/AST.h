@@ -117,19 +117,25 @@ namespace sabre
 		ADDRESS_MODE_VARIABLE,
 	};
 
+	struct Complit_Selector
+	{
+		Expr* name;
+		size_t index;
+	};
+
 	// represents a compound literal field
 	struct Complit_Field
 	{
-		mn::Buf<Expr*> selector;
+		mn::Buf<Complit_Selector> selector;
 		Expr* value;
 	};
 
 	// creates a new compound literal field member
 	inline static Complit_Field
-	complit_field_member(mn::Buf<Expr*> selector, Expr* value)
+	complit_field_member(mn::Buf<Complit_Selector> selectors, Expr* value)
 	{
 		Complit_Field self{};
-		self.selector = selector;
+		self.selector = selectors;
 		self.value = value;
 		return self;
 	}

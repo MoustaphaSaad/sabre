@@ -731,8 +731,14 @@ namespace sabre
 	inline static void
 	_glsl_gen_complit_expr(GLSL& self, Expr* e)
 	{
-		auto it = mn::map_lookup(self.symbol_to_names, (void*)e);
-		mn::print_to(self.out, it->value);
+		if (auto it = mn::map_lookup(self.symbol_to_names, (void*)e))
+		{
+			mn::print_to(self.out, it->value);
+		}
+		else
+		{
+			assert(false && "unreachable");
+		}
 	}
 
 	inline static void
@@ -960,8 +966,14 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e, bool is_const);
+
+	inline static void
 	_glsl_var_gen(GLSL& self, Symbol* sym)
 	{
+		if (sym->var_sym.value)
+			_glsl_rewrite_complits_in_expr(self, sym->var_sym.value, false);
+
 		auto decl = symbol_decl(sym);
 
 		if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
@@ -1037,8 +1049,11 @@ namespace sabre
 	inline static void
 	_glsl_const_gen(GLSL& self, Symbol* sym)
 	{
+		if (sym->const_sym.value)
+			_glsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
+
 		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
-		if (sym->var_sym.value != nullptr)
+		if (sym->const_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
 			glsl_expr_gen(self, sym->var_sym.value);
@@ -1190,9 +1205,6 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e, bool is_const);
-
-	inline static void
 	_glsl_rewrite_complits_in_binary_expr(GLSL& self, Expr* e, bool is_const)
 	{
 		_glsl_rewrite_complits_in_expr(self, e->binary.left, is_const);
@@ -1234,6 +1246,17 @@ namespace sabre
 		_glsl_rewrite_complits_in_expr(self, e->cast.base, is_const);
 	}
 
+	inline static Expr*
+	_glsl_complit_field_value_by_index(Expr* e, size_t index)
+	{
+		for (auto field: e->complit.fields)
+		{
+			if (field.selector[0].index == index)
+				return field.value;
+		}
+		return nullptr;
+	}
+
 	inline static void
 	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e, bool is_const)
 	{
@@ -1264,6 +1287,24 @@ namespace sabre
 			}
 			mn::print_to(self.out, ");");
 		}
+		else if (type_is_vec(e->type))
+		{
+			auto tmp_name = _glsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
+			size_t field_index = 0;
+			for (size_t i = 0; i < e->type->vec.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+
+				if (auto v = _glsl_complit_field_value_by_index(e, i))
+					glsl_expr_gen(self, v);
+				else
+					_glsl_zero_value(self, e->type->array.base);
+			}
+			mn::print_to(self.out, ");");
+		}
 		else
 		{
 			auto tmp_name = _glsl_tmp_name(self);
@@ -1279,7 +1320,7 @@ namespace sabre
 					for (auto selector: field.selector)
 					{
 						mn::print_to(self.out, ".");
-						glsl_expr_gen(self, selector);
+						glsl_expr_gen(self, selector.name);
 					}
 				}
 				else

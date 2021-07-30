@@ -1228,40 +1228,44 @@ namespace sabre
 		size_t type_field_index = 0;
 		for (size_t i = 0; i < e->complit.fields.count; ++i)
 		{
-			auto field = e->complit.fields[i];
+			auto& field = e->complit.fields[i];
 
 			auto type_it = type;
 			bool failed = false;
 			if (field.selector.count > 0)
 			{
-				for (auto selector: field.selector)
+				for (auto& selector: field.selector)
 				{
-					if (selector->kind == Expr::KIND_ATOM)
+					if (selector.name->kind == Expr::KIND_ATOM)
 					{
 						if (type_it->kind == Type::KIND_VEC)
 						{
-							auto name = mn::str_lit(selector->atom.tkn.str);
+							auto name = mn::str_lit(selector.name->atom.tkn.str);
 							if (type_it->vec.width > 0 && name == "x")
 							{
+								selector.index = 0;
 								type_it = type_it->vec.base;
 							}
 							else if (type_it->vec.width > 1 && name == "y")
 							{
+								selector.index = 1;
 								type_it = type_it->vec.base;
 							}
 							else if (type_it->vec.width > 2 && name == "z")
 							{
+								selector.index = 2;
 								type_it = type_it->vec.base;
 							}
 							else if (type_it->vec.width > 3 && name == "w")
 							{
+								selector.index = 3;
 								type_it = type_it->vec.base;
 							}
 							else
 							{
 								Err err{};
-								err.loc = selector->loc;
-								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
+								err.loc = selector.name->loc;
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector.name->atom.tkn.str);
 								unit_err(self.unit, err);
 								failed = true;
 								break;
@@ -1269,23 +1273,24 @@ namespace sabre
 						}
 						else if (type_it->kind == Type::KIND_STRUCT)
 						{
-							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector->atom.tkn.str);
+							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector.name->atom.tkn.str);
 							if (field_it == nullptr)
 							{
 								Err err{};
-								err.loc = selector->loc;
-								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
+								err.loc = selector.name->loc;
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector.name->atom.tkn.str);
 								unit_err(self.unit, err);
 								failed = true;
 								break;
 							}
+							selector.index = field_it->value;
 							type_it = type_it->struct_type.fields[field_it->value].type;
 						}
 						else
 						{
 							Err err{};
-							err.loc = selector->loc;
-							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
+							err.loc = selector.name->loc;
+							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector.name->atom.tkn.str);
 							unit_err(self.unit, err);
 							failed = true;
 							break;
@@ -1294,7 +1299,7 @@ namespace sabre
 					else
 					{
 						Err err{};
-						err.loc = selector->loc;
+						err.loc = selector.name->loc;
 						err.msg = mn::strf("invalid compound literal selector");
 						unit_err(self.unit, err);
 						failed = true;
@@ -1309,6 +1314,7 @@ namespace sabre
 					if (type_field_index < type_it->vec.width)
 					{
 						type_it = type_it->vec.base;
+						mn::buf_push(field.selector, Complit_Selector{nullptr, type_field_index});
 						++type_field_index;
 					}
 					else
@@ -1325,6 +1331,7 @@ namespace sabre
 					if (type_field_index < type_it->struct_type.fields.count)
 					{
 						type_it = type_it->struct_type.fields[type_field_index].type;
+						mn::buf_push(field.selector, Complit_Selector{nullptr, type_field_index});
 						++type_field_index;
 					}
 					else
@@ -1342,6 +1349,7 @@ namespace sabre
 					if (type_field_index < type_it->array.count)
 					{
 						type_it = type_it->array.base;
+						mn::buf_push(field.selector, Complit_Selector{nullptr, type_field_index});
 						++type_field_index;
 					}
 					else
@@ -1439,25 +1447,7 @@ namespace sabre
 					if (field.selector.count > 0)
 					{
 						for (auto selector: field.selector)
-						{
-							auto name = mn::str_lit(selector->atom.tkn.str);
-							if (name == "x")
-							{
-								expr_value_aggregate_set(e->const_value, 0, field.value->const_value);
-							}
-							else if (name == "y")
-							{
-								expr_value_aggregate_set(e->const_value, 1, field.value->const_value);
-							}
-							else if (name == "z")
-							{
-								expr_value_aggregate_set(e->const_value, 2, field.value->const_value);
-							}
-							else if (name == "w")
-							{
-								expr_value_aggregate_set(e->const_value, 3, field.value->const_value);
-							}
-						}
+							expr_value_aggregate_set(e->const_value, selector.index, field.value->const_value);
 					}
 					else
 					{

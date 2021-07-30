@@ -198,7 +198,7 @@ namespace sabre
 						for (auto selector: field.selector)
 						{
 							_ast_printer_newline(self);
-							ast_printer_print_expr(self, selector);
+							ast_printer_print_expr(self, selector.name);
 						}
 						_ast_printer_newline(self);
 						ast_printer_print_expr(self, field.value);
