@@ -22,6 +22,15 @@ namespace sabre
 	}
 
 	Expr_Value
+	expr_value_float(float v)
+	{
+		Expr_Value self{};
+		self.type = type_float;
+		self.as_float = v;
+		return self;
+	}
+
+	Expr_Value
 	expr_value_double(double v)
 	{
 		Expr_Value self{};
@@ -31,12 +40,66 @@ namespace sabre
 	}
 
 	Expr_Value
+	expr_value_vec(Type* type, mn::Buf<Expr_Value> values)
+	{
+		assert(type_is_vec(type));
+		Expr_Value self{};
+		self.type = type;
+		self.as_vec = values;
+		return self;
+	}
+
+	Expr_Value
 	expr_value_array(Type* type, mn::Buf<Expr_Value> values)
 	{
+		assert(type_is_array(type));
+
 		Expr_Value self{};
 		self.type = type;
 		self.as_array = values;
 		return self;
+	}
+
+	Expr_Value
+	expr_value_for_type(mn::Allocator arena, Type* type)
+	{
+		if (type_is_equal(type, type_void))
+		{
+			return {};
+		}
+		else if (type_is_equal(type, type_bool))
+		{
+			return expr_value_bool(false);
+		}
+		else if (type_is_equal(type, type_int))
+		{
+			return expr_value_int(0);
+		}
+		else if (type_is_equal(type, type_float))
+		{
+			return expr_value_float(0.0f);
+		}
+		else if (type_is_equal(type, type_double))
+		{
+			return expr_value_double(0.0);
+		}
+		else if (type_is_vec(type))
+		{
+			auto values = mn::buf_with_allocator<Expr_Value>(arena);
+			mn::buf_reserve(values, type->vec.width);
+			for (size_t i = 0; i < type->vec.width; ++i)
+				mn::buf_push(values, expr_value_for_type(arena, type->vec.base));
+			return expr_value_vec(type, values);
+		}
+		else if (type_is_array(type))
+		{
+			auto values = mn::buf_with_allocator<Expr_Value>(arena);
+			mn::buf_reserve(values, type->array.count);
+			for (size_t i = 0; i < type->array.count; ++i)
+				mn::buf_push(values, expr_value_for_type(arena, type->array.base));
+			return expr_value_array(type, values);
+		}
+		return {};
 	}
 
 	Expr_Value

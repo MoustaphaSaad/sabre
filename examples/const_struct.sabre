@@ -2,7 +2,9 @@ type Point struct {
 	x, y: float,
 }
 
-const p: Point = {
+const v: vec2 = { 1, 2 };
+
+var p: Point = {
 	.x = 12,
 	.y = 32,
 };

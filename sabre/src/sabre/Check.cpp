@@ -1429,7 +1429,49 @@ namespace sabre
 		if (is_const)
 		{
 			// we currently handle arrays only
-			if (type_is_array(type))
+			if (type_is_vec(type))
+			{
+				auto values = expr_value_for_type(e->loc.file->ast_arena, type);
+				for (size_t i = 0; i < e->complit.fields.count; ++i)
+				{
+					auto field = e->complit.fields[i];
+
+					auto value_it = &values;
+					if (field.selector.count > 0)
+					{
+						for (auto selector: field.selector)
+						{
+							auto name = mn::str_lit(selector->atom.tkn.str);
+							if (name == "x")
+							{
+								value_it = &value_it->as_vec[0];
+							}
+							else if (name == "y")
+							{
+								value_it = &value_it->as_vec[1];
+							}
+							else if (name == "z")
+							{
+								value_it = &value_it->as_vec[2];
+							}
+							else if (name == "w")
+							{
+								value_it = &value_it->as_vec[3];
+							}
+						}
+					}
+					else
+					{
+						value_it = &value_it->as_vec[i];
+					}
+
+					*value_it = field.value->const_value;
+				}
+
+				e->mode = ADDRESS_MODE_CONST;
+				e->const_value = values;
+			}
+			else if (type_is_array(type))
 			{
 				auto array_values = mn::buf_with_allocator<Expr_Value>(e->loc.file->ast_arena);
 				mn::buf_reserve(array_values, type->array.count);

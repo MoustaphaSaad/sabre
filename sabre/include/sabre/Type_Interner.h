@@ -514,6 +514,13 @@ namespace sabre
 		return t->kind == Type::KIND_STRUCT;
 	}
 
+	// returns whether the type is a vector
+	inline static bool
+	type_is_vec(Type* t)
+	{
+		return t->kind == Type::KIND_VEC;
+	}
+
 	// returns whether a type is an array
 	inline static bool
 	type_is_array(Type* t)

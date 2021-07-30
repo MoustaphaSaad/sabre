@@ -18,7 +18,9 @@ namespace sabre
 		{
 			bool as_bool;
 			int64_t as_int;
+			float as_float;
 			double as_double;
+			mn::Buf<Expr_Value> as_vec;
 			mn::Buf<Expr_Value> as_array;
 		};
 	};
@@ -31,13 +33,25 @@ namespace sabre
 	SABRE_EXPORT Expr_Value
 	expr_value_int(int64_t v);
 
-	// creates a new int expression value
+	// creates a new float expression value
+	SABRE_EXPORT Expr_Value
+	expr_value_float(float v);
+
+	// creates a new double expression value
 	SABRE_EXPORT Expr_Value
 	expr_value_double(double v);
+
+	// creates a new vector expression value
+	SABRE_EXPORT Expr_Value
+	expr_value_vec(Type* type, mn::Buf<Expr_Value> values);
 
 	// creates a new array expression value
 	SABRE_EXPORT Expr_Value
 	expr_value_array(Type* type, mn::Buf<Expr_Value> values);
+
+	// creates a new zero initialized expression value of the given type
+	SABRE_EXPORT Expr_Value
+	expr_value_for_type(mn::Allocator arena, Type* type);
 
 	// performs a logical or between two booleans, returns none value if one of them is not a bool
 	SABRE_EXPORT Expr_Value
