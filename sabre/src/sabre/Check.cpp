@@ -1193,7 +1193,7 @@ namespace sabre
 				if (e->indexed.index->const_value.as_int < e->indexed.base->type->array.count)
 				{
 					e->mode = ADDRESS_MODE_CONST;
-					e->const_value = e->indexed.base->const_value.as_array[e->indexed.index->const_value.as_int];
+					e->const_value = expr_value_aggregate_get(e->indexed.base->const_value, e->indexed.index->const_value.as_int);
 				}
 			}
 		}
@@ -1431,12 +1431,11 @@ namespace sabre
 			// we currently handle arrays only
 			if (type_is_vec(type))
 			{
-				auto values = expr_value_for_type(e->loc.file->ast_arena, type);
+				e->const_value = expr_value_aggregate(e->loc.file->ast_arena, type);
 				for (size_t i = 0; i < e->complit.fields.count; ++i)
 				{
 					auto field = e->complit.fields[i];
 
-					auto value_it = &values;
 					if (field.selector.count > 0)
 					{
 						for (auto selector: field.selector)
@@ -1444,46 +1443,40 @@ namespace sabre
 							auto name = mn::str_lit(selector->atom.tkn.str);
 							if (name == "x")
 							{
-								value_it = &value_it->as_vec[0];
+								expr_value_aggregate_set(e->const_value, 0, field.value->const_value);
 							}
 							else if (name == "y")
 							{
-								value_it = &value_it->as_vec[1];
+								expr_value_aggregate_set(e->const_value, 1, field.value->const_value);
 							}
 							else if (name == "z")
 							{
-								value_it = &value_it->as_vec[2];
+								expr_value_aggregate_set(e->const_value, 2, field.value->const_value);
 							}
 							else if (name == "w")
 							{
-								value_it = &value_it->as_vec[3];
+								expr_value_aggregate_set(e->const_value, 3, field.value->const_value);
 							}
 						}
 					}
 					else
 					{
-						value_it = &value_it->as_vec[i];
+						expr_value_aggregate_set(e->const_value, i, field.value->const_value);
 					}
-
-					*value_it = field.value->const_value;
 				}
 
 				e->mode = ADDRESS_MODE_CONST;
-				e->const_value = values;
 			}
 			else if (type_is_array(type))
 			{
-				auto array_values = mn::buf_with_allocator<Expr_Value>(e->loc.file->ast_arena);
-				mn::buf_reserve(array_values, type->array.count);
+				e->const_value = expr_value_aggregate(e->loc.file->ast_arena, type);
 				for (size_t i = 0; i < e->complit.fields.count; ++i)
 				{
 					auto field = e->complit.fields[i];
-					// TODO(Moustapha): add type zero values to fix when arrays are larger than complit
-					mn::buf_push(array_values, field.value->const_value);
+					expr_value_aggregate_set(e->const_value, i, field.value->const_value);
 				}
 
 				e->mode = ADDRESS_MODE_CONST;
-				e->const_value = expr_value_array(type, array_values);
 			}
 			else
 			{

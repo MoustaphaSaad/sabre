@@ -3,6 +3,78 @@
 
 namespace sabre
 {
+	inline static Type*
+	_get_subtype_by_index(Type* type, size_t index)
+	{
+		switch (type->kind)
+		{
+		case Type::KIND_VOID:
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_FUNC:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+			return nullptr;
+		case Type::KIND_VEC:
+			if (type->vec.width > index)
+				return type->vec.base;
+			else
+				return nullptr;
+		case Type::KIND_MAT:
+			if (type->mat.width > index)
+				return type->mat.base;
+			else
+				return nullptr;
+		case Type::KIND_STRUCT:
+			if (type->struct_type.fields.count > index)
+				return type->struct_type.fields[index].type;
+			else
+				return nullptr;
+		case Type::KIND_ARRAY:
+			if (index < type->array.count)
+				return type->array.base;
+			else
+				return nullptr;
+		case Type::KIND_ENUM:
+			if (index < type->enum_type.fields.count)
+				return type_int;
+			else
+				return nullptr;
+		default:
+			break;
+		}
+	}
+
+	inline static Expr_Value
+	_expr_value_for_type(Type* type)
+	{
+		if (type_is_equal(type, type_void))
+		{
+			return Expr_Value{};
+		}
+		else if (type_is_equal(type, type_bool))
+		{
+			return expr_value_bool(false);
+		}
+		else if (type_is_equal(type, type_int) || type_is_equal(type, type_uint))
+		{
+			return expr_value_int(0);
+		}
+		else if (type_is_equal(type, type_float) || type_is_equal(type, type_double))
+		{
+			return expr_value_double(0);
+		}
+		else
+		{
+			assert(false && "unhandled expression value type");
+		}
+	}
+
+	// API
 	Expr_Value
 	expr_value_bool(bool v)
 	{
@@ -22,15 +94,6 @@ namespace sabre
 	}
 
 	Expr_Value
-	expr_value_float(float v)
-	{
-		Expr_Value self{};
-		self.type = type_float;
-		self.as_float = v;
-		return self;
-	}
-
-	Expr_Value
 	expr_value_double(double v)
 	{
 		Expr_Value self{};
@@ -40,65 +103,28 @@ namespace sabre
 	}
 
 	Expr_Value
-	expr_value_vec(Type* type, mn::Buf<Expr_Value> values)
+	expr_value_aggregate(mn::Allocator arena, Type* type)
 	{
-		assert(type_is_vec(type));
 		Expr_Value self{};
 		self.type = type;
-		self.as_vec = values;
+		self.as_aggregate = mn::map_with_allocator<size_t, Expr_Value>(arena);
 		return self;
 	}
 
-	Expr_Value
-	expr_value_array(Type* type, mn::Buf<Expr_Value> values)
+	void
+	expr_value_aggregate_set(Expr_Value& self, size_t index, Expr_Value value)
 	{
-		assert(type_is_array(type));
-
-		Expr_Value self{};
-		self.type = type;
-		self.as_array = values;
-		return self;
+		mn::map_insert(self.as_aggregate, index, value);
 	}
 
 	Expr_Value
-	expr_value_for_type(mn::Allocator arena, Type* type)
+	expr_value_aggregate_get(Expr_Value self, size_t index)
 	{
-		if (type_is_equal(type, type_void))
-		{
-			return {};
-		}
-		else if (type_is_equal(type, type_bool))
-		{
-			return expr_value_bool(false);
-		}
-		else if (type_is_equal(type, type_int))
-		{
-			return expr_value_int(0);
-		}
-		else if (type_is_equal(type, type_float))
-		{
-			return expr_value_float(0.0f);
-		}
-		else if (type_is_equal(type, type_double))
-		{
-			return expr_value_double(0.0);
-		}
-		else if (type_is_vec(type))
-		{
-			auto values = mn::buf_with_allocator<Expr_Value>(arena);
-			mn::buf_reserve(values, type->vec.width);
-			for (size_t i = 0; i < type->vec.width; ++i)
-				mn::buf_push(values, expr_value_for_type(arena, type->vec.base));
-			return expr_value_vec(type, values);
-		}
-		else if (type_is_array(type))
-		{
-			auto values = mn::buf_with_allocator<Expr_Value>(arena);
-			mn::buf_reserve(values, type->array.count);
-			for (size_t i = 0; i < type->array.count; ++i)
-				mn::buf_push(values, expr_value_for_type(arena, type->array.base));
-			return expr_value_array(type, values);
-		}
+		if (auto it = mn::map_lookup(self.as_aggregate, index))
+			return it->value;
+
+		if (auto sub_type = _get_subtype_by_index(self.type, index))
+			return _expr_value_for_type(sub_type);
 		return {};
 	}
 

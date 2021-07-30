@@ -18,10 +18,8 @@ namespace sabre
 		{
 			bool as_bool;
 			int64_t as_int;
-			float as_float;
 			double as_double;
-			mn::Buf<Expr_Value> as_vec;
-			mn::Buf<Expr_Value> as_array;
+			mn::Map<size_t, Expr_Value> as_aggregate;
 		};
 	};
 
@@ -33,25 +31,21 @@ namespace sabre
 	SABRE_EXPORT Expr_Value
 	expr_value_int(int64_t v);
 
-	// creates a new float expression value
-	SABRE_EXPORT Expr_Value
-	expr_value_float(float v);
-
 	// creates a new double expression value
 	SABRE_EXPORT Expr_Value
 	expr_value_double(double v);
 
-	// creates a new vector expression value
+	// creates a new aggregate expression value
 	SABRE_EXPORT Expr_Value
-	expr_value_vec(Type* type, mn::Buf<Expr_Value> values);
+	expr_value_aggregate(mn::Allocator arena, Type* type);
 
-	// creates a new array expression value
-	SABRE_EXPORT Expr_Value
-	expr_value_array(Type* type, mn::Buf<Expr_Value> values);
+	// sets the expression value at the given index in aggregate expression
+	SABRE_EXPORT void
+	expr_value_aggregate_set(Expr_Value& self, size_t index, Expr_Value value);
 
-	// creates a new zero initialized expression value of the given type
+	// gets the expression value at the given index, if it doesn't exist it will return the empty value
 	SABRE_EXPORT Expr_Value
-	expr_value_for_type(mn::Allocator arena, Type* type);
+	expr_value_aggregate_get(Expr_Value self, size_t index);
 
 	// performs a logical or between two booleans, returns none value if one of them is not a bool
 	SABRE_EXPORT Expr_Value
