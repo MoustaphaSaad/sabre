@@ -195,10 +195,10 @@ namespace sabre
 					mn::print_to(self.out, "(field ");
 					_ast_printer_enter_scope(self);
 					{
-						for (auto selector: field.selector)
+						for (auto selector: field.selector_names)
 						{
 							_ast_printer_newline(self);
-							ast_printer_print_expr(self, selector.name);
+							ast_printer_print_expr(self, selector);
 						}
 						_ast_printer_newline(self);
 						ast_printer_print_expr(self, field.value);

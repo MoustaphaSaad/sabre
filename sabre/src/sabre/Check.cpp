@@ -1232,41 +1232,41 @@ namespace sabre
 
 			auto type_it = type;
 			bool failed = false;
-			bool has_selector = field.selector.count > 0;
+			bool has_selector = field.selector_names.count > 0;
 			if (has_selector)
 			{
-				for (auto& selector: field.selector)
+				for (auto selector: field.selector_names)
 				{
-					if (selector.name->kind == Expr::KIND_ATOM)
+					if (selector->kind == Expr::KIND_ATOM)
 					{
 						if (type_it->kind == Type::KIND_VEC)
 						{
-							auto name = mn::str_lit(selector.name->atom.tkn.str);
+							auto name = mn::str_lit(selector->atom.tkn.str);
 							if (type_it->vec.width > 0 && name == "x")
 							{
-								selector.index = 0;
+								mn::buf_push(field.selector_type_indices, 0);
 								type_it = type_it->vec.base;
 							}
 							else if (type_it->vec.width > 1 && name == "y")
 							{
-								selector.index = 1;
+								mn::buf_push(field.selector_type_indices, 1);
 								type_it = type_it->vec.base;
 							}
 							else if (type_it->vec.width > 2 && name == "z")
 							{
-								selector.index = 2;
+								mn::buf_push(field.selector_type_indices, 2);
 								type_it = type_it->vec.base;
 							}
 							else if (type_it->vec.width > 3 && name == "w")
 							{
-								selector.index = 3;
+								mn::buf_push(field.selector_type_indices, 3);
 								type_it = type_it->vec.base;
 							}
 							else
 							{
 								Err err{};
-								err.loc = selector.name->loc;
-								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector.name->atom.tkn.str);
+								err.loc = selector->loc;
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
 								unit_err(self.unit, err);
 								failed = true;
 								break;
@@ -1274,24 +1274,24 @@ namespace sabre
 						}
 						else if (type_it->kind == Type::KIND_STRUCT)
 						{
-							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector.name->atom.tkn.str);
+							auto field_it = mn::map_lookup(type_it->struct_type.fields_by_name, selector->atom.tkn.str);
 							if (field_it == nullptr)
 							{
 								Err err{};
-								err.loc = selector.name->loc;
-								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector.name->atom.tkn.str);
+								err.loc = selector->loc;
+								err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
 								unit_err(self.unit, err);
 								failed = true;
 								break;
 							}
-							selector.index = field_it->value;
+							mn::buf_push(field.selector_type_indices, field_it->value);
 							type_it = type_it->struct_type.fields[field_it->value].type;
 						}
 						else
 						{
 							Err err{};
-							err.loc = selector.name->loc;
-							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector.name->atom.tkn.str);
+							err.loc = selector->loc;
+							err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, selector->atom.tkn.str);
 							unit_err(self.unit, err);
 							failed = true;
 							break;
@@ -1300,7 +1300,7 @@ namespace sabre
 					else
 					{
 						Err err{};
-						err.loc = selector.name->loc;
+						err.loc = selector->loc;
 						err.msg = mn::strf("invalid compound literal selector");
 						unit_err(self.unit, err);
 						failed = true;
@@ -1315,7 +1315,7 @@ namespace sabre
 					if (type_field_index < type_it->vec.width)
 					{
 						type_it = type_it->vec.base;
-						mn::buf_push(field.selector, Complit_Selector{nullptr, type_field_index});
+						mn::buf_push(field.selector_type_indices, type_field_index);
 						++type_field_index;
 					}
 					else
@@ -1332,7 +1332,7 @@ namespace sabre
 					if (type_field_index < type_it->struct_type.fields.count)
 					{
 						type_it = type_it->struct_type.fields[type_field_index].type;
-						mn::buf_push(field.selector, Complit_Selector{nullptr, type_field_index});
+						mn::buf_push(field.selector_type_indices, type_field_index);
 						++type_field_index;
 					}
 					else
@@ -1350,7 +1350,7 @@ namespace sabre
 					if (type_field_index < type_it->array.count)
 					{
 						type_it = type_it->array.base;
-						mn::buf_push(field.selector, Complit_Selector{nullptr, type_field_index});
+						mn::buf_push(field.selector_type_indices, type_field_index);
 						++type_field_index;
 					}
 					else
@@ -1445,10 +1445,10 @@ namespace sabre
 				{
 					auto field = e->complit.fields[i];
 
-					if (field.selector.count > 0)
+					if (field.selector_type_indices.count > 0)
 					{
-						for (auto selector: field.selector)
-							expr_value_aggregate_set(e->const_value, selector.index, field.value->const_value);
+						for (auto index: field.selector_type_indices)
+							expr_value_aggregate_set(e->const_value, index, field.value->const_value);
 					}
 					else
 					{

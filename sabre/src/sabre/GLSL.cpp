@@ -1251,7 +1251,7 @@ namespace sabre
 	{
 		for (auto field: e->complit.fields)
 		{
-			if (field.selector[0].index == index)
+			if (field.selector_type_indices[0] == index)
 				return field.value;
 		}
 		return nullptr;
@@ -1337,12 +1337,12 @@ namespace sabre
 			{
 				_glsl_newline(self);
 				mn::print_to(self.out, tmp_name);
-				if (field.selector.count > 0 && field.selector[0].name != nullptr)
+				if (field.selector_names.count > 0)
 				{
-					for (auto selector: field.selector)
+					for (auto selector: field.selector_names)
 					{
 						mn::print_to(self.out, ".");
-						glsl_expr_gen(self, selector.name);
+						glsl_expr_gen(self, selector);
 					}
 				}
 				else

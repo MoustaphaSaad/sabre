@@ -161,14 +161,14 @@ namespace sabre
 			if (fields.count > 0)
 				_parser_eat_must(self, Tkn::KIND_COMMA);
 
-			auto selector = mn::buf_with_allocator<Complit_Selector>(self.unit->ast_arena);
+			auto selector = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
 			while (_parser_eat_kind(self, Tkn::KIND_DOT))
 			{
 				named = true;
 				auto id = _parser_eat_must(self, Tkn::KIND_ID);
 				auto atom_expr = expr_atom_new(self.unit->ast_arena, id);
 				atom_expr->loc = id.loc;
-				mn::buf_push(selector, Complit_Selector{atom_expr});
+				mn::buf_push(selector, atom_expr);
 			}
 
 			if (selector.count > 0)
@@ -178,7 +178,7 @@ namespace sabre
 				if (named == false && fields.count > 0)
 				{
 					Err err{};
-					err.loc = selector[0].name->loc;
+					err.loc = selector[0]->loc;
 					err.msg = mn::strf("mixing named compound literal fields with unnamed fields is not allowed");
 					unit_err(self.unit, err);
 				}
