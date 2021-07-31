@@ -179,7 +179,17 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = selector[0].name->loc;
-					err.msg = mn::strf("mixing named compound literal fields with unnamed fields is forbidden");
+					err.msg = mn::strf("mixing named compound literal fields with unnamed fields is not allowed");
+					unit_err(self.unit, err);
+				}
+			}
+			else
+			{
+				if (named == true)
+				{
+					Err err{};
+					err.loc = _parser_look(self).loc;
+					err.msg = mn::strf("mixing unnamed compound literal fields with named fields is not allowed");
 					unit_err(self.unit, err);
 				}
 			}
