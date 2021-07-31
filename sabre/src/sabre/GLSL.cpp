@@ -969,9 +969,9 @@ namespace sabre
 	_glsl_rewrite_complits_in_expr(GLSL& self, Expr* e, bool is_const);
 
 	inline static void
-	_glsl_var_gen(GLSL& self, Symbol* sym)
+	_glsl_var_gen(GLSL& self, Symbol* sym, bool in_stmt)
 	{
-		if (sym->var_sym.value)
+		if (sym->var_sym.value && in_stmt == false)
 			_glsl_rewrite_complits_in_expr(self, sym->var_sym.value, false);
 
 		auto decl = symbol_decl(sym);
@@ -1047,9 +1047,9 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_const_gen(GLSL& self, Symbol* sym)
+	_glsl_const_gen(GLSL& self, Symbol* sym, bool in_stmt)
 	{
-		if (sym->const_sym.value)
+		if (sym->const_sym.value && in_stmt == false)
 			_glsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
 
 		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
@@ -1109,7 +1109,7 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_symbol_gen(GLSL& self, Symbol* sym)
+	_glsl_symbol_gen(GLSL& self, Symbol* sym, bool in_stmt)
 	{
 		switch (sym->kind)
 		{
@@ -1117,10 +1117,10 @@ namespace sabre
 			_glsl_func_gen(self, sym);
 			break;
 		case Symbol::KIND_VAR:
-			_glsl_var_gen(self, sym);
+			_glsl_var_gen(self, sym, in_stmt);
 			break;
 		case Symbol::KIND_CONST:
-			_glsl_const_gen(self, sym);
+			_glsl_const_gen(self, sym, in_stmt);
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 		{
@@ -1152,7 +1152,7 @@ namespace sabre
 				{
 					if (i > 0)
 						_glsl_newline(self);
-					_glsl_symbol_gen(self, package->reachable_symbols[i]);
+					_glsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
 				}
 				if (package->reachable_symbols.count > 0)
 					_glsl_newline(self);
@@ -1183,7 +1183,7 @@ namespace sabre
 				if (i > 0)
 					_glsl_newline(self);
 				auto name = d->var_decl.names[i];
-				_glsl_symbol_gen(self, scope_find(scope, name.str));
+				_glsl_symbol_gen(self, scope_find(scope, name.str), true);
 			}
 			break;
 		}
@@ -1194,7 +1194,7 @@ namespace sabre
 				if (i > 0)
 					_glsl_newline(self);
 				auto name = d->const_decl.names[i];
-				_glsl_symbol_gen(self, scope_find(scope, name.str));
+				_glsl_symbol_gen(self, scope_find(scope, name.str), true);
 			}
 			break;
 		}
@@ -1297,29 +1297,36 @@ namespace sabre
 					mn::print_to(self.out, ", ");
 
 				if (auto v = _glsl_complit_field_value_by_index(e, i))
+				{
 					glsl_expr_gen(self, v);
+					// advance the field index by sub vector size to handle vector upcast cases
+					if (type_is_vec(v->type))
+						i += v->type->vec.width - 1;
+				}
 				else
+				{
 					_glsl_zero_value(self, e->type->vec.base);
+				}
 			}
 			mn::print_to(self.out, ");");
 		}
-		else if (type_is_struct(e->type))
-		{
-			auto tmp_name = _glsl_tmp_name(self);
-			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
-			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
-			for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
-			{
-				if (i > 0)
-					mn::print_to(self.out, ", ");
+		// else if (type_is_struct(e->type))
+		// {
+		// 	auto tmp_name = _glsl_tmp_name(self);
+		// 	mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+		// 	mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
+		// 	for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
+		// 	{
+		// 		if (i > 0)
+		// 			mn::print_to(self.out, ", ");
 
-				if (auto v = _glsl_complit_field_value_by_index(e, i))
-					glsl_expr_gen(self, v);
-				else
-					_glsl_zero_value(self, e->type->struct_type.fields[i].type);
-			}
-			mn::print_to(self.out, ");");
-		}
+		// 		if (auto v = _glsl_complit_field_value_by_index(e, i))
+		// 			glsl_expr_gen(self, v);
+		// 		else
+		// 			_glsl_zero_value(self, e->type->struct_type.fields[i].type);
+		// 	}
+		// 	mn::print_to(self.out, ");");
+		// }
 		else
 		{
 			auto tmp_name = _glsl_tmp_name(self);
@@ -1330,7 +1337,7 @@ namespace sabre
 			{
 				_glsl_newline(self);
 				mn::print_to(self.out, tmp_name);
-				if (field.selector.count > 0)
+				if (field.selector.count > 0 && field.selector[0].name != nullptr)
 				{
 					for (auto selector: field.selector)
 					{
@@ -1926,7 +1933,7 @@ namespace sabre
 				_glsl_newline(self);
 
 			auto pos = _glsl_buffer_position(self);
-			_glsl_symbol_gen(self, self.unit->reachable_symbols[i]);
+			_glsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
 			last_symbol_was_generated = _glsl_code_generated_after(self, pos);
 		}
 

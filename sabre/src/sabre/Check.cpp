@@ -1232,7 +1232,8 @@ namespace sabre
 
 			auto type_it = type;
 			bool failed = false;
-			if (field.selector.count > 0)
+			bool has_selector = field.selector.count > 0;
+			if (has_selector)
 			{
 				for (auto& selector: field.selector)
 				{
@@ -1372,7 +1373,7 @@ namespace sabre
 			}
 
 			Type* expected_type = nullptr;
-			if (field.selector.count > 0 && failed == false)
+			if (has_selector && failed == false)
 				expected_type = type_it;
 			else
 				expected_type = _typer_peel_top_type(type);
@@ -1389,7 +1390,7 @@ namespace sabre
 			if (failed == false)
 			{
 				// special case vector upcast
-				if (field.selector.count == 0 && type->kind == Type::KIND_VEC && value_type->kind == Type::KIND_VEC)
+				if (has_selector == false && type->kind == Type::KIND_VEC && value_type->kind == Type::KIND_VEC)
 				{
 					if (value_type->vec.width <= type->vec.width && type_is_equal(value_type->vec.base, type->vec.base))
 					{
