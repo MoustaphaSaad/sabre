@@ -1315,7 +1315,7 @@ namespace sabre
 				complit_value_propagate(subvalue_it);
 		}
 		// reset the value since we have propagated values to its children
-		self->value = nullptr;
+		// self->value = nullptr;
 	}
 
 	inline static bool
@@ -1323,15 +1323,19 @@ namespace sabre
 	{
 		auto fields_count = type_fields_count(t);
 		return (
-			fields_count > 0
-			// type_is_vec(t) == false &&
-			// (type_is_array(t) && type_fields_count(t->array.base) == 0) == false
+			fields_count > 0 &&
+			type_is_vec(t) == false &&
+			(type_is_array(t) && _glsl_should_generate_subfields_for(t->array.base) == false) == false
 		);
 	}
 
 	inline static const char*
 	_glsl_generate_complit(GLSL& self, Complit_Value* root_value, bool is_const)
 	{
+		// if (root_value->value)
+		// 	if (auto it = mn::map_lookup(self.symbol_to_names, (void*)root_value->value))
+		// 		return it->value;
+
 		auto fields_count = type_fields_count(root_value->type);
 		if (_glsl_should_generate_subfields_for(root_value->type))
 		{
@@ -1348,7 +1352,9 @@ namespace sabre
 		auto tmp_name = _glsl_tmp_name(self);
 		mn::map_insert(self.symbol_to_names, (void*)root_value->value, tmp_name);
 		mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, root_value->type, tmp_name), _glsl_write_field(self, root_value->type, nullptr));
-		if (fields_count > 0)
+		if (root_value->value &&
+			root_value->value->kind == Expr::KIND_COMPLIT &&
+			fields_count > 0)
 		{
 			for (size_t i = 0; i < fields_count; ++i)
 			{
@@ -1371,8 +1377,13 @@ namespace sabre
 					_glsl_zero_value(self, subfield_type);
 				}
 
-				if (type_is_vec(subfield_type))
+				// handle vector upcast
+				if (type_is_vec(subfield_type) &&
+					type_is_vec(root_value->type) &&
+					root_value->type->vec.width >= subfield_type->vec.width)
+				{
 					i += subfield_type->vec.width - 1;
+				}
 			}
 		}
 		else
@@ -1387,8 +1398,6 @@ namespace sabre
 	inline static void
 	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		if (type_is_array(e->type) ||
-			type_is_vec(e->type))
 		{
 			for (size_t i = 0; i < e->complit.fields.count; ++i)
 			{

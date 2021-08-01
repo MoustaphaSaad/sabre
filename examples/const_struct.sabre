@@ -3,13 +3,13 @@ type Point struct {
 }
 
 var koko: vec3 = {};
-var koko2: vec4 = {koko};
+var koko2: vec4 = {koko, 2.4};
 
-// const v: vec2 = { 1, 2 };
-// const v2: bvec3 = {true};
-// 
-// var p: Point = {
-// 	.p = {.y = 2341},
-// 	.p.x = 12,
-// 	.p.y = 234,
-// };
+const v: vec2 = { 1, 2 };
+const v2: bvec3 = {true};
+
+var p: Point = {
+	.p.y = 234,
+	.p = {.y = 2341},
+	.p.x = 12,
+};
