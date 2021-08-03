@@ -161,41 +161,45 @@ namespace sabre
 			if (fields.count > 0)
 				_parser_eat_must(self, Tkn::KIND_COMMA);
 
-			auto selector = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
-			while (_parser_eat_kind(self, Tkn::KIND_DOT))
+			auto expr = parser_parse_expr(self);
+			if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
 			{
-				named = true;
-				auto id = _parser_eat_must(self, Tkn::KIND_ID);
-				auto atom_expr = expr_atom_new(self.unit->ast_arena, id);
-				atom_expr->loc = id.loc;
-				mn::buf_push(selector, atom_expr);
-			}
-
-			if (selector.count > 0)
-			{
-				_parser_eat_must(self, Tkn::KIND_EQUAL);
+				auto value = parser_parse_expr(self);
+				if (expr->kind != Expr::KIND_ATOM)
+				{
+					Err err{};
+					err.loc = expr->loc;
+					err.msg = mn::strf("composite literal key should be a member identifer expression");
+					unit_err(self.unit, err);
+				}
 
 				if (named == false && fields.count > 0)
 				{
 					Err err{};
-					err.loc = selector[0]->loc;
+					err.loc = expr->loc;
 					err.msg = mn::strf("mixing named compound literal fields with unnamed fields is not allowed");
 					unit_err(self.unit, err);
 				}
+
+				Complit_Field field{};
+				field.selector_name = expr;
+				field.value = value;
+				mn::buf_push(fields, field);
+				named = true;
 			}
 			else
 			{
-				if (named == true)
+				if (named && fields.count > 0)
 				{
 					Err err{};
-					err.loc = _parser_look(self).loc;
-					err.msg = mn::strf("mixing unnamed compound literal fields with named fields is not allowed");
+					err.loc = expr->loc;
+					err.msg = mn::strf("mixing named compound literal fields with unnamed fields is not allowed");
 					unit_err(self.unit, err);
 				}
+				Complit_Field field{};
+				field.value = expr;
+				mn::buf_push(fields, field);
 			}
-
-			auto right = parser_parse_expr(self);
-			mn::buf_push(fields, complit_field_member(selector, right));
 		}
 		// last comma is optional
 		_parser_eat_kind(self, Tkn::KIND_COMMA);

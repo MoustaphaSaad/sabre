@@ -101,7 +101,6 @@ namespace sabre
 	}
 
 	struct Type;
-	struct Expr;
 	struct Symbol;
 	struct Decl;
 
@@ -120,23 +119,13 @@ namespace sabre
 	// represents a compound literal field
 	struct Complit_Field
 	{
-		// this array contains the names which the user has written in said expressions
-		mn::Buf<Expr*> selector_names;
-		// indices of said fields in the type system (this is filled by the type checker)
-		mn::Buf<size_t> selector_type_indices;
+		// the name which the user has written in complit expression
+		Expr* selector_name;
+		// index of said field in the type system (this is filled by the type checker)
+		size_t selector_index;
+		// value assigned to that field
 		Expr* value;
 	};
-
-	// creates a new compound literal field member
-	inline static Complit_Field
-	complit_field_member(mn::Buf<Expr*> selectors, Expr* value)
-	{
-		Complit_Field self{};
-		self.selector_names = selectors;
-		self.selector_type_indices = mn::buf_with_allocator<size_t>(selectors.allocator);
-		self.value = value;
-		return self;
-	}
 
 	// represents an expression
 	struct Expr
@@ -214,6 +203,9 @@ namespace sabre
 			{
 				Type_Sign type;
 				mn::Buf<Complit_Field> fields;
+				// map of field index in type system (Type) to field index in the above fields buf
+				// this is used to check if the user has referenced the same field twice
+				mn::Map<size_t, size_t> referenced_fields;
 			} complit;
 		};
 	};
@@ -303,6 +295,7 @@ namespace sabre
 		self->kind = Expr::KIND_COMPLIT;
 		self->complit.type = type;
 		self->complit.fields = fields;
+		self->complit.referenced_fields = mn::map_with_allocator<size_t, size_t>(arena);
 		return self;
 	}
 

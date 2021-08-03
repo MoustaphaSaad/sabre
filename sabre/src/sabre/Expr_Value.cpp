@@ -45,7 +45,8 @@ namespace sabre
 			else
 				return nullptr;
 		default:
-			break;
+			assert(false && "unreachable");
+			return nullptr;
 		}
 	}
 
@@ -71,6 +72,7 @@ namespace sabre
 		else
 		{
 			assert(false && "unhandled expression value type");
+			return Expr_Value{};
 		}
 	}
 
