@@ -1262,60 +1262,59 @@ namespace sabre
 		Type* type;
 		Expr* value;
 		const char* tmp_var_name;
-		mn::Map<size_t, Complit_Value> as_aggregate;
+		mn::Map<size_t, Complit_Value*> as_aggregate;
 	};
-
-	inline static Complit_Value
-	complit_value_new()
-	{
-		Complit_Value self{};
-		self.as_aggregate = mn::map_with_allocator<size_t, Complit_Value>(mn::memory::tmp());
-		return self;
-	}
 
 	inline static Complit_Value*
 	complit_value_find(Complit_Value* self, size_t index)
 	{
 		if (auto it = mn::map_lookup(self->as_aggregate, index))
-			return &it->value;
+			return it->value;
+		assert(false && "unreachable");
 		return nullptr;
 	}
 
 	inline static Complit_Value*
-	complit_value_subfield(Complit_Value* self, size_t index)
+	complit_value_for_type(mn::Allocator arena, Type* t)
 	{
-		if (auto it = mn::map_lookup(self->as_aggregate, index))
-			return &it->value;
+		auto self = mn::alloc_zerod_from<Complit_Value>(arena);
+		self->type = t;
+		self->as_aggregate = mn::map_with_allocator<size_t, Complit_Value*>(arena);
 
-		auto new_value = complit_value_new();
-		new_value.type = type_field_by_index(self->type, index);
-		return &mn::map_insert(self->as_aggregate, index, new_value)->value;
+		auto fields_count = type_fields_count(t);
+		for (size_t i = 0; i < fields_count; ++i)
+		{
+			auto subtype = type_field_by_index(t, i);
+			mn::map_insert(self->as_aggregate, i, complit_value_for_type(arena, subtype));
+		}
+		return self;
 	}
 
 	inline static void
-	complit_value_propagate(Complit_Value* self)
+	complit_value_set(Complit_Value* self, Expr* e)
 	{
+		self->value = e;
+
 		auto fields_count = type_fields_count(self->type);
-		if (fields_count == 0 || self->value->kind != Expr::KIND_COMPLIT)
-			return;
-
-		for (const auto& field: self->value->complit.fields)
+		if (fields_count > 0 && e->kind == Expr::KIND_COMPLIT)
 		{
-			// generate the composite literal values
-			auto subvalue_it = self;
-			for (auto selector_type_index: field.selector_type_indices)
+			for (size_t i = 0; i < fields_count; ++i)
 			{
-				subvalue_it = complit_value_subfield(subvalue_it, selector_type_index);
+				auto subvalue = complit_value_find(self, i);
+				subvalue->value = nullptr;
 			}
-			subvalue_it->value = field.value;
-			if (field.value)
-				subvalue_it->type = field.value->type;
 
-			if (type_fields_count(subvalue_it->type) > 0)
-				complit_value_propagate(subvalue_it);
+			for (const auto& field: e->complit.fields)
+			{
+				// generate the composite literal values
+				auto value_it = self;
+				for (auto selector_type_index: field.selector_type_indices)
+				{
+					value_it = complit_value_find(value_it, selector_type_index);
+				}
+				complit_value_set(value_it, field.value);
+			}
 		}
-		// reset the value since we have propagated values to its children
-		// self->value = nullptr;
 	}
 
 	inline static bool
@@ -1330,19 +1329,18 @@ namespace sabre
 	}
 
 	inline static const char*
-	_glsl_generate_complit(GLSL& self, Complit_Value* root_value, bool is_const)
+	_glsl_generate_complit(GLSL& self, Complit_Value* value, bool is_const)
 	{
-		// if (root_value->value)
-		// 	if (auto it = mn::map_lookup(self.symbol_to_names, (void*)root_value->value))
-		// 		return it->value;
+		mn::print_to(self.out, "value: {}: {}", (void*)value, value->tmp_var_name ? value->tmp_var_name : "");
+		_glsl_newline(self);
 
-		auto fields_count = type_fields_count(root_value->type);
-		if (_glsl_should_generate_subfields_for(root_value->type))
+		auto fields_count = type_fields_count(value->type);
+		if (_glsl_should_generate_subfields_for(value->type))
 		{
 			for (size_t i = 0; i < fields_count; ++i)
 			{
-				if (auto subfield = complit_value_find(root_value, i))
-					subfield->tmp_var_name = _glsl_generate_complit(self, subfield, is_const);
+				auto subfield = complit_value_find(value, i);
+				subfield->tmp_var_name = _glsl_generate_complit(self, subfield, is_const);
 			}
 		}
 
@@ -1350,45 +1348,36 @@ namespace sabre
 			mn::print_to(self.out, "const ");
 
 		auto tmp_name = _glsl_tmp_name(self);
-		mn::map_insert(self.symbol_to_names, (void*)root_value->value, tmp_name);
-		mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, root_value->type, tmp_name), _glsl_write_field(self, root_value->type, nullptr));
-		if (root_value->value &&
-			root_value->value->kind == Expr::KIND_COMPLIT &&
-			fields_count > 0)
+		if (value->value)
+			mn::map_insert(self.symbol_to_names, (void*)value->value, tmp_name);
+		mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, value->type, tmp_name), _glsl_write_field(self, value->type, nullptr));
+		if (value->value && value->value->kind != Expr::KIND_COMPLIT)
+		{
+			glsl_expr_gen(self, value->value);
+		}
+		else
 		{
 			for (size_t i = 0; i < fields_count; ++i)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
 
-				Type* subfield_type = type_void;
-				if (auto subfield = complit_value_find(root_value, i))
-				{
-					subfield_type = subfield->type;
-
-					if (subfield->tmp_var_name)
-						mn::print_to(self.out, subfield->tmp_var_name);
-					else
-						glsl_expr_gen(self, subfield->value);
-				}
+				auto subfield = complit_value_find(value, i);
+				if (subfield->tmp_var_name)
+					mn::print_to(self.out, subfield->tmp_var_name);
+				else if (subfield->value)
+					glsl_expr_gen(self, subfield->value);
 				else
-				{
-					subfield_type = type_field_by_index(root_value->type, i);
-					_glsl_zero_value(self, subfield_type);
-				}
+					_glsl_zero_value(self, subfield->type);
 
 				// handle vector upcast
-				if (type_is_vec(subfield_type) &&
-					type_is_vec(root_value->type) &&
-					root_value->type->vec.width >= subfield_type->vec.width)
+				if (type_is_vec(subfield->type) &&
+					type_is_vec(value->type) &&
+					value->type->vec.width >= subfield->type->vec.width)
 				{
-					i += subfield_type->vec.width - 1;
+					i += subfield->type->vec.width - 1;
 				}
 			}
-		}
-		else
-		{
-			glsl_expr_gen(self, root_value->value);
 		}
 		mn::print_to(self.out, ");");
 		_glsl_newline(self);
@@ -1398,6 +1387,7 @@ namespace sabre
 	inline static void
 	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e, bool is_const)
 	{
+		// if (type_is_array(e->type) || type_is_vec(e->type))
 		{
 			for (size_t i = 0; i < e->complit.fields.count; ++i)
 			{
@@ -1454,26 +1444,9 @@ namespace sabre
 		}
 		else
 		{
-			auto root_value = complit_value_new();
-			root_value.type = e->type;
-			root_value.value = e;
-
-			for (const auto& field: e->complit.fields)
-			{
-				// generate the composite literal values
-				auto value_it = &root_value;
-				for (auto selector_type_index: field.selector_type_indices)
-				{
-					value_it = complit_value_subfield(value_it, selector_type_index);
-				}
-				value_it->value = field.value;
-				if (field.value)
-					value_it->type = field.value->type;
-
-				complit_value_propagate(value_it);
-			}
-
-			_glsl_generate_complit(self, &root_value, is_const);
+			auto value = complit_value_for_type(mn::memory::tmp(), e->type);
+			complit_value_set(value, e);
+			_glsl_generate_complit(self, value, is_const);
 		}
 	}
 
