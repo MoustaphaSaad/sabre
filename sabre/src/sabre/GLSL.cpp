@@ -606,10 +606,21 @@ namespace sabre
 			}
 			mn::print_to(self.out, ")");
 			break;
+		case Type::KIND_STRUCT:
+			mn::print_to(self.out, "{}(", _glsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->struct_type.fields.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_glsl_zero_value(self, t->struct_type.fields[i].type);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_ENUM:
+			mn::print_to(self.out, "{}(0)", _glsl_write_field(self, t, nullptr));
+			break;
 		case Type::KIND_VOID:
 		case Type::KIND_FUNC:
-		case Type::KIND_STRUCT:
-			// revisit structure zero values later
 		case Type::KIND_TEXTURE:
 		case Type::KIND_PACKAGE:
 		case Type::KIND_FUNC_OVERLOAD_SET:
