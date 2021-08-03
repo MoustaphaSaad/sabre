@@ -954,6 +954,10 @@ namespace sabre
 		}
 		_parser_eat_must(self, Tkn::KIND_COLON);
 		field.type = _parser_parse_type(self);
+		if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
+		{
+			field.default_value = parser_parse_expr(self);
+		}
 		return field;
 	}
 

@@ -32,15 +32,15 @@ const MAX_COLOR_ATTACHMENT = 4;
 type Pipeline struct {
 	rasterizer: Rasterizer,
 	depth: Depth,
-	independent_blend: bool,
+	independent_blend: bool = false,
 	blend: [MAX_COLOR_ATTACHMENT]Blend,
 }
 
 type Rasterizer struct {
-	cull: bool,
-	face: Face,
-	front: Orientation,
-	scissor: bool,
+	cull: bool = true,
+	face: Face = .Back,
+	front: Orientation = .CCW,
+	scissor: bool = false,
 }
 
 type Face enum {
@@ -58,14 +58,17 @@ type Orientation enum {
 
 type Depth struct {
 	depth_test: bool = true,
-	depth_write: bool,
+	depth_write: bool = true,
 }
 
 type Blend struct {
-	enabled: bool,
-	src_rgb, dst_rgb, src_alpha, dst_alpha: Blend_Param,
-	eq_rgb, eq_alpha: Blend_Eq,
-	color_mask: Color_Mask,
+	enabled: bool = true,
+	src_rgb: Blend_Param = .Src_Alpha,
+	dst_rgb: Blend_Param = .One_Minus_Src_Alpha,
+	src_alpha: Blend_Param = .One,
+	dst_alpha: Blend_Param = .One_Minus_Src_Alpha,
+	eq_rgb, eq_alpha: Blend_Eq = .Add,
+	color_mask: Color_Mask = .All,
 }
 
 type Blend_Param enum {

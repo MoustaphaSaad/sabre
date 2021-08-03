@@ -612,7 +612,10 @@ namespace sabre
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				_glsl_zero_value(self, t->struct_type.fields[i].type);
+				if (t->struct_type.fields[i].default_value)
+					glsl_expr_gen(self, t->struct_type.fields[i].default_value);
+				else
+					_glsl_zero_value(self, t->struct_type.fields[i].type);
 			}
 			mn::print_to(self.out, ")");
 			break;

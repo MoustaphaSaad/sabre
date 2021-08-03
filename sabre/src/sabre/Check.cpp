@@ -2235,11 +2235,35 @@ namespace sabre
 				auto field_type = _typer_resolve_type_sign(self, field.type);
 				if (field_type->kind == Type::KIND_INCOMPLETE || field_type->kind == Type::KIND_COMPLETING)
 					_typer_complete_type(self, field_type->struct_type.symbol, type_sign_location(field.type));
+
+				if (field.default_value)
+				{
+					_typer_push_expected_expression_type(self, field_type);
+					auto default_value_type = _typer_resolve_expr(self, field.default_value);
+					_typer_pop_expected_expression_type(self);
+
+					if (type_is_equal(default_value_type, field_type) == false)
+					{
+						Err err{};
+						err.loc = field.default_value->loc;
+						err.msg = mn::strf("type mismatch in default value which has type '{}' but field type is '{}'", default_value_type, field_type);
+						unit_err(self.unit, err);
+					}
+
+					if (field.default_value->mode != ADDRESS_MODE_CONST)
+					{
+						Err err{};
+						err.loc = field.default_value->loc;
+						err.msg = mn::strf("default value should be a constant");
+						unit_err(self.unit, err);
+					}
+				}
 				for (auto name: field.names)
 				{
 					Struct_Field_Type struct_field{};
 					struct_field.name = name;
 					struct_field.type = field_type;
+					struct_field.default_value = field.default_value;
 					mn::buf_push(struct_fields, struct_field);
 
 					if (auto it = mn::map_lookup(struct_fields_by_name, name.str))
@@ -2588,13 +2612,13 @@ namespace sabre
 				size_t struct_type_index = 0;
 				for (const auto& field: struct_decl->struct_decl.fields)
 				{
-					const auto& [field_name, field_type] = arg_type->struct_type.fields[struct_type_index];
+					const auto& struct_field = arg_type->struct_type.fields[struct_type_index];
 
-					if (type_is_shader_input(field_type) == false)
+					if (type_is_shader_input(struct_field.type) == false)
 					{
 						Err err{};
-						err.loc = field_name.loc;
-						err.msg = mn::strf("type '{}' cannot be used as shader input", field_type);
+						err.loc = struct_field.name.loc;
+						err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
 						unit_err(self.unit, err);
 					}
 					struct_type_index += field.names.count;
@@ -2627,24 +2651,24 @@ namespace sabre
 			size_t struct_type_index = 0;
 			for (const auto& field: struct_decl->struct_decl.fields)
 			{
-				const auto& [field_name, field_type] = return_type->struct_type.fields[struct_type_index];
+				const auto& struct_field = return_type->struct_type.fields[struct_type_index];
 
 				if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
 				{
-					if (field_type != type_vec4)
+					if (struct_field.type != type_vec4)
 					{
 						Err err{};
-						err.loc = field_name.loc;
-						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", field_type);
+						err.loc = struct_field.name.loc;
+						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
 						unit_err(self.unit, err);
 					}
 				}
 
-				if (type_is_shader_input(field_type) == false)
+				if (type_is_shader_input(struct_field.type) == false)
 				{
 					Err err{};
-					err.loc = field_name.loc;
-					err.msg = mn::strf("type '{}' cannot be used as shader input", field_type);
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
 					unit_err(self.unit, err);
 				}
 				struct_type_index += field.names.count;

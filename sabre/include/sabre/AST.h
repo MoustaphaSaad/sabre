@@ -512,6 +512,7 @@ namespace sabre
 		Tag_Table tags;
 		mn::Buf<Tkn> names;
 		Type_Sign type;
+		Expr* default_value;
 	};
 
 	inline static Field

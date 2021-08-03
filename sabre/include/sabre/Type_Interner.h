@@ -160,6 +160,7 @@ namespace sabre
 	{
 		Tkn name;
 		Type* type;
+		Expr* default_value;
 	};
 
 	struct Enum_Field_Type
