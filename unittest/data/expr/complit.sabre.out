@@ -13,9 +13,21 @@
   )
   (field 
     (atom 'x')
-    (atom 'y')
-    (atom 'w')
-    (atom 'qwqre')
-    (atom '324')
+    (complit (type-sign )
+      (field 
+        (atom 'y')
+        (complit (type-sign )
+          (field 
+            (atom 'w')
+            (complit (type-sign )
+              (field 
+                (atom 'qwqre')
+                (atom '324')
+              )
+            )
+          )
+        )
+      )
+    )
   )
 )

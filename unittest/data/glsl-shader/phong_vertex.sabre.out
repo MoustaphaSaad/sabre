@@ -19,10 +19,7 @@ layout(binding = 0, std140) uniform uniform_tmp_1 {
 };
 main_PS_Input main_main(main_VS_Input RESERVED_input) {
 	vec4 _tmp_2 = vec4(RESERVED_input.position, 1.0);
-	main_PS_Input _tmp_3;
-	_tmp_3.position = main_mvp * _tmp_2;
-	_tmp_3.vertex_position = RESERVED_input.position;
-	_tmp_3.vertex_normal = RESERVED_input.normal;
+	main_PS_Input _tmp_3 = main_PS_Input(main_mvp * _tmp_2, RESERVED_input.position, RESERVED_input.normal);
 	return _tmp_3;
 }
 

@@ -619,6 +619,80 @@ namespace sabre
 		return type_void;
 	}
 
+	inline static Type*
+	type_field_by_index(Type* t, size_t index)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_VOID:
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_FUNC:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+			return nullptr;
+		case Type::KIND_VEC:
+			if (index < t->vec.width)
+				return t->vec.base;
+			return nullptr;
+		case Type::KIND_MAT:
+			if (index < t->mat.width)
+				return t->mat.base;
+			return nullptr;
+		case Type::KIND_STRUCT:
+			if (index < t->struct_type.fields.count)
+				return t->struct_type.fields[index].type;
+			return nullptr;
+		case Type::KIND_ARRAY:
+			if (index < t->array.count)
+				return t->array.base;
+			return nullptr;
+		case Type::KIND_ENUM:
+			if (index < t->enum_type.fields.count)
+				return type_int;
+			return nullptr;
+		default:
+			assert(false && "unreachable");
+			return nullptr;
+		}
+	}
+
+	inline static size_t
+	type_fields_count(Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_VOID:
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_FUNC:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+			return 0;
+		case Type::KIND_VEC:
+			return t->vec.width;
+		case Type::KIND_MAT:
+			return t->mat.width;
+		case Type::KIND_STRUCT:
+			return t->struct_type.fields.count;
+		case Type::KIND_ARRAY:
+			return t->array.count;
+		case Type::KIND_ENUM:
+			return t->enum_type.fields.count;
+		default:
+			assert(false && "unreachable");
+			return 0;
+		}
+	}
+
 	// interns the different types to make comparisons and memory management easier
 	struct Type_Interner
 	{

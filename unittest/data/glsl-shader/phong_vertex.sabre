@@ -14,8 +14,8 @@ type PS_Input struct {
 @vertex
 func main(input: VS_Input): PS_Input {
 	return :PS_Input {
-		.position = mvp * :vec4{input.position, 1.0},
-		.vertex_position = input.position,
-		.vertex_normal = input.normal,
+		position = mvp * :vec4{input.position, 1.0},
+		vertex_position = input.position,
+		vertex_normal = input.normal,
 	};
 }

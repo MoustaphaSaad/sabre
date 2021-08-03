@@ -1246,17 +1246,6 @@ namespace sabre
 		_glsl_rewrite_complits_in_expr(self, e->cast.base, is_const);
 	}
 
-	inline static Expr*
-	_glsl_complit_field_value_by_index(Expr* e, size_t index)
-	{
-		for (auto field: e->complit.fields)
-		{
-			if (field.selector_type_indices[0] == index)
-				return field.value;
-		}
-		return nullptr;
-	}
-
 	inline static void
 	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e, bool is_const)
 	{
@@ -1285,6 +1274,7 @@ namespace sabre
 					_glsl_zero_value(self, e->type->array.base);
 			}
 			mn::print_to(self.out, ");");
+			_glsl_newline(self);
 		}
 		else if (type_is_vec(e->type))
 		{
@@ -1296,12 +1286,13 @@ namespace sabre
 				if (i > 0)
 					mn::print_to(self.out, ", ");
 
-				if (auto v = _glsl_complit_field_value_by_index(e, i))
+				if (auto field_it = mn::map_lookup(e->complit.referenced_fields, i))
 				{
-					glsl_expr_gen(self, v);
+					auto field = e->complit.fields[field_it->value];
+					glsl_expr_gen(self, field.value);
 					// advance the field index by sub vector size to handle vector upcast cases
-					if (type_is_vec(v->type))
-						i += v->type->vec.width - 1;
+					if (type_is_vec(field.value->type))
+						i += field.value->type->vec.width - 1;
 				}
 				else
 				{
@@ -1309,82 +1300,35 @@ namespace sabre
 				}
 			}
 			mn::print_to(self.out, ");");
+			_glsl_newline(self);
 		}
-		// else if (type_is_struct(e->type))
-		// {
-		// 	auto tmp_name = _glsl_tmp_name(self);
-		// 	mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
-		// 	mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
-		// 	for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
-		// 	{
-		// 		if (i > 0)
-		// 			mn::print_to(self.out, ", ");
-
-		// 		if (auto v = _glsl_complit_field_value_by_index(e, i))
-		// 			glsl_expr_gen(self, v);
-		// 		else
-		// 			_glsl_zero_value(self, e->type->struct_type.fields[i].type);
-		// 	}
-		// 	mn::print_to(self.out, ");");
-		// }
-		else
+		else if (type_is_struct(e->type))
 		{
 			auto tmp_name = _glsl_tmp_name(self);
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
-			mn::print_to(self.out, "{};", _glsl_write_field(self, e->type, tmp_name));
-			size_t field_index = 0;
-			for (const auto& field: e->complit.fields)
+			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
+			for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
 			{
-				_glsl_newline(self);
-				mn::print_to(self.out, tmp_name);
-				if (field.selector_names.count > 0)
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+
+				if (auto field_it = mn::map_lookup(e->complit.referenced_fields, i))
 				{
-					for (auto selector: field.selector_names)
-					{
-						mn::print_to(self.out, ".");
-						glsl_expr_gen(self, selector);
-					}
+					auto field = e->complit.fields[field_it->value];
+					glsl_expr_gen(self, field.value);
 				}
 				else
 				{
-					if (e->type->kind == Type::KIND_VEC)
-					{
-						assert(field_index < 4);
-
-						auto value_width = 1;
-						if (field.value->type->kind == Type::KIND_VEC)
-							value_width = field.value->type->vec.width;
-
-						mn::print_to(self.out, ".");
-						for (size_t i = 0; i < value_width; ++i)
-						{
-							if (field_index + i == 0)
-								mn::print_to(self.out, "x");
-							else if (field_index + i == 1)
-								mn::print_to(self.out, "y");
-							else if (field_index + i == 2)
-								mn::print_to(self.out, "z");
-							else if (field_index + i == 3)
-								mn::print_to(self.out, "w");
-						}
-						field_index += value_width - 1;
-					}
-					else if (e->type->kind == Type::KIND_STRUCT)
-					{
-						mn::print_to(self.out, ".{}", e->type->struct_type.fields[field_index++].name.str);
-					}
-					else
-					{
-						assert(false && "unreachable");
-					}
+					_glsl_zero_value(self, e->type->struct_type.fields[i].type);
 				}
-				mn::print_to(self.out, " = ");
-				glsl_expr_gen(self, field.value);
-				mn::print_to(self.out, ";");
-				++field_index;
 			}
+			mn::print_to(self.out, ");");
+			_glsl_newline(self);
 		}
-		_glsl_newline(self);
+		else
+		{
+			assert(false && "unreachable");
+		}
 	}
 
 	inline static void

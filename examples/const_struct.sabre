@@ -1,11 +1,14 @@
-type Point struct {
+type Line struct {
 	p: vec2,
+	p2: vec3,
 }
+
+var p: Line = {
+	p = {x = 23},
+};
+
+var koko: vec3 = {};
+var koko2: vec4 = {koko, 2.4};
 
 const v: vec2 = { 1, 2 };
 const v2: bvec3 = {true};
-
-var p: Point = {
-	.p.x = 12,
-	.p.y = 32,
-};

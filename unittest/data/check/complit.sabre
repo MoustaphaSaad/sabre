@@ -4,15 +4,15 @@ type Point struct {
 
 func add(a, b: Point): Point {
 	return :Point {
-		.x = a.x + b.x,
-		.y = a.y + b.y,
-		.z = a.x + b.y,
+		x = a.x + b.x,
+		y = a.y + b.y,
+		z = a.x + b.y,
 	};
 }
 
 func add2(a, b: Point): Point {
 	return :Point {
-		.x.sdwert = a.x + b.x,
-		.y = a.y + b.y,
+		x.sdwert = a.x + b.x,
+		y = a.y + b.y,
 	};
 }
