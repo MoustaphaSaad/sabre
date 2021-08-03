@@ -1462,6 +1462,17 @@ namespace sabre
 
 				e->mode = ADDRESS_MODE_CONST;
 			}
+			else if (type_is_struct(type))
+			{
+				e->const_value = expr_value_aggregate(e->loc.file->ast_arena, type);
+				for (size_t i = 0; i < e->complit.fields.count; ++i)
+				{
+					auto field = e->complit.fields[i];
+					expr_value_aggregate_set(e->const_value, field.selector_index, field.value->const_value);
+				}
+
+				e->mode = ADDRESS_MODE_CONST;
+			}
 			else
 			{
 				// TODO(Moustapha): handle arbitrary constant types later
