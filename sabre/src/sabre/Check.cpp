@@ -1244,17 +1244,17 @@ namespace sabre
 					}
 					else if (type_it->vec.width > 1 && name == "y")
 					{
-						field.selector_index = 0;
+						field.selector_index = 1;
 						type_it = type_it->vec.base;
 					}
 					else if (type_it->vec.width > 2 && name == "z")
 					{
-						field.selector_index = 0;
+						field.selector_index = 2;
 						type_it = type_it->vec.base;
 					}
 					else if (type_it->vec.width > 3 && name == "w")
 					{
-						field.selector_index = 0;
+						field.selector_index = 3;
 						type_it = type_it->vec.base;
 					}
 					else
@@ -1356,19 +1356,22 @@ namespace sabre
 				}
 			}
 
-			if (auto it = mn::map_lookup(e->complit.referenced_fields, field.selector_index))
+			if (failed == false)
 			{
-				Err err{};
-				err.loc = field.selector_name->loc;
-				err.msg = mn::strf(
-					"duplicate field name '{}' in composite literal",
-					field.selector_name->atom.tkn.str
-				);
-				unit_err(self.unit, err);
-			}
-			else
-			{
-				mn::map_insert(e->complit.referenced_fields, field.selector_index, i);
+				if (auto it = mn::map_lookup(e->complit.referenced_fields, field.selector_index))
+				{
+					Err err{};
+					err.loc = field.selector_name->loc;
+					err.msg = mn::strf(
+						"duplicate field name '{}' in composite literal",
+						field.selector_name->atom.tkn.str
+					);
+					unit_err(self.unit, err);
+				}
+				else
+				{
+					mn::map_insert(e->complit.referenced_fields, field.selector_index, i);
+				}
 			}
 
 			Type* expected_type = nullptr;

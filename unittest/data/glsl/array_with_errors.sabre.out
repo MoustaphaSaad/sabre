@@ -10,18 +10,6 @@ Error[array_with_errors.sabre:8:20]: type mismatch expected '[5]int' but found '
 >> 	var k = {
 >> 	        ^
 Error[array_with_errors.sabre:19:10]: could not infer composite literal type
->> 		.y = {7, 8, 9}
->> 		 ^            
-Error[array_with_errors.sabre:20:4]: type 'void' doesn't have field 'y'
->> 		.y = {7, 8, 9}
->> 		     ^^^^^^^^^
-Error[array_with_errors.sabre:20:8]: could not infer composite literal type
->> 		.y = {7, 8, 9}
->> 		      ^       
-Error[array_with_errors.sabre:20:9]: type 'void' doesn't have fields
->> 		.y = {7, 8, 9}
->> 		         ^    
-Error[array_with_errors.sabre:20:12]: type 'void' doesn't have fields
->> 		.y = {7, 8, 9}
->> 		            ^ 
-Error[array_with_errors.sabre:20:15]: type 'void' doesn't have fields
+>> 		y = {7, 8, 9}
+>> 		^            
+Error[array_with_errors.sabre:20:3]: type 'void' doesn't have field 'y'

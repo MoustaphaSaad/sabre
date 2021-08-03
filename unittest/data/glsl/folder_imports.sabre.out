@@ -1,7 +1,7 @@
 struct libBar_Koko {
 };
 libBar_Koko libBar_baz() {
-	libBar_Koko _tmp_1;
+	libBar_Koko _tmp_1 = libBar_Koko();
 	return _tmp_1;
 }
 int libFoo_x = 0;

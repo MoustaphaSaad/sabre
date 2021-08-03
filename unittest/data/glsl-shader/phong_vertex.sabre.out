@@ -18,11 +18,9 @@ layout(binding = 0, std140) uniform uniform_tmp_1 {
 	mat4 main_mvp;
 };
 main_PS_Input main_main(main_VS_Input RESERVED_input) {
-	vec4 _tmp_2 = vec4(0.0, 0.0, 0.0, 0.0);
-	vec3 _tmp_3 = vec3(0.0, 0.0, 0.0);
-	vec3 _tmp_4 = vec3(0.0, 0.0, 0.0);
-	main_PS_Input _tmp_5 = main_PS_Input(_tmp_2);
-	return _tmp_5;
+	vec4 _tmp_2 = vec4(RESERVED_input.position, 1.0);
+	main_PS_Input _tmp_3 = main_PS_Input(main_mvp * _tmp_2, RESERVED_input.position, RESERVED_input.normal);
+	return _tmp_3;
 }
 
 void main() {
@@ -30,8 +28,8 @@ void main() {
 	RESERVED_input.position = RESERVED_input_position;
 	RESERVED_input.normal = RESERVED_input_normal;
 	
-	main_PS_Input _tmp_6 = main_main(RESERVED_input);
-	gl_Position = _tmp_6.position;
-	_entry_point_output_vertex_position = _tmp_6.vertex_position;
-	_entry_point_output_vertex_normal = _tmp_6.vertex_normal;
+	main_PS_Input _tmp_4 = main_main(RESERVED_input);
+	gl_Position = _tmp_4.position;
+	_entry_point_output_vertex_position = _tmp_4.vertex_position;
+	_entry_point_output_vertex_normal = _tmp_4.vertex_normal;
 }

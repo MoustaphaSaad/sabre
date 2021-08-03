@@ -4,9 +4,11 @@ type Point struct {
 
 func add(a, b: Point): Point {
 	return :Point {
-		.p.x = a.p.x + b.p.x,
-		.p.y = a.p.y + b.p.y,
-		.p.z = 3
+		p = {
+			x = a.p.x + b.p.x,
+			y = a.p.y + b.p.y,
+			z = 3,
+		}
 	};
 }
 
