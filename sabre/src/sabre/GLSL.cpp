@@ -1249,17 +1249,14 @@ namespace sabre
 	inline static void
 	_glsl_rewrite_complits_in_complit_expr(GLSL& self, Expr* e, bool is_const)
 	{
-		// if (type_is_array(e->type) || type_is_vec(e->type))
+		for (size_t i = 0; i < e->complit.fields.count; ++i)
 		{
-			for (size_t i = 0; i < e->complit.fields.count; ++i)
-			{
-				if (e->complit.fields[i].value)
-					_glsl_rewrite_complits_in_expr(self, e->complit.fields[i].value, is_const);
-			}
-
-			if (is_const)
-				mn::print_to(self.out, "const ");
+			if (e->complit.fields[i].value)
+				_glsl_rewrite_complits_in_expr(self, e->complit.fields[i].value, is_const);
 		}
+
+		if (is_const)
+			mn::print_to(self.out, "const ");
 
 		// handle arrays differently
 		if (type_is_array(e->type))
