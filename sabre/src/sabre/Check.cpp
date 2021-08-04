@@ -76,6 +76,11 @@ namespace sabre
 			else
 				err.msg = mn::strf("'{}' symbol redefinition", sym->name);
 			unit_err(self.unit, err);
+
+			// just copy these values from the old symbol
+			sym->package = old_sym->package;
+			sym->scope = old_sym->scope;
+
 			return old_sym;
 		}
 		scope_add(current_scope, sym);
