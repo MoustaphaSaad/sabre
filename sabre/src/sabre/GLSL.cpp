@@ -1074,7 +1074,8 @@ namespace sabre
 		}
 		else
 		{
-			// TODO(Moustapha): handle zero init data
+			mn::print_to(self.out, " = ");
+			_glsl_zero_value(self, sym->type);
 		}
 		mn::print_to(self.out, ";");
 	}
@@ -1323,6 +1324,7 @@ namespace sabre
 			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
 			for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
 			{
+				const auto& struct_field = e->type->struct_type.fields[i];
 				if (i > 0)
 					mn::print_to(self.out, ", ");
 
@@ -1333,7 +1335,10 @@ namespace sabre
 				}
 				else
 				{
-					_glsl_zero_value(self, e->type->struct_type.fields[i].type);
+					if (struct_field.default_value)
+						glsl_expr_gen(self, struct_field.default_value);
+					else
+						_glsl_zero_value(self, struct_field.type);
 				}
 			}
 			mn::print_to(self.out, ");");
