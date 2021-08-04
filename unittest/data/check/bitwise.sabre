@@ -1,0 +1,88 @@
+func int_type_bit_ops() {
+	var x, y: int;
+	var r0 = x | y;
+	var r1 = x & y;
+	var r2 = x ^ y;
+	var r3 = x << y;
+	var r4 = x >> y;
+}
+
+func ivec2_ivec2_types_bit_ops() {
+	var x: ivec2;
+	var y: ivec2;
+	var r0 = x | y;
+	var r1 = x & y;
+	var r2 = x ^ y;
+	var r3 = x << y;
+	var r4 = x >> y;
+}
+
+func int_uint_types_bit_ops() {
+	var x: int;
+	var y: uint;
+	var r0 = x | y;
+	var r1 = x & y;
+	var r2 = x ^ y;
+	var r3 = x << y;
+	var r4 = x >> y;
+}
+
+func ivec2_uint_types_bit_ops() {
+	var x: ivec2;
+	var y: uint;
+	var r0 = x | y;
+	var r1 = x & y;
+	var r2 = x ^ y;
+	var r3 = x << y;
+	var r4 = x >> y;
+}
+
+func ivec2_uvec2_types_bit_ops() {
+	var x: ivec2;
+	var y: uvec2;
+	var r0 = x | y;
+	var r1 = x & y;
+	var r2 = x ^ y;
+	var r3 = x << y;
+	var r4 = x >> y;
+}
+
+func ivec2_ivec3_types_bit_ops() {
+	var x: ivec2;
+	var y: ivec3;
+	var r0 = x | y;
+	var r1 = x & y;
+	var r2 = x ^ y;
+	var r3 = x << y;
+	var r4 = x >> y;
+}
+
+func ivec2_ivec2_types_bit_ops_stmt() {
+	var x: ivec2;
+	var y: ivec2;
+	x |= y;
+	x &= y;
+	x ^= y;
+	x <<= y;
+	x >>= y;
+}
+
+func ivec2_uvec2_types_bit_ops_stmt() {
+	var x: ivec2;
+	var y: uvec2;
+	x |= y;
+	x &= y;
+	x ^= y;
+	x <<= y;
+	x >>= y;
+}
+
+func ivec2_ivec3_types_bit_ops_stmt() {
+	var x: ivec2;
+	var y: ivec3;
+	x |= y;
+	x &= y;
+	x ^= y;
+	x <<= y;
+	x >>= y;
+}

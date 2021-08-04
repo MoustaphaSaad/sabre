@@ -332,6 +332,71 @@ namespace sabre
 	}
 
 	Expr_Value
+	expr_value_bit_or(Expr_Value a, Expr_Value b)
+	{
+		if (a.type == type_int && b.type == type_int)
+		{
+			return expr_value_int(a.as_int | b.as_int);
+		}
+		else
+		{
+			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
+	expr_value_bit_and(Expr_Value a, Expr_Value b)
+	{
+		if (a.type == type_int && b.type == type_int)
+		{
+			return expr_value_int(a.as_int & b.as_int);
+		}
+		else
+		{
+			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
+	expr_value_bit_xor(Expr_Value a, Expr_Value b)
+	{
+		if (a.type == type_int && b.type == type_int)
+		{
+			return expr_value_int(a.as_int ^ b.as_int);
+		}
+		else
+		{
+			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
+	expr_value_bit_left_shift(Expr_Value a, Expr_Value b)
+	{
+		if (a.type == type_int && b.type == type_int)
+		{
+			return expr_value_int(a.as_int << b.as_int);
+		}
+		else
+		{
+			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
+	expr_value_bit_right_shift(Expr_Value a, Expr_Value b)
+	{
+		if (a.type == type_int && b.type == type_int)
+		{
+			return expr_value_int(a.as_int >> b.as_int);
+		}
+		else
+		{
+			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
 	expr_value_binar_op(Expr_Value a, Tkn::KIND op, Expr_Value b)
 	{
 		switch (op)
@@ -357,8 +422,31 @@ namespace sabre
 			return expr_value_div(a, b);
 		case Tkn::KIND_MODULUS:
 			return expr_value_mod(a, b);
+		case Tkn::KIND_BIT_OR:
+			return expr_value_bit_or(a, b);
+		case Tkn::KIND_BIT_AND:
+			return expr_value_bit_and(a, b);
+		case Tkn::KIND_BIT_XOR:
+			return expr_value_bit_xor(a, b);
+		case Tkn::KIND_BIT_SHIFT_LEFT:
+			return expr_value_bit_left_shift(a, b);
+		case Tkn::KIND_BIT_SHIFT_RIGHT:
+			return expr_value_bit_right_shift(a, b);
 		default:
 			assert(false && "unreachable");
+			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
+	expr_value_bit_not(Expr_Value a)
+	{
+		if (a.type == type_int)
+		{
+			return expr_value_int(~a.as_int);
+		}
+		else
+		{
 			return Expr_Value{};
 		}
 	}
@@ -396,6 +484,8 @@ namespace sabre
 				return expr_value_double(-a.as_double);
 			else
 				return Expr_Value{};
+		case Tkn::KIND_BIT_NOT:
+			return expr_value_bit_not(a);
 		default:
 			assert(false && "unreachable");
 			return Expr_Value{};

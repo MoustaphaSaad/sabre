@@ -3,7 +3,7 @@ type Dir enum {
 	Down = 2,
 	Left = 4,
 	Right = 8,
-	Up_Left = .Up + .Left,
+	Up_Left = .Up | .Left,
 }
 
 const koko: Dir = .Left;

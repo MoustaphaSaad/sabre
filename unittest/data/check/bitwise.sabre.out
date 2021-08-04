@@ -1,0 +1,72 @@
+>> 	var r0 = x | y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:23:11]: type mismatch in binary expression, lhs is 'int' and rhs is 'uint'
+>> 	var r1 = x & y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:24:11]: type mismatch in binary expression, lhs is 'int' and rhs is 'uint'
+>> 	var r2 = x ^ y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:25:11]: type mismatch in binary expression, lhs is 'int' and rhs is 'uint'
+>> 	var r0 = x | y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:33:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'uint'
+>> 	var r1 = x & y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:34:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'uint'
+>> 	var r2 = x ^ y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:35:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'uint'
+>> 	var r3 = x << y;
+>> 	              ^ 
+Error[bitwise.sabre:36:16]: type 'ivec2' is not compatible with 'uint' in a bitwise shift operation
+>> 	var r4 = x >> y;
+>> 	              ^ 
+Error[bitwise.sabre:37:16]: type 'ivec2' is not compatible with 'uint' in a bitwise shift operation
+>> 	var r0 = x | y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:43:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'uvec2'
+>> 	var r1 = x & y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:44:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'uvec2'
+>> 	var r2 = x ^ y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:45:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'uvec2'
+>> 	var r0 = x | y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:53:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'ivec3'
+>> 	var r1 = x & y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:54:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'ivec3'
+>> 	var r2 = x ^ y;
+>> 	         ^^^^^ 
+Error[bitwise.sabre:55:11]: type mismatch in binary expression, lhs is 'ivec2' and rhs is 'ivec3'
+>> 	var r3 = x << y;
+>> 	              ^ 
+Error[bitwise.sabre:56:16]: type 'ivec2' is not compatible with 'ivec3' in a bitwise shift operation
+>> 	var r4 = x >> y;
+>> 	              ^ 
+Error[bitwise.sabre:57:16]: type 'ivec2' is not compatible with 'ivec3' in a bitwise shift operation
+>> 	x |= y;
+>> 	     ^ 
+Error[bitwise.sabre:73:7]: type mismatch in assignment statement, expected 'ivec2' but found 'uvec2'
+>> 	x &= y;
+>> 	     ^ 
+Error[bitwise.sabre:74:7]: type mismatch in assignment statement, expected 'ivec2' but found 'uvec2'
+>> 	x ^= y;
+>> 	     ^ 
+Error[bitwise.sabre:75:7]: type mismatch in assignment statement, expected 'ivec2' but found 'uvec2'
+>> 	x |= y;
+>> 	     ^ 
+Error[bitwise.sabre:83:7]: type mismatch in assignment statement, expected 'ivec2' but found 'ivec3'
+>> 	x &= y;
+>> 	     ^ 
+Error[bitwise.sabre:84:7]: type mismatch in assignment statement, expected 'ivec2' but found 'ivec3'
+>> 	x ^= y;
+>> 	     ^ 
+Error[bitwise.sabre:85:7]: type mismatch in assignment statement, expected 'ivec2' but found 'ivec3'
+>> 	x <<= y;
+>> 	      ^ 
+Error[bitwise.sabre:86:8]: type 'ivec2' is not compatible with 'ivec3' in a bitwise shift operation
+>> 	x >>= y;
+>> 	      ^ 
+Error[bitwise.sabre:87:8]: type 'ivec2' is not compatible with 'ivec3' in a bitwise shift operation
