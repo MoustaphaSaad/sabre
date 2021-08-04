@@ -44,10 +44,10 @@ type Rasterizer struct {
 }
 
 type Face enum {
-	None = 0,
-	Back = 1,
-	Front = 2,
-	Front_Back = 3,
+	None,
+	Back,
+	Front,
+	Front_Back,
 }
 
 type Orientation enum {
@@ -94,9 +94,9 @@ type Blend_Eq enum {
 type Color_Mask enum {
 	None = -1,
 	Default = 0,
-	Red = 1,
-	Green = 2,
-	Blue = 4,
-	Alpha = 8,
-	All = 15,
+	Red = 1 << 0,
+	Green = 1 << 1,
+	Blue = 1 << 2,
+	Alpha = 1 << 3,
+	All = .Red | .Green | .Blue | .Alpha,
 }
