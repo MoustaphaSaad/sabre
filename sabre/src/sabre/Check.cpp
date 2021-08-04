@@ -274,10 +274,10 @@ namespace sabre
 		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 		// add the function declaration to overload set
 		auto decl_type = type_void;
-		if (sym->state == Symbol::STATE_RESOLVED)
+		if (sym->state == STATE_RESOLVED)
 			decl_type = _typer_resolve_func_decl(self, decl);
 		mn::map_insert(sym->func_overload_set_sym.decls, decl, decl_type);
-		if (sym->state == Symbol::STATE_RESOLVED)
+		if (sym->state == STATE_RESOLVED)
 		{
 			assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
 			_typer_add_func_overload(self, sym->type, decl);
@@ -704,10 +704,18 @@ namespace sabre
 		if (failed == false && type_is_equal(lhs_type, rhs_type) == false)
 		{
 			// TODO(Moustapha): better error message here, highlight parts of the expression with their types
-			Err err{};
-			err.loc = e->loc;
-			err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
-			unit_err(self.unit, err);
+			if (type_is_enum(lhs_type) && type_is_equal(rhs_type, type_int) ||
+				type_is_enum(rhs_type) && type_is_equal(lhs_type, type_int))
+			{
+				// enum and int types can be used in a binary expression
+			}
+			else
+			{
+				Err err{};
+				err.loc = e->loc;
+				err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
+				unit_err(self.unit, err);
+			}
 		}
 
 		if (e->binary.op.kind == Tkn::KIND_LOGICAL_AND ||
@@ -1132,8 +1140,19 @@ namespace sabre
 				return type_void;
 			}
 
-			e->mode = ADDRESS_MODE_CONST;
-			e->const_value = type->enum_type.fields[it->value].value;
+			auto value = type->enum_type.fields[it->value].value;
+			if (value.type != nullptr)
+			{
+				e->mode = ADDRESS_MODE_CONST;
+				e->const_value = value;
+			}
+			else
+			{
+				Err err{};
+				err.loc = e->loc;
+				err.msg = mn::strf("enum field has no value yet");
+				unit_err(self.unit, err);
+			}
 			return type;
 		}
 		else
@@ -1491,39 +1510,42 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_expr(Typer& self, Expr* e)
 	{
-		if (e->type != nullptr)
+		if (e->type)
 			return e->type;
 
 		switch (e->kind)
 		{
 		case Expr::KIND_ATOM:
 			e->type = _typer_resolve_atom_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_BINARY:
 			e->type = _typer_resolve_binary_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_UNARY:
 			e->type = _typer_resolve_unary_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_CALL:
 			e->type = _typer_resolve_call_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_CAST:
 			e->type = _typer_resolve_cast_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_DOT:
 			e->type = _typer_resolve_dot_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_INDEXED:
 			e->type = _typer_resolve_indexed_expr(self, e);
-			return e->type;
+			break;
 		case Expr::KIND_COMPLIT:
 			e->type = _typer_resolve_complit_expr(self, e);
-			return e->type;
+			break;
 		default:
 			assert(false && "unreachable");
-			return type_void;
+			e->type = type_void;
+			break;
 		}
+
+		return e->type;
 	}
 
 	inline static Type*
@@ -2164,7 +2186,7 @@ namespace sabre
 				{
 					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
 					v->type = arg_type;
-					v->state = Symbol::STATE_RESOLVED;
+					v->state = STATE_RESOLVED;
 					_typer_add_symbol(self, v);
 					++i;
 				}
@@ -2286,37 +2308,13 @@ namespace sabre
 		else if (sym->kind == Symbol::KIND_ENUM)
 		{
 			auto d = sym->enum_sym.decl;
+			// first complete the type
 			auto enum_fields = mn::buf_with_allocator<Enum_Field_Type>(self.unit->parent_unit->type_interner.arena);
 			auto enum_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner.arena);
-			auto enum_value = expr_value_int(0);
 			for (auto field: d->enum_decl.fields)
 			{
-				if (field.value)
-				{
-					auto value_type = _typer_resolve_expr(self, field.value);
-					if (type_is_equal(value_type, type_int) == false)
-					{
-						Err err{};
-						err.loc = field.value->loc;
-						err.msg = mn::strf("enum type should be integer, but instead we found '{}'", value_type);
-						unit_err(self.unit, err);
-						continue;
-					}
-
-					if (field.value->mode != ADDRESS_MODE_CONST)
-					{
-						Err err{};
-						err.loc = field.value->loc;
-						err.msg = mn::strf("enum values should be constant");
-						unit_err(self.unit, err);
-					}
-
-					enum_value = field.value->const_value;
-				}
-
 				Enum_Field_Type enum_field{};
 				enum_field.name = field.name;
-				enum_field.value = enum_value;
 				mn::buf_push(enum_fields, enum_field);
 
 				if (auto it = mn::map_lookup(enum_fields_by_name, field.name.str))
@@ -2332,10 +2330,44 @@ namespace sabre
 				{
 					mn::map_insert(enum_fields_by_name, field.name.str, enum_fields.count - 1);
 				}
+			}
+			type_interner_complete_enum(self.unit->parent_unit->type_interner, type, enum_fields, enum_fields_by_name);
+
+			// then fill the values
+			auto enum_value = expr_value_int(0);
+			for (size_t i = 0; i < d->enum_decl.fields.count; ++i)
+			{
+				const auto& decl_field = d->enum_decl.fields[i];
+				if (decl_field.value)
+				{
+					_typer_push_expected_expression_type(self, type);
+					auto value_type = _typer_resolve_expr(self, decl_field.value);
+					_typer_pop_expected_expression_type(self);
+
+					if (value_type != type && type_is_equal(value_type, type_int) == false)
+					{
+						Err err{};
+						err.loc = decl_field.value->loc;
+						err.msg = mn::strf("enum type should be integer, but instead we found '{}'", value_type);
+						unit_err(self.unit, err);
+						continue;
+					}
+
+					if (decl_field.value->mode != ADDRESS_MODE_CONST)
+					{
+						Err err{};
+						err.loc = decl_field.value->loc;
+						err.msg = mn::strf("enum values should be constant");
+						unit_err(self.unit, err);
+					}
+
+					enum_value = decl_field.value->const_value;
+				}
+
+				type->enum_type.fields[i].value = enum_value;
 
 				++enum_value.as_int;
 			}
-			type_interner_complete_enum(self.unit->parent_unit->type_interner, type, enum_fields, enum_fields_by_name);
 		}
 	}
 
@@ -2397,11 +2429,11 @@ namespace sabre
 	inline static void
 	_typer_resolve_symbol(Typer& self, Symbol* sym)
 	{
-		if (sym->state == Symbol::STATE_RESOLVED)
+		if (sym->state == STATE_RESOLVED)
 		{
 			return;
 		}
-		else if (sym->state == Symbol::STATE_RESOLVING)
+		else if (sym->state == STATE_RESOLVING)
 		{
 			Err err{};
 			err.loc = symbol_location(sym);
@@ -2423,7 +2455,7 @@ namespace sabre
 			}
 		});
 
-		sym->state = Symbol::STATE_RESOLVING;
+		sym->state = STATE_RESOLVING;
 		switch (sym->kind)
 		{
 		case Symbol::KIND_CONST:
@@ -2451,7 +2483,7 @@ namespace sabre
 			assert(false && "unreachable");
 			break;
 		}
-		sym->state = Symbol::STATE_RESOLVED;
+		sym->state = STATE_RESOLVED;
 
 		switch(sym->kind)
 		{

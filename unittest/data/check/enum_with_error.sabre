@@ -2,10 +2,10 @@ const koko = 9 + 324;
 const koko2 = koko / 2;
 
 type Dir enum {
-	Up,
+	Up = .Left,
 	Down = koko2,
-	Left = 234,
-	Right
+	Left = .Up,
+	Right,
 }
 
 func offset(d: Dir): vec2 {

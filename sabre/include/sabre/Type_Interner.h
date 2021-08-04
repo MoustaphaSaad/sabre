@@ -745,6 +745,14 @@ namespace sabre
 	SABRE_EXPORT Type*
 	type_interner_array(Type_Interner& self, Array_Sign sign);
 
+	// represent the stages of resolving a value, useful for detecting cyclic dependencies
+	enum STATE
+	{
+		STATE_UNRESOLVED,
+		STATE_RESOLVING,
+		STATE_RESOLVED,
+	};
+
 	// represents a symbol in the code
 	struct Symbol
 	{
@@ -757,13 +765,6 @@ namespace sabre
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ENUM,
-		};
-
-		enum STATE
-		{
-			STATE_UNRESOLVED,
-			STATE_RESOLVING,
-			STATE_RESOLVED,
 		};
 
 		KIND kind;
@@ -831,7 +832,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Symbol>(arena);
 		self->kind = Symbol::KIND_CONST;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
 		self->const_sym.decl = decl;
@@ -847,7 +848,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Symbol>(arena);
 		self->kind = Symbol::KIND_VAR;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
 		self->var_sym.decl = decl;
@@ -863,7 +864,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Symbol>(arena);
 		self->kind = Symbol::KIND_FUNC;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
 		self->func_sym.decl = decl;
@@ -877,7 +878,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Symbol>(arena);
 		self->kind = Symbol::KIND_STRUCT;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
 		self->struct_sym.decl = decl;
@@ -891,7 +892,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Symbol>(arena);
 		self->kind = Symbol::KIND_ENUM;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
 		self->enum_sym.decl = decl;
@@ -904,7 +905,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Symbol>(arena);
 		self->kind = Symbol::KIND_PACKAGE;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
 		self->package_sym.decl = decl;
@@ -920,11 +921,11 @@ namespace sabre
 		auto func_decl = func->func_sym.decl;
 		auto func_name = func->func_sym.name;
 		auto func_type = func->type;
-		auto func_used = func->state == Symbol::STATE_RESOLVED;
+		auto func_used = func->state == STATE_RESOLVED;
 
 		auto self = func;
 		self->kind = Symbol::KIND_FUNC_OVERLOAD_SET;
-		self->state = Symbol::STATE_UNRESOLVED;
+		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->func_overload_set_sym.decls = mn::map_with_allocator<Decl*, Type*>(arena);
 		self->func_overload_set_sym.used_decls = mn::buf_with_allocator<Decl*>(arena);
