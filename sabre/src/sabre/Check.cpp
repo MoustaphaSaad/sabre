@@ -1585,7 +1585,7 @@ namespace sabre
 			}
 		}
 
-		if (e->const_value.type == nullptr)
+		if (e && e->const_value.type == nullptr)
 		{
 			Err err{};
 			err.loc = e->loc;
