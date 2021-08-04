@@ -56,3 +56,33 @@ func ivec2_ivec3_types_bit_ops() {
 	var r3 = x << y;
 	var r4 = x >> y;
 }
+
+func ivec2_ivec2_types_bit_ops_stmt() {
+	var x: ivec2;
+	var y: ivec2;
+	x |= y;
+	x &= y;
+	x ^= y;
+	x <<= y;
+	x >>= y;
+}
+
+func ivec2_uvec2_types_bit_ops_stmt() {
+	var x: ivec2;
+	var y: uvec2;
+	x |= y;
+	x &= y;
+	x ^= y;
+	x <<= y;
+	x >>= y;
+}
+
+func ivec2_ivec3_types_bit_ops_stmt() {
+	var x: ivec2;
+	var y: ivec3;
+	x |= y;
+	x &= y;
+	x ^= y;
+	x <<= y;
+	x >>= y;
+}

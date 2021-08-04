@@ -118,7 +118,13 @@ namespace sabre
 			kind == Tkn::KIND_MINUS_EQUAL ||
 			kind == Tkn::KIND_STAR_EQUAL ||
 			kind == Tkn::KIND_DIVIDE_EQUAL ||
-			kind == Tkn::KIND_MODULUS_EQUAL
+			kind == Tkn::KIND_MODULUS_EQUAL ||
+			kind == Tkn::KIND_BIT_OR_EQUAL ||
+			kind == Tkn::KIND_BIT_AND_EQUAL ||
+			kind == Tkn::KIND_BIT_XOR_EQUAL ||
+			kind == Tkn::KIND_BIT_SHIFT_LEFT_EQUAL ||
+			kind == Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL ||
+			kind == Tkn::KIND_BIT_NOT_EQUAL
 		);
 	}
 }

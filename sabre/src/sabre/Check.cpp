@@ -2017,10 +2017,32 @@ namespace sabre
 
 			if (_typer_can_assign(lhs_type, s->assign_stmt.rhs[i]) == false)
 			{
-				Err err{};
-				err.loc = s->assign_stmt.rhs[i]->loc;
-				err.msg = mn::strf("type mismatch in assignment statement, expected '{}' but found '{}'", lhs_type, rhs_type);
-				unit_err(self.unit, err);
+				// special case some of the operations
+				if (s->assign_stmt.op.kind == Tkn::KIND_BIT_SHIFT_LEFT_EQUAL ||
+					s->assign_stmt.op.kind == Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL)
+				{
+					if (type_has_bit_ops(rhs_type) == false)
+					{
+						Err err{};
+						err.loc = s->assign_stmt.rhs[i]->loc;
+						err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", rhs_type);
+						unit_err(self.unit, err);
+					}
+					else if (type_width(lhs_type) != type_width(rhs_type))
+					{
+						Err err{};
+						err.loc = s->assign_stmt.rhs[i]->loc;
+						err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", lhs_type, rhs_type);
+						unit_err(self.unit, err);
+					}
+				}
+				else
+				{
+					Err err{};
+					err.loc = s->assign_stmt.rhs[i]->loc;
+					err.msg = mn::strf("type mismatch in assignment statement, expected '{}' but found '{}'", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+				}
 			}
 
 			switch (s->assign_stmt.lhs[i]->mode)
