@@ -550,6 +550,18 @@ namespace sabre
 		return t->kind == Type::KIND_ENUM;
 	}
 
+	// returns whether the type can be used in a bit operation
+	inline static bool
+	type_has_bit_ops(Type* a)
+	{
+		return (
+			type_is_equal(a, type_int) ||
+			type_is_equal(a, type_uint) ||
+			type_is_enum(a) || // all enum types has int values
+			(type_is_vec(a) && type_has_bit_ops(a->vec.base))
+		);
+	}
+
 	// creates a new vector type, max width == 4
 	inline static Type*
 	type_vectorize(Type* base, int width)
@@ -688,6 +700,38 @@ namespace sabre
 			return t->array.count;
 		case Type::KIND_ENUM:
 			return t->enum_type.fields.count;
+		default:
+			assert(false && "unreachable");
+			return 0;
+		}
+	}
+
+	// returns the type lane width
+	inline static size_t
+	type_width(Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_VOID:
+		case Type::KIND_FUNC:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+		case Type::KIND_STRUCT:
+			return 0;
+		case Type::KIND_BOOL:
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+		case Type::KIND_ENUM:
+			return 1;
+		case Type::KIND_VEC:
+			return t->vec.width;
+		case Type::KIND_MAT:
+			return t->mat.width;
+		case Type::KIND_ARRAY:
+			return t->array.count;
 		default:
 			assert(false && "unreachable");
 			return 0;

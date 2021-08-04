@@ -701,6 +701,46 @@ namespace sabre
 			}
 		}
 
+		if (e->binary.op.kind == Tkn::KIND_BIT_OR ||
+			e->binary.op.kind == Tkn::KIND_BIT_AND ||
+			e->binary.op.kind == Tkn::KIND_BIT_XOR)
+		{
+			if (type_has_bit_ops(lhs_type) == false)
+			{
+				Err err{};
+				err.loc = e->binary.left->loc;
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", lhs_type);
+				unit_err(self.unit, err);
+			}
+
+			if (type_has_bit_ops(rhs_type) == false)
+			{
+				Err err{};
+				err.loc = e->binary.right->loc;
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", rhs_type);
+				unit_err(self.unit, err);
+			}
+		}
+		else if (e->binary.op.kind == Tkn::KIND_BIT_SHIFT_LEFT ||
+				 e->binary.op.kind == Tkn::KIND_BIT_SHIFT_RIGHT)
+		{
+			if (type_has_bit_ops(lhs_type) == false)
+			{
+				Err err{};
+				err.loc = e->binary.left->loc;
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", lhs_type);
+				unit_err(self.unit, err);
+			}
+
+			if (type_has_bit_ops(rhs_type) == false)
+			{
+				Err err{};
+				err.loc = e->binary.right->loc;
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", rhs_type);
+				unit_err(self.unit, err);
+			}
+		}
+
 		if (failed == false && type_is_equal(lhs_type, rhs_type) == false)
 		{
 			// TODO(Moustapha): better error message here, highlight parts of the expression with their types
@@ -708,6 +748,24 @@ namespace sabre
 				type_is_enum(rhs_type) && type_is_equal(lhs_type, type_int))
 			{
 				// enum and int types can be used in a binary expression
+			}
+			else if (e->binary.op.kind == Tkn::KIND_BIT_SHIFT_LEFT ||
+					 e->binary.op.kind == Tkn::KIND_BIT_SHIFT_RIGHT)
+			{
+				if (type_has_bit_ops(rhs_type) == false)
+				{
+					Err err{};
+					err.loc = e->binary.right->loc;
+					err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", rhs_type);
+					unit_err(self.unit, err);
+				}
+				else if (type_width(lhs_type) != type_width(rhs_type))
+				{
+					Err err{};
+					err.loc = e->binary.right->loc;
+					err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", lhs_type, rhs_type);
+					unit_err(self.unit, err);
+				}
 			}
 			else
 			{
@@ -808,6 +866,16 @@ namespace sabre
 				Err err{};
 				err.loc = e->unary.base->loc;
 				err.msg = mn::strf("logical not operator is only allowed for boolean types, but expression type is '{}'", e->unary.op.str, type);
+				unit_err(self.unit, err);
+			}
+		}
+		else if (e->unary.op.kind == Tkn::KIND_BIT_NOT)
+		{
+			if (type_has_bit_ops(type) == false)
+			{
+				Err err{};
+				err.loc = e->unary.base->loc;
+				err.msg = mn::strf("type '{}' cannot be used in a bit not operation", type);
 				unit_err(self.unit, err);
 			}
 		}

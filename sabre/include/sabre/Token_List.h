@@ -37,6 +37,18 @@
 	TOKEN(LOGICAL_OR, "||"), \
 	TOKEN(LOGICAL_AND, "&&"), \
 	TOKEN(LOGICAL_NOT, "!"), \
+	TOKEN(BIT_XOR, "^"), \
+	TOKEN(BIT_OR, "|"), \
+	TOKEN(BIT_AND, "&"), \
+	TOKEN(BIT_NOT, "~"), \
+	TOKEN(BIT_SHIFT_LEFT, "<<"), \
+	TOKEN(BIT_SHIFT_RIGHT, ">>"), \
+	TOKEN(BIT_XOR_EQUAL, "^="), \
+	TOKEN(BIT_OR_EQUAL, "|="), \
+	TOKEN(BIT_AND_EQUAL, "&="), \
+	TOKEN(BIT_NOT_EQUAL, "~="), \
+	TOKEN(BIT_SHIFT_LEFT_EQUAL, "<<="), \
+	TOKEN(BIT_SHIFT_RIGHT_EQUAL, ">>="), \
 	TOKEN(INC, "++"), \
 	TOKEN(DEC, "--"), \
 	TOKEN(COMMA, ","), \

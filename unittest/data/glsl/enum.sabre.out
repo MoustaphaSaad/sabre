@@ -1,9 +1,10 @@
 
-#define main_Dir_Up 0
-#define main_Dir_Down 13
-#define main_Dir_Left 123
-#define main_Dir_Right 124
-#define main_Dir_Down_Left 136
+#define main_Dir_Up 1
+#define main_Dir_Down 2
+#define main_Dir_Left 4
+#define main_Dir_Right 8
+#define main_Dir_Down_Left 6
+#define main_Dir_Up_Right 9
 const int main_koko = main_Dir_Left;
 vec2 main_offset(int d) {
 	if (d == main_Dir_Up) {

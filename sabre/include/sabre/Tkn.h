@@ -74,7 +74,9 @@ namespace sabre
 	{
 		return (
 			kind == Tkn::KIND_PLUS ||
-			kind == Tkn::KIND_MINUS
+			kind == Tkn::KIND_MINUS ||
+			kind == Tkn::KIND_BIT_XOR ||
+			kind == Tkn::KIND_BIT_OR
 		);
 	}
 
@@ -87,7 +89,8 @@ namespace sabre
 			kind == Tkn::KIND_DEC ||
 			kind == Tkn::KIND_PLUS ||
 			kind == Tkn::KIND_MINUS ||
-			kind == Tkn::KIND_LOGICAL_NOT
+			kind == Tkn::KIND_LOGICAL_NOT ||
+			kind == Tkn::KIND_BIT_NOT
 		);
 	}
 
@@ -98,7 +101,10 @@ namespace sabre
 		return (
 			kind == Tkn::KIND_STAR ||
 			kind == Tkn::KIND_DIVIDE ||
-			kind == Tkn::KIND_MODULUS
+			kind == Tkn::KIND_MODULUS ||
+			kind == Tkn::KIND_BIT_AND ||
+			kind == Tkn::KIND_BIT_SHIFT_LEFT ||
+			kind == Tkn::KIND_BIT_SHIFT_RIGHT
 		);
 	}
 

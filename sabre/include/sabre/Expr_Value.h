@@ -79,9 +79,33 @@ namespace sabre
 	SABRE_EXPORT Expr_Value
 	expr_value_mod(Expr_Value a, Expr_Value b);
 
+	// performs a bitwise or between 2 numerical values
+	SABRE_EXPORT Expr_Value
+	expr_value_bit_or(Expr_Value a, Expr_Value b);
+
+	// performs a bitwise and between 2 numerical values
+	SABRE_EXPORT Expr_Value
+	expr_value_bit_and(Expr_Value a, Expr_Value b);
+
+	// performs a bitwise xor between 2 numerical values
+	SABRE_EXPORT Expr_Value
+	expr_value_bit_xor(Expr_Value a, Expr_Value b);
+
+	// performs a bitwise left shift between 2 numerical values
+	SABRE_EXPORT Expr_Value
+	expr_value_bit_left_shift(Expr_Value a, Expr_Value b);
+
+	// performs a bitwise right shift between 2 numerical values
+	SABRE_EXPORT Expr_Value
+	expr_value_bit_right_shift(Expr_Value a, Expr_Value b);
+
 	// performs a binary operation between 2 expression values
 	SABRE_EXPORT Expr_Value
 	expr_value_binar_op(Expr_Value a, Tkn::KIND op, Expr_Value b);
+
+	// performs a bitwise not on the given value
+	SABRE_EXPORT Expr_Value
+	expr_value_bit_not(Expr_Value a);
 
 	// performs an unary operation on an expression value
 	SABRE_EXPORT Expr_Value

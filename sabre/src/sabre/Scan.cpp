@@ -359,6 +359,17 @@ namespace sabre
 					tkn.kind = Tkn::KIND_LESS_EQUAL;
 					_scanner_eat(self);
 				}
+				else if (self.c == '<')
+				{
+					tkn.kind = Tkn::KIND_BIT_SHIFT_LEFT;
+					_scanner_eat(self);
+
+					if (self.c == '=')
+					{
+						tkn.kind = Tkn::KIND_BIT_SHIFT_LEFT_EQUAL;
+						_scanner_eat(self);
+					}
+				}
 				break;
 			case '>':
 				tkn.kind = Tkn::KIND_GREATER;
@@ -366,6 +377,17 @@ namespace sabre
 				{
 					tkn.kind = Tkn::KIND_GREATER_EQUAL;
 					_scanner_eat(self);
+				}
+				else if (self.c == '>')
+				{
+					tkn.kind = Tkn::KIND_BIT_SHIFT_RIGHT;
+					_scanner_eat(self);
+
+					if (self.c == '=')
+					{
+						tkn.kind = Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL;
+						_scanner_eat(self);
+					}
 				}
 				break;
 			case '=':
@@ -434,16 +456,28 @@ namespace sabre
 				}
 				break;
 			case '|':
+				tkn.kind = Tkn::KIND_BIT_OR;
 				if (self.c == '|')
 				{
 					tkn.kind = Tkn::KIND_LOGICAL_OR;
 					_scanner_eat(self);
 				}
+				else if (self.c == '=')
+				{
+					tkn.kind = Tkn::KIND_BIT_OR_EQUAL;
+					_scanner_eat(self);
+				}
 				break;
 			case '&':
+				tkn.kind = Tkn::KIND_BIT_AND;
 				if (self.c == '&')
 				{
 					tkn.kind = Tkn::KIND_LOGICAL_AND;
+					_scanner_eat(self);
+				}
+				else if (self.c == '=')
+				{
+					tkn.kind = Tkn::KIND_BIT_AND_EQUAL;
 					_scanner_eat(self);
 				}
 				break;
@@ -451,6 +485,22 @@ namespace sabre
 				tkn.kind = Tkn::KIND_LITERAL_STRING;
 				tkn.str = _scanner_scan_string(self);
 				no_intern = true;
+				break;
+			case '^':
+				tkn.kind = Tkn::KIND_BIT_XOR;
+				if (self.c == '=')
+				{
+					tkn.kind = Tkn::KIND_BIT_XOR_EQUAL;
+					_scanner_eat(self);
+				}
+				break;
+			case '~':
+				tkn.kind = Tkn::KIND_BIT_NOT;
+				if (self.c == '=')
+				{
+					tkn.kind = Tkn::KIND_BIT_NOT_EQUAL;
+					_scanner_eat(self);
+				}
 				break;
 			default:
 			{
