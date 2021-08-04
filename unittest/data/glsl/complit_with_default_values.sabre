@@ -1,0 +1,9 @@
+type Foo struct {
+	p, q: int = 5,
+	w: float = 2.5,
+}
+
+const foo: Foo;
+const foo2: Foo = {
+	q = 234,
+};
