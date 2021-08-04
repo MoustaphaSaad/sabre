@@ -161,6 +161,7 @@ namespace sabre
 		Tkn name;
 		Type* type;
 		Expr* default_value;
+		size_t offset;
 	};
 
 	struct Enum_Field_Type
@@ -209,6 +210,8 @@ namespace sabre
 		};
 
 		KIND kind;
+		size_t size;
+		size_t alignment;
 		union
 		{
 			Func_Sign func;

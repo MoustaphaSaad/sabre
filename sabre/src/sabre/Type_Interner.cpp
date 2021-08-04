@@ -3,20 +3,24 @@
 namespace sabre
 {
 	inline static Type
-	_vec_builtin(Type* base, size_t width)
+	_vec_builtin(Type* base, size_t width, size_t size, size_t alignment)
 	{
 		Type self{};
 		self.kind = Type::KIND_VEC;
+		self.size = size;
+		self.alignment = alignment;
 		self.vec.base = base;
 		self.vec.width = width;
 		return self;
 	}
 
 	inline static Type
-	_mat_builtin(Type* base, size_t width)
+	_mat_builtin(Type* base, size_t width, size_t size, size_t alignment)
 	{
 		Type self{};
 		self.kind = Type::KIND_MAT;
+		self.size = size;
+		self.alignment = alignment;
 		self.mat.base = base;
 		self.mat.width = width;
 		return self;
@@ -31,36 +35,42 @@ namespace sabre
 		return self;
 	}
 
-	static Type _type_void { Type::KIND_VOID };
-	static Type _type_bool { Type::KIND_BOOL };
-	static Type _type_int { Type::KIND_INT };
-	static Type _type_lit_int { Type::KIND_INT };
-	static Type _type_uint { Type::KIND_UINT };
-	static Type _type_float { Type::KIND_FLOAT };
-	static Type _type_lit_float { Type::KIND_FLOAT };
-	static Type _type_double { Type::KIND_DOUBLE };
-	static Type _type_vec2 = _vec_builtin(type_float, 2);
-	static Type _type_vec3 = _vec_builtin(type_float, 3);
-	static Type _type_vec4 = _vec_builtin(type_float, 4);
-	static Type _type_bvec2 = _vec_builtin(type_bool, 2);
-	static Type _type_bvec3 = _vec_builtin(type_bool, 3);
-	static Type _type_bvec4 = _vec_builtin(type_bool, 4);
-	static Type _type_ivec2 = _vec_builtin(type_int, 2);
-	static Type _type_ivec3 = _vec_builtin(type_int, 3);
-	static Type _type_ivec4 = _vec_builtin(type_int, 4);
-	static Type _type_uvec2 = _vec_builtin(type_uint, 2);
-	static Type _type_uvec3 = _vec_builtin(type_uint, 3);
-	static Type _type_uvec4 = _vec_builtin(type_uint, 4);
-	static Type _type_dvec2 = _vec_builtin(type_double, 2);
-	static Type _type_dvec3 = _vec_builtin(type_double, 3);
-	static Type _type_dvec4 = _vec_builtin(type_double, 4);
-	static Type _type_mat2 = _mat_builtin(type_float, 2);
-	static Type _type_mat3 = _mat_builtin(type_float, 3);
-	static Type _type_mat4 = _mat_builtin(type_float, 4);
+	static Type _type_void { Type::KIND_VOID, 0, 0 };
+	static Type _type_bool { Type::KIND_BOOL, 1, 4 };
+	static Type _type_int { Type::KIND_INT, 4, 4 };
+	static Type _type_lit_int { Type::KIND_INT, 4, 4 };
+	static Type _type_uint { Type::KIND_UINT, 4, 4 };
+	static Type _type_float { Type::KIND_FLOAT, 4, 4 };
+	static Type _type_lit_float { Type::KIND_FLOAT, 4, 4 };
+	static Type _type_double { Type::KIND_DOUBLE, 8, 8 };
+	static Type _type_vec2 = _vec_builtin(type_float, 2, 8, 8);
+	static Type _type_vec3 = _vec_builtin(type_float, 3, 12, 16);
+	static Type _type_vec4 = _vec_builtin(type_float, 4, 16, 16);
+	static Type _type_bvec2 = _vec_builtin(type_bool, 2, 2, 2);
+	static Type _type_bvec3 = _vec_builtin(type_bool, 3, 3, 4);
+	static Type _type_bvec4 = _vec_builtin(type_bool, 4, 4, 4);
+	static Type _type_ivec2 = _vec_builtin(type_int, 2, 8, 8);
+	static Type _type_ivec3 = _vec_builtin(type_int, 3, 12, 16);
+	static Type _type_ivec4 = _vec_builtin(type_int, 4, 16, 16);
+	static Type _type_uvec2 = _vec_builtin(type_uint, 2, 8, 8);
+	static Type _type_uvec3 = _vec_builtin(type_uint, 3, 12, 16);
+	static Type _type_uvec4 = _vec_builtin(type_uint, 4, 16, 16);
+	static Type _type_dvec2 = _vec_builtin(type_double, 2, 16, 16);
+	static Type _type_dvec3 = _vec_builtin(type_double, 3, 24, 32);
+	static Type _type_dvec4 = _vec_builtin(type_double, 4, 32, 32);
+	static Type _type_mat2 = _mat_builtin(type_float, 2, 32, 16);
+	static Type _type_mat3 = _mat_builtin(type_float, 3, 48, 16);
+	static Type _type_mat4 = _mat_builtin(type_float, 4, 64, 16);
 	static Type _type_texture1d = _texture_builtin(TEXTURE_TYPE_1D);
 	static Type _type_texture2d = _texture_builtin(TEXTURE_TYPE_2D);
 	static Type _type_texture3d = _texture_builtin(TEXTURE_TYPE_3D);
 	static Type _type_texture_cube = _texture_builtin(TEXTURE_TYPE_CUBE);
+
+	inline static size_t
+	_round_up(size_t num, size_t factor)
+	{
+		return num + factor - 1 - (num + factor - 1) % factor;
+	}
 
 	// API
 	Scope*
@@ -163,6 +173,20 @@ namespace sabre
 		type->kind = Type::KIND_STRUCT;
 		type->struct_type.fields = fields;
 		type->struct_type.fields_by_name = fields_table;
+
+		type->alignment = 1;
+		type->size = 0;
+		for (auto& field: fields)
+		{
+			if (field.type->alignment > type->alignment)
+				type->alignment = field.type->alignment;
+			if (field.type->alignment > 0)
+				if (type->size % field.type->alignment != 0)
+					type->size = _round_up(type->size, type_vec4->size);
+			field.offset = type->size;
+			type->size += field.type->size;
+		}
+		type->alignment = _round_up(type->alignment, type_vec4->size);
 	}
 
 	void
@@ -203,6 +227,8 @@ namespace sabre
 			return it->value;
 		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
 		new_type->kind = Type::KIND_ARRAY;
+		new_type->size = _round_up(sign.base->size, type_vec4->size);
+		new_type->alignment = new_type->size;
 		new_type->array.base = sign.base;
 		new_type->array.count = sign.count;
 		mn::map_insert(self.array_table, sign, new_type);
