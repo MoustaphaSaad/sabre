@@ -3,6 +3,7 @@
 #include "sabre/Exports.h"
 
 #include <mn/Buf.h>
+#include <mn/Json.h>
 
 #include <stdint.h>
 
@@ -101,7 +102,7 @@ namespace sabre
 
 	// performs a binary operation between 2 expression values
 	SABRE_EXPORT Expr_Value
-	expr_value_binar_op(Expr_Value a, Tkn::KIND op, Expr_Value b);
+	expr_value_binary_op(Expr_Value a, Tkn::KIND op, Expr_Value b);
 
 	// performs a bitwise not on the given value
 	SABRE_EXPORT Expr_Value
@@ -110,4 +111,12 @@ namespace sabre
 	// performs an unary operation on an expression value
 	SABRE_EXPORT Expr_Value
 	expr_value_unary_op(Expr_Value a, Tkn::KIND op);
+
+	// returns the default expr value for said type, the arena is used in case of aggregate types
+	SABRE_EXPORT Expr_Value
+	expr_value_zero(mn::Allocator arena, Type* t);
+
+	// converts an expression value to json value
+	SABRE_EXPORT mn::json::Value
+	expr_value_to_json(Expr_Value a);
 }

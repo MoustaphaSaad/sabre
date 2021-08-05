@@ -31,6 +31,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_PIXEL = "pixel";
 	inline constexpr const char* KEYWORD_SV_POSITION = "system_position";
 	inline constexpr const char* KEYWORD_GLSL = "glsl";
+	inline constexpr const char* KEYWORD_PIPELINE = "pipeline";
 
 	enum COMPILATION_STAGE
 	{
@@ -265,6 +266,8 @@ namespace sabre
 		mn::Map<const char*, Type*> input_layout;
 		// reachable uniforms info
 		mn::Buf<Reachable_Uniform> reachable_uniforms;
+		// pipeline symbol
+		Symbol* pipeline;
 	};
 
 	SABRE_EXPORT Unit*

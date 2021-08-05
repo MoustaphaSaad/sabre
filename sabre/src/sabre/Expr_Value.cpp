@@ -1,6 +1,8 @@
 #include "sabre/Expr_Value.h"
 #include "sabre/Type_Interner.h"
 
+#include <mn/Defer.h>
+
 namespace sabre
 {
 	inline static Type*
@@ -397,7 +399,7 @@ namespace sabre
 	}
 
 	Expr_Value
-	expr_value_binar_op(Expr_Value a, Tkn::KIND op, Expr_Value b)
+	expr_value_binary_op(Expr_Value a, Tkn::KIND op, Expr_Value b)
 	{
 		switch (op)
 		{
@@ -489,6 +491,161 @@ namespace sabre
 		default:
 			assert(false && "unreachable");
 			return Expr_Value{};
+		}
+	}
+
+	Expr_Value
+	expr_value_zero(mn::Allocator arena, Type* t)
+	{
+		if (t == nullptr || t == type_void)
+		{
+			return Expr_Value{};
+		}
+		else if (t == type_bool)
+		{
+			return expr_value_bool(false);
+		}
+		else if (t == type_int || t == type_lit_int)
+		{
+			return expr_value_int(0);
+		}
+		else if (t == type_uint)
+		{
+			return expr_value_int(0);
+		}
+		else if (t == type_float || t == type_lit_float)
+		{
+			return expr_value_double(0);
+		}
+		else if (t == type_double)
+		{
+			return expr_value_double(0);
+		}
+		else if (type_is_vec(t))
+		{
+			auto res = expr_value_aggregate(arena, t);
+			for (size_t i = 0; i < t->vec.width; ++i)
+			{
+				expr_value_aggregate_set(res, i, expr_value_zero(arena, t->vec.base));
+			}
+			return res;
+		}
+		else if (type_is_array(t))
+		{
+			auto res = expr_value_aggregate(arena, t);
+			for (size_t i = 0; i < t->array.count; ++i)
+			{
+				expr_value_aggregate_set(res, i, expr_value_zero(arena, t->array.base));
+			}
+			return res;
+		}
+		else if (type_is_struct(t))
+		{
+			auto res = expr_value_aggregate(arena, t);
+			for (size_t i = 0; i < t->struct_type.fields.count; ++i)
+			{
+				const auto& field = t->struct_type.fields[i];
+
+				if (field.default_value)
+					expr_value_aggregate_set(res, i, field.default_value->const_value);
+				else
+					expr_value_aggregate_set(res, i, expr_value_zero(arena, field.type));
+			}
+			return res;
+		}
+		else if (type_is_enum(t))
+		{
+			if (t->enum_type.fields.count > 0)
+			{
+				return t->enum_type.fields[0].value;
+			}
+			else
+			{
+				return Expr_Value{};
+			}
+		}
+		else
+		{
+			assert(false && "unreachable");
+			return Expr_Value{};
+		}
+	}
+
+	mn::json::Value
+	expr_value_to_json(Expr_Value a)
+	{
+		auto checkpoint = mn::allocator_arena_checkpoint(mn::memory::tmp());
+		mn_defer(mn::allocator_arena_restore(mn::memory::tmp(), checkpoint));
+
+		if (a.type == nullptr)
+		{
+			return mn::json::Value{};
+		}
+		else if (a.type == type_bool)
+		{
+			return mn::json::value_bool_new(a.as_bool);
+		}
+		else if (a.type == type_int)
+		{
+			return mn::json::value_number_new(a.as_int);
+		}
+		else if (a.type == type_double)
+		{
+			return mn::json::value_number_new(a.as_double);
+		}
+		else if (type_is_vec(a.type))
+		{
+			auto arr = mn::json::value_array_new();
+			for (size_t i = 0; i < a.type->vec.width; ++i)
+			{
+				if (auto it = mn::map_lookup(a.as_aggregate, i))
+					mn::json::value_array_push(arr, expr_value_to_json(it->value));
+				else
+					mn::json::value_array_push(arr, expr_value_to_json(expr_value_zero(mn::memory::tmp(), a.type->vec.base)));
+			}
+			return arr;
+		}
+		else if (type_is_array(a.type))
+		{
+			auto arr = mn::json::value_array_new();
+			for (size_t i = 0; i < a.type->array.count; ++i)
+			{
+				if (auto it = mn::map_lookup(a.as_aggregate, i))
+					mn::json::value_array_push(arr, expr_value_to_json(it->value));
+				else
+					mn::json::value_array_push(arr, expr_value_to_json(expr_value_zero(mn::memory::tmp(), a.type->array.base)));
+			}
+			return arr;
+		}
+		else if (type_is_struct(a.type))
+		{
+			auto obj = mn::json::value_object_new();
+			for (size_t i = 0; i < a.type->struct_type.fields.count; ++i)
+			{
+				const auto& field = a.type->struct_type.fields[i];
+
+				if (auto it = mn::map_lookup(a.as_aggregate, i))
+				{
+					mn::json::value_object_insert(obj, field.name.str, expr_value_to_json(it->value));
+				}
+				else
+				{
+					if (field.default_value)
+						mn::json::value_object_insert(obj, field.name.str, expr_value_to_json(field.default_value->const_value));
+					else
+						mn::json::value_object_insert(obj, field.name.str, expr_value_to_json(expr_value_zero(mn::memory::tmp(), field.type)));
+				}
+			}
+			return obj;
+		}
+		else if (type_is_enum(a.type))
+		{
+			return mn::json::value_number_new(a.as_int);
+		}
+		else
+		{
+			assert(false && "unreachable");
+			return mn::json::Value{};
 		}
 	}
 }

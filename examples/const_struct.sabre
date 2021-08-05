@@ -9,9 +9,8 @@ const p: Line = {
 	p = {x = 23},
 };
 
-const pip: std.Pipeline = {
-	rasterizer = {cull = false}
-};
+@pipeline
+const pip: std.Pipeline;
 
 // var koko: vec3 = {};
 // var koko2: vec4 = {koko, 2.4};

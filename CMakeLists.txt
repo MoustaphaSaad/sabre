@@ -29,8 +29,7 @@ include(CPM)
 CPMAddPackage(
 	NAME             mn
 	GIT_REPOSITORY   https://github.com/MoustaphaSaad/mn.git
-	GIT_TAG          v4.1.0
-	GIT_SHALLOW      TRUE
+	GIT_TAG          0346fb9235f8ec2b4a784922a4a2034b35ccf64d
 )
 
 add_subdirectory(sabre)

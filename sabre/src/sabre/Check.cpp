@@ -308,6 +308,9 @@ namespace sabre
 				// add symbol twice, once in file scope an another one in package scope
 				auto sym = symbol_const_new(self.unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
+				// search for the pipeline of that shader
+				if (mn::map_lookup(decl->tags.table, KEYWORD_PIPELINE))
+					self.unit->parent_unit->pipeline = sym;
 			}
 			break;
 		case Decl::KIND_VAR:
@@ -815,7 +818,7 @@ namespace sabre
 
 		if (e->binary.left->mode == ADDRESS_MODE_CONST && e->binary.right->mode == ADDRESS_MODE_CONST)
 		{
-			e->const_value = expr_value_binar_op(e->binary.left->const_value, e->binary.op.kind, e->binary.right->const_value);
+			e->const_value = expr_value_binary_op(e->binary.left->const_value, e->binary.op.kind, e->binary.right->const_value);
 			e->mode = ADDRESS_MODE_CONST;
 		}
 		else
@@ -2902,5 +2905,8 @@ namespace sabre
 			assert(false && "unreachable");
 			break;
 		}
+
+		if (self.unit->parent_unit->pipeline)
+			_typer_resolve_symbol(self, self.unit->parent_unit->pipeline);
 	}
 }
