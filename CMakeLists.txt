@@ -32,6 +32,7 @@ CPMAddPackage(
 	GIT_TAG          0346fb9235f8ec2b4a784922a4a2034b35ccf64d
 )
 
+add_subdirectory(std)
 add_subdirectory(sabre)
 add_subdirectory(sabrec)
 
