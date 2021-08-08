@@ -1,3 +1,14 @@
+package main
+
+import "engine.sabre"
+
+type Camera struct {
+	view, proj, viewproj: mat4,
+	x: int
+}
+
+@uniform var camera: Camera;
+
 type VS_Input struct {
 	position: vec3,
 }
@@ -13,6 +24,6 @@ type PS_Input struct {
 @vertex
 func vertex(vs_input: VS_Input, vs_input2: VS_Input2): PS_Input {
 	return :PS_Input {
-		.position = :vec4{vs_input.position * vs_input2.position, 1},
+		position = camera.viewproj * monet.camera.viewproj * :vec4{vs_input.position * vs_input2.position, 1},
 	};
 }

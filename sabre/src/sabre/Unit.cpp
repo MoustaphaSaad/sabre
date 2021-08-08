@@ -33,6 +33,185 @@ namespace sabre
 		mn::set_insert(types, t);
 	}
 
+	inline static mn::json::Value
+	_type_to_reflect_json(Type* t)
+	{
+		if (t == sabre::type_void)
+		{
+			return mn::json::value_string_new("void");
+		}
+		else if (t == sabre::type_bool)
+		{
+			return mn::json::value_string_new("bool");
+		}
+		else if (t == sabre::type_int || t == sabre::type_lit_int)
+		{
+			return mn::json::value_string_new("int");
+		}
+		else if (t == sabre::type_uint)
+		{
+			return mn::json::value_string_new("uint");
+		}
+		else if (t == sabre::type_float || t == sabre::type_lit_float)
+		{
+			return mn::json::value_string_new("float");
+		}
+		else if (t == sabre::type_double)
+		{
+			return mn::json::value_string_new("double");
+		}
+		else if (t == sabre::type_vec2)
+		{
+			return mn::json::value_string_new("vec2");
+		}
+		else if (t == sabre::type_vec3)
+		{
+			return mn::json::value_string_new("vec3");
+		}
+		else if (t == sabre::type_vec4)
+		{
+			return mn::json::value_string_new("vec4");
+		}
+		else if (t == sabre::type_bvec2)
+		{
+			return mn::json::value_string_new("bvec2");
+		}
+		else if (t == sabre::type_bvec3)
+		{
+			return mn::json::value_string_new("bvec3");
+		}
+		else if (t == sabre::type_bvec4)
+		{
+			return mn::json::value_string_new("bvec4");
+		}
+		else if (t == sabre::type_ivec2)
+		{
+			return mn::json::value_string_new("ivec2");
+		}
+		else if (t == sabre::type_ivec3)
+		{
+			return mn::json::value_string_new("ivec3");
+		}
+		else if (t == sabre::type_ivec4)
+		{
+			return mn::json::value_string_new("ivec4");
+		}
+		else if (t == sabre::type_uvec2)
+		{
+			return mn::json::value_string_new("uvec2");
+		}
+		else if (t == sabre::type_uvec3)
+		{
+			return mn::json::value_string_new("uvec3");
+		}
+		else if (t == sabre::type_uvec4)
+		{
+			return mn::json::value_string_new("uvec4");
+		}
+		else if (t == sabre::type_dvec2)
+		{
+			return mn::json::value_string_new("dvec2");
+		}
+		else if (t == sabre::type_dvec3)
+		{
+			return mn::json::value_string_new("dvec3");
+		}
+		else if (t == sabre::type_dvec4)
+		{
+			return mn::json::value_string_new("dvec4");
+		}
+		else if (t == sabre::type_mat2)
+		{
+			return mn::json::value_string_new("mat2");
+		}
+		else if (t == sabre::type_mat3)
+		{
+			return mn::json::value_string_new("mat3");
+		}
+		else if (t == sabre::type_mat4)
+		{
+			return mn::json::value_string_new("mat4");
+		}
+		else if (t->kind == sabre::Type::KIND_FUNC)
+		{
+			auto name = mn::str_tmp();
+			name = mn::strf(name, "func(");
+			for (size_t i = 0; i < t->func.args.types.count; ++i)
+			{
+				if (i > 0)
+					name = mn::strf(name, ", ");
+				name = mn::strf(name, ":{}", t->func.args.types[i]);
+			}
+			name = mn::strf(name, "):{}", t->func.return_type);
+			return mn::json::value_string_new(name.ptr);
+		}
+		else if (t->kind == sabre::Type::KIND_STRUCT)
+		{
+			auto name = mn::str_tmpf("struct {}.{}", t->struct_type.symbol->package->name.str, t->struct_type.symbol->name);
+			return mn::json::value_string_new(name.ptr);
+		}
+		else if (t->kind == sabre::Type::KIND_PACKAGE)
+		{
+			auto name = mn::str_tmpf("package '{}'", t->package_type.package->absolute_path);
+			return mn::json::value_string_new(name.ptr);
+		}
+		else if (t->kind == sabre::Type::KIND_FUNC_OVERLOAD_SET)
+		{
+			auto name = mn::str_tmp();
+			size_t overload_i = 0;
+			for (auto [_, overload]: t->func_overload_set_type.overloads)
+			{
+				if (overload_i > 0)
+					name = mn::strf(name, "\n");
+				name = mn::strf(name, "{}. func(", overload_i++);
+				for (size_t i = 0; i < overload.type->func.args.types.count; ++i)
+				{
+					if (i > 0)
+						name = mn::strf(name, ", ");
+					name = mn::strf(name, ":{}", overload.type->func.args.types[i]);
+				}
+				name = mn::strf(name, "):{}", overload.type->func.return_type);
+			}
+			return mn::json::value_string_new(name.ptr);
+		}
+		else if (t->kind == sabre::Type::KIND_TEXTURE)
+		{
+			switch (t->texture.type)
+			{
+			case sabre::TEXTURE_TYPE_1D:
+				return mn::json::value_string_new("Texture1D");
+			case sabre::TEXTURE_TYPE_2D:
+				return mn::json::value_string_new("Texture2D");
+			case sabre::TEXTURE_TYPE_3D:
+				return mn::json::value_string_new("Texture3D");
+			case sabre::TEXTURE_TYPE_CUBE:
+				return mn::json::value_string_new("TextureCube");
+			default:
+				assert(false && "unreachable");
+				return mn::json::value_string_new("<UNKNOWN TYPE>");
+			}
+		}
+		else if (t->kind == sabre::Type::KIND_ARRAY)
+		{
+			mn::Str name{};
+			if (t->array.count == -1)
+				name = mn::str_tmpf("[]{}", _type_to_reflect_json(t->array.base));
+			else
+				name = mn::str_tmpf("[{}]{}", t->array.count, _type_to_reflect_json(t->array.base));
+			mn::json::value_string_new(name.ptr);
+		}
+		else if (t->kind == sabre::Type::KIND_ENUM)
+		{
+			auto name = mn::str_tmpf("enum {}.{}", t->struct_type.symbol->package->name.str, t->struct_type.symbol->name);
+			return mn::json::value_string_new(name.ptr);
+		}
+		else
+		{
+			assert(false && "unreachable");
+			return mn::json::value_string_new("<UNKNOWN TYPE>");
+		}
+	}
+
 	// API
 	Unit_File*
 	unit_file_from_path(const mn::Str& filepath)
@@ -462,7 +641,7 @@ namespace sabre
 			{
 				auto json_attribute = mn::json::value_object_new();
 				mn::json::value_object_insert(json_attribute, "name", mn::json::value_string_new(attribute_name));
-				mn::json::value_object_insert(json_attribute, "type", mn::json::value_string_new(mn::strf("{}", attribute_type)));
+				mn::json::value_object_insert(json_attribute, "type", _type_to_reflect_json(attribute_type));
 				mn::json::value_array_push(json_layout, json_attribute);
 
 				_push_type(types, attribute_type);
@@ -470,13 +649,26 @@ namespace sabre
 			mn::json::value_object_insert(json_entry, "input_layout", json_layout);
 		}
 
+		// root package
+		Unit_Package* root = nullptr;
+		if (self->packages.count > 0)
+			root = self->packages[0];
+
 		auto json_uniforms = mn::json::value_array_new();
 		for (const auto& uniform: self->reachable_uniforms)
 		{
 			auto json_uniform = mn::json::value_object_new();
-			mn::json::value_object_insert(json_uniform, "name", mn::json::value_string_new(uniform.symbol->name));
+			if (uniform.symbol->package == root)
+			{
+				mn::json::value_object_insert(json_uniform, "name", mn::json::value_string_new(uniform.symbol->name));
+			}
+			else
+			{
+				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", uniform.symbol->package->name.str, uniform.symbol->name));
+				mn::json::value_object_insert(json_uniform, "name", uniform_name);
+			}
 			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new(uniform.binding));
-			mn::json::value_object_insert(json_uniform, "type", mn::json::value_string_new(mn::strf("{}", uniform.symbol->type)));
+			mn::json::value_object_insert(json_uniform, "type", _type_to_reflect_json(uniform.symbol->type));
 			mn::json::value_array_push(json_uniforms, json_uniform);
 
 			_push_type(types, uniform.symbol->type);
@@ -486,7 +678,7 @@ namespace sabre
 		for (auto type: types)
 		{
 			auto json_type = mn::json::value_object_new();
-			mn::json::value_object_insert(json_type, "name", mn::json::value_string_new(mn::strf("{}", type)));
+			mn::json::value_object_insert(json_type, "name", _type_to_reflect_json(type));
 			mn::json::value_object_insert(json_type, "size", mn::json::value_number_new(type->size));
 			mn::json::value_object_insert(json_type, "alignment", mn::json::value_number_new(type->alignment));
 
@@ -499,7 +691,7 @@ namespace sabre
 				{
 					auto json_field = mn::json::value_object_new();
 					mn::json::value_object_insert(json_field, "name", mn::json::value_string_new(field.name.str));
-					mn::json::value_object_insert(json_field, "type", mn::json::value_string_new(mn::strf("{}", field.type)));
+					mn::json::value_object_insert(json_field, "type", _type_to_reflect_json(field.type));
 					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new(field.offset));
 					mn::json::value_array_push(json_fields, json_field);
 				}

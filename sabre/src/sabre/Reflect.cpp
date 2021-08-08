@@ -36,30 +36,19 @@ namespace sabre
 		}
 	}
 
-	// API
-	void
-	reflect_package(Unit_Package* unit)
+	inline static void
+	_process_package(Unit_Package* unit, size_t& uniform_binding_generator)
 	{
 		auto compilation_unit = unit->parent_unit;
-
-		switch (compilation_unit->mode)
-		{
-		case COMPILATION_MODE_LIBRARY:
-			// do nothing
-			break;
-		case COMPILATION_MODE_VERTEX:
-		case COMPILATION_MODE_PIXEL:
-			_generate_entry_shader_io(unit, compilation_unit->entry_symbol);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-		}
-
-		size_t uniform_binding_generator = 0;
 		// generate reflection info
 		for (auto sym: unit->reachable_symbols)
 		{
+			if (sym->kind == Symbol::KIND_PACKAGE)
+			{
+				_process_package(sym->package_sym.package, uniform_binding_generator);
+				continue;
+			}
+
 			auto decl = symbol_decl(sym);
 			if (decl == nullptr)
 				continue;
@@ -86,5 +75,29 @@ namespace sabre
 				mn::buf_push(compilation_unit->reachable_uniforms, uniform);
 			}
 		}
+	}
+
+	// API
+	void
+	reflect_package(Unit_Package* unit)
+	{
+		auto compilation_unit = unit->parent_unit;
+
+		switch (compilation_unit->mode)
+		{
+		case COMPILATION_MODE_LIBRARY:
+			// do nothing
+			break;
+		case COMPILATION_MODE_VERTEX:
+		case COMPILATION_MODE_PIXEL:
+			_generate_entry_shader_io(unit, compilation_unit->entry_symbol);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+
+		size_t uniform_binding_generator = 0;
+		_process_package(unit, uniform_binding_generator);
 	}
 }

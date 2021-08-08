@@ -1,0 +1,7 @@
+package monet
+
+type Camera struct {
+	view, proj, viewproj: mat4
+}
+
+@uniform var camera: Camera;
