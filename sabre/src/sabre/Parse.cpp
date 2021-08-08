@@ -1040,8 +1040,24 @@ namespace sabre
 	_parser_parse_decl_import(Parser& self)
 	{
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_IMPORT);
-		auto name = _parser_eat_must(self, Tkn::KIND_ID);
-		auto path = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
+		auto name = _parser_eat(self);
+		Tkn path{};
+		if (name.kind == Tkn::KIND_ID)
+		{
+			path = _parser_eat_must(self, Tkn::KIND_LITERAL_STRING);
+		}
+		else if (name.kind == Tkn::KIND_LITERAL_STRING)
+		{
+			path = name;
+			name = {};
+		}
+		else
+		{
+			Err err{};
+			err.loc = name.loc;
+			err.msg = mn::strf("expected package path or package name, but found '{}'", name.str);
+			unit_err(self.unit, err);
+		}
 
 		// TODO(Moustapha): unescape the string
 		auto package_path = mn::str_from_c(path.str, mn::memory::tmp());

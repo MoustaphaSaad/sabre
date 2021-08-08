@@ -71,10 +71,13 @@ namespace sabre
 			auto old_loc = symbol_location(old_sym);
 			Err err{};
 			err.loc = symbol_location(sym);
+			const char* name = "symbol";
+			if (sym->kind == Symbol::KIND_PACKAGE)
+				name = "package";
 			if (old_loc.pos.line > 0)
-				err.msg = mn::strf("'{}' symbol redefinition, first declared in {}:{}", sym->name, old_loc.pos.line, old_loc.pos.col);
+				err.msg = mn::strf("'{}' {} redefinition, first declared in {}:{}", sym->name, name, old_loc.pos.line, old_loc.pos.col);
 			else
-				err.msg = mn::strf("'{}' symbol redefinition", sym->name);
+				err.msg = mn::strf("'{}' {} redefinition", sym->name, name);
 			unit_err(self.unit, err);
 
 			// just copy these values from the old symbol
@@ -346,13 +349,30 @@ namespace sabre
 			auto [package, resolve_err] = unit_file_resolve_package(file, package_path);
 			if (resolve_err == false)
 			{
-				auto sym = symbol_package_new(self.unit->symbols_arena, decl->name, decl, package);
+				Tkn name{};
+				if (decl->import_decl.name)
+					name = decl->import_decl.name;
+				else
+					name = package->name;
+				auto sym = symbol_package_new(self.unit->symbols_arena, name, decl, package);
 				// we put the import declarations into the file scope to enable users
 				// to include the same library with the same name in different files of
 				// the same folder package
 				_typer_enter_scope(self, file->file_scope);
-				_typer_add_symbol(self, sym);
+				auto added_sym = _typer_add_symbol(self, sym);
 				_typer_leave_scope(self);
+
+				if (added_sym != sym)
+				{
+					Err err{};
+					err.loc = symbol_location(added_sym);
+					if (added_sym->kind == Symbol::KIND_PACKAGE)
+						err.msg = mn::strf("package '{}' was first imported here", added_sym->name);
+					else
+						err.msg = mn::strf("symbol '{}' was first imported here", added_sym->name);
+					unit_err(self.unit, err);
+					break;
+				}
 
 				// add symbol in global scope only once to avoid symbol redefinition and get symbol redefinition
 				// detection between namespaces and other declaration

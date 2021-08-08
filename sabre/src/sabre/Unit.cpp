@@ -258,8 +258,8 @@ namespace sabre
 			else
 			{
 				self->stage = COMPILATION_STAGE_CHECK;
-				self->name = package_name.str;
-				self->global_scope = scope_new(nullptr, self->name, nullptr, Scope::FLAG_NONE);
+				self->name = package_name;
+				self->global_scope = scope_new(nullptr, self->name.str, nullptr, Scope::FLAG_NONE);
 
 				for (auto file: self->files)
 					file->file_scope = scope_new(self->global_scope, "", nullptr, Scope::FLAG_NONE);

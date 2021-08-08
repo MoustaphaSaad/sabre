@@ -1,3 +1,5 @@
+package A
+
 import libA2 "../A"
 
 func bar(): int {

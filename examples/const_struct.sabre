@@ -1,7 +1,8 @@
 package main
 
 import std "std"
-import libA "A"
+import "A"
+import "B"
 
 type Line struct {
 	p: vec2,
@@ -13,7 +14,7 @@ const p: Line = {
 };
 
 var p2: Line = {
-	p = {x = libA.z},
+	p = {x = A.z},
 };
 
 @pipeline

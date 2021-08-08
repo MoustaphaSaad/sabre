@@ -146,7 +146,7 @@ namespace sabre
 		// parent compilation which this package belongs to
 		Unit* parent_unit;
 		// package name, which is the name defined inside the files of this package
-		const char* name;
+		Tkn name;
 		// absolute path of this package
 		mn::Str absolute_path;
 		// files of this package
