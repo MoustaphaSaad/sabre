@@ -1,3 +1,5 @@
+package libB
+
 import libA2 "libA.sabre"
 
 func bar(): int {

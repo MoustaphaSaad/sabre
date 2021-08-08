@@ -1,3 +1,5 @@
+package main
+
 func foo() {
 	var v2: vec2;
 	var v3: vec3;

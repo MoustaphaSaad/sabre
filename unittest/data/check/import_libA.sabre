@@ -1,3 +1,5 @@
+package libA
+
 import libB "import_libB.sabre"
 import libC "import_libC.sabre"
 

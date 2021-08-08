@@ -1,3 +1,5 @@
+package main
+
 func foo() {
 	var v2: bvec2;
 	var v3: bvec3;

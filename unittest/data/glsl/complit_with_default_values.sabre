@@ -1,3 +1,5 @@
+package main
+
 type Foo struct {
 	p, q: int = 5,
 	w: float = 2.5,

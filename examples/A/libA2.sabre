@@ -1,0 +1,3 @@
+package A
+
+var z = 1324;

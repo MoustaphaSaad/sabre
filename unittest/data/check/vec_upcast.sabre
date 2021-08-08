@@ -1,3 +1,5 @@
+package main
+
 func vec4_from_vec3(a: vec3): vec4 {
 	return :vec4{a, 1.0};
 }

@@ -1,15 +1,15 @@
 >> 	const my_number = numbers[0][index];
 >> 	                             ^^^^^  
-Error[array_with_errors.sabre:7:31]: array index out of range, array count is '7' but index is '1324'
+Error[array_with_errors.sabre:9:31]: array index out of range, array count is '7' but index is '1324'
 >> 	const my_number = numbers[0][index];
 >> 	                  ^^^^^^^^^^^^^^^^^ 
-Error[array_with_errors.sabre:7:20]: expression cannot be evaluated in compile time
+Error[array_with_errors.sabre:9:20]: expression cannot be evaluated in compile time
 >> 	var xo2: [5]int = xo;
 >> 	                  ^^ 
-Error[array_with_errors.sabre:8:20]: type mismatch expected '[5]int' but found '[7]int'
+Error[array_with_errors.sabre:10:20]: type mismatch expected '[5]int' but found '[7]int'
 >> 	var k = {
 >> 	        ^
-Error[array_with_errors.sabre:19:10]: could not infer composite literal type
+Error[array_with_errors.sabre:21:10]: could not infer composite literal type
 >> 		y = {7, 8, 9}
 >> 		^            
-Error[array_with_errors.sabre:20:3]: type 'void' doesn't have field 'y'
+Error[array_with_errors.sabre:22:3]: type 'void' doesn't have field 'y'

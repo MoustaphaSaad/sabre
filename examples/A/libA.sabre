@@ -1,3 +1,5 @@
+package A
+
 var x = 0;
 var y = 12;
 

@@ -1,3 +1,5 @@
+package libBar
+
 import libFoo "../Foo"
 
 func bar2(): int {

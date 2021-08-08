@@ -1,3 +1,5 @@
+package main
+
 type PS_Input struct {
 	@system_position position: vec4,
 	texcoord: vec2,

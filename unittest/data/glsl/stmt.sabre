@@ -1,3 +1,5 @@
+package main
+
 func convert_bool_to_int(x: bool): int {
 	if x {
 		return 0;

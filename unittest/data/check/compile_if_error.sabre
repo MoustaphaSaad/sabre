@@ -1,3 +1,5 @@
+package main
+
 const dims = 4;
 
 if dims == 2 {

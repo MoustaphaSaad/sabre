@@ -1,3 +1,5 @@
+package main
+
 const koko = 9 + 324;
 const koko2 = koko / 2;
 

@@ -1,4 +1,7 @@
+package main
+
 import std "std"
+import libA "A"
 
 type Line struct {
 	p: vec2,
@@ -7,6 +10,10 @@ type Line struct {
 
 const p: Line = {
 	p = {x = 23},
+};
+
+var p2: Line = {
+	p = {x = libA.z},
 };
 
 @pipeline

@@ -49,6 +49,8 @@ namespace sabre
 	{
 		// the package which this file belong to
 		Unit_Package* parent_package;
+		// name of the package which this file belongs to
+		Tkn package_name;
 		// absolute path of the file on disk
 		mn::Str absolute_path;
 		// the path of the file supplied by user
@@ -124,7 +126,7 @@ namespace sabre
 
 	// processes the package given its path
 	SABRE_EXPORT mn::Result<Unit_Package*>
-	unit_file_resolve_package(Unit_File* self, const mn::Str& path, Tkn name);
+	unit_file_resolve_package(Unit_File* self, const mn::Str& path);
 
 	// represents a package compilation unit
 	struct Unit_Package
@@ -143,6 +145,8 @@ namespace sabre
 		COMPILATION_STAGE stage;
 		// parent compilation which this package belongs to
 		Unit* parent_unit;
+		// package name, which is the name defined inside the files of this package
+		const char* name;
 		// absolute path of this package
 		mn::Str absolute_path;
 		// files of this package
@@ -158,13 +162,13 @@ namespace sabre
 		mn::memory::Arena* symbols_arena;
 		// global scope of the unit
 		Scope* global_scope;
-		// maps from package name (user defined) to package pointer
-		mn::Map<const char*, Unit_Package*> imported_packages;
+		// list of all the imported packages
+		mn::Buf<Unit_Package*> imported_packages;
 	};
 
 	// creates a new package compilation unit
 	SABRE_EXPORT Unit_Package*
-	unit_package_new(const char* name);
+	unit_package_new();
 
 	// frees the given unit package
 	SABRE_EXPORT void
@@ -222,7 +226,7 @@ namespace sabre
 
 	// processes the package given its path
 	SABRE_EXPORT mn::Result<Unit_Package*>
-	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path, Tkn name);
+	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path);
 
 	// determine the mode of this compilation unit
 	enum COMPILATION_MODE
@@ -395,5 +399,5 @@ namespace sabre
 
 	// processes the package given its path and either returns an error or the package name
 	SABRE_EXPORT mn::Result<Unit_Package*>
-	unit_resolve_package(Unit* self, const mn::Str& absolute_path, const char* name);
+	unit_resolve_package(Unit* self, const mn::Str& absolute_path);
 }

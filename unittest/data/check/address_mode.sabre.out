@@ -1,6 +1,6 @@
 >> 	add(x, y) = z;
 >> 	^^^^^^^^^     
-Error[address_mode.sabre:4:2]: cannot assign into a computed value
+Error[address_mode.sabre:6:2]: cannot assign into a computed value
 >> 	w = z;
 >> 	^     
-Error[address_mode.sabre:6:2]: cannot assign into a constant value
+Error[address_mode.sabre:8:2]: cannot assign into a constant value

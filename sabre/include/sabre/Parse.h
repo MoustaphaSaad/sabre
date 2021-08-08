@@ -53,4 +53,8 @@ namespace sabre
 	// parses a declaration
 	SABRE_EXPORT Decl*
 	parser_parse_decl(Parser& self);
+
+	// parses the package declaration at the top of the file
+	SABRE_EXPORT Tkn
+	parser_parse_package(Parser& self);
 }

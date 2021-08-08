@@ -1,24 +1,24 @@
 >> 	Up = .Left,
 >> 	     ^^^^^ 
-Error[enum_with_error.sabre:5:7]: enum field has no value yet
+Error[enum_with_error.sabre:7:7]: enum field has no value yet
 >> 	Up = .Left,
 >> 	     ^^^^^ 
-Error[enum_with_error.sabre:5:7]: enum values should be constant
+Error[enum_with_error.sabre:7:7]: enum values should be constant
 >> 	Left = .Up,
 >> 	       ^^^ 
-Error[enum_with_error.sabre:7:9]: enum field has no value yet
+Error[enum_with_error.sabre:9:9]: enum field has no value yet
 >> 	Left = .Up,
 >> 	       ^^^ 
-Error[enum_with_error.sabre:7:9]: enum values should be constant
+Error[enum_with_error.sabre:9:9]: enum values should be constant
 >> 	if d == .Ups {
 >> 	         ^^^  
-Error[enum_with_error.sabre:12:11]: unknown enum field
+Error[enum_with_error.sabre:14:11]: unknown enum field
 >> 	if d == .Ups {
 >> 	   ^^^^^^^^^  
-Error[enum_with_error.sabre:12:5]: type mismatch in binary expression, lhs is 'enum Dir' and rhs is 'void'
+Error[enum_with_error.sabre:14:5]: type mismatch in binary expression, lhs is 'enum Dir' and rhs is 'void'
 >> 	} else if d == .Left {
 >> 	               ^^^^^  
-Error[enum_with_error.sabre:16:17]: enum field has no value yet
+Error[enum_with_error.sabre:18:17]: enum field has no value yet
 >> 	} else if d == .Right {
 >> 	               ^^^^^^  
-Error[enum_with_error.sabre:18:17]: enum field has no value yet
+Error[enum_with_error.sabre:20:17]: enum field has no value yet

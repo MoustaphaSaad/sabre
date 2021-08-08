@@ -1,3 +1,5 @@
+package main
+
 import libB "libB.sabre"
 import libA "libA.sabre"
 

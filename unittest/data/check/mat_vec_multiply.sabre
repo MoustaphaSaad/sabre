@@ -1,3 +1,5 @@
+package main
+
 func correct(a, b: vec4, c, d: mat4) {
 	var x: vec4 = a * b;
 	x = b * a;

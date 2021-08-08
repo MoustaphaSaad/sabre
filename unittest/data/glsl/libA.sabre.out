@@ -1,5 +1,5 @@
-int main_x = 0;
-int main_y = 12;
-int main_foo() {
-	return main_y;
+int libA_x = 0;
+int libA_y = 12;
+int libA_foo() {
+	return libA_y;
 }

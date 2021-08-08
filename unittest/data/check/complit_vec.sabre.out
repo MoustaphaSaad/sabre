@@ -1,6 +1,6 @@
 >> 			z = 3,
 >> 			^     
-Error[complit_vec.sabre:10:4]: type 'vec2' doesn't have field 'z'
+Error[complit_vec.sabre:12:4]: type 'vec2' doesn't have field 'z'
 >> 	return :Point { a.p + b.p, a.p };
 >> 	                           ^^^   
-Error[complit_vec.sabre:16:29]: type 'struct Point' contains only 1 fields
+Error[complit_vec.sabre:18:29]: type 'struct Point' contains only 1 fields

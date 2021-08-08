@@ -1047,7 +1047,7 @@ namespace sabre
 		auto package_path = mn::str_from_c(path.str, mn::memory::tmp());
 		mn::str_trim(package_path, "\"");
 
-		auto [package, resolve_err] = unit_file_resolve_package(self.unit, package_path, name);
+		auto [package, resolve_err] = unit_file_resolve_package(self.unit, package_path);
 		if (resolve_err)
 		{
 			Err err{};
@@ -1226,5 +1226,12 @@ namespace sabre
 			res->tags = tags;
 		}
 		return res;
+	}
+
+	Tkn
+	parser_parse_package(Parser& self)
+	{
+		_parser_eat_must(self, Tkn::KIND_KEYWORD_PACKAGE);
+		return _parser_eat_must(self, Tkn::KIND_ID);
 	}
 }

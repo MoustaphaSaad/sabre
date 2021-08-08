@@ -1,3 +1,5 @@
+package main
+
 func add(a, b: vec3): vec2 {
 	return add(a.xy, b.yx);
 }

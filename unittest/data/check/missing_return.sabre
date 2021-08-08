@@ -1,3 +1,5 @@
+package main
+
 func missing_return_in_else(x: bool): int {
 	if x {
 		return 0;

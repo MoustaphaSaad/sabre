@@ -1,5 +1,5 @@
-int libA2_x = 0;
+int libA_x = 0;
 
-int main_bar() {
-	return libA2_x + 1;
+int libB_bar() {
+	return libA_x + 1;
 }

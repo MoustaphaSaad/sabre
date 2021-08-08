@@ -343,7 +343,7 @@ namespace sabre
 			auto package_path = mn::str_from_c(decl->import_decl.path.str, mn::memory::tmp());
 			mn::str_trim(package_path, "\"");
 
-			auto [package, resolve_err] = unit_file_resolve_package(file, package_path, decl->import_decl.name);
+			auto [package, resolve_err] = unit_file_resolve_package(file, package_path);
 			if (resolve_err == false)
 			{
 				auto sym = symbol_package_new(self.unit->symbols_arena, decl->name, decl, package);

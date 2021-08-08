@@ -87,10 +87,13 @@ namespace sabre
 	void
 	scope_free(Scope* self)
 	{
-		mn::buf_free(self->symbols);
-		mn::map_free(self->symbol_table);
-		mn::map_free(self->generated_names);
-		mn::free(self);
+		if (self)
+		{
+			mn::buf_free(self->symbols);
+			mn::map_free(self->symbol_table);
+			mn::map_free(self->generated_names);
+			mn::free(self);
+		}
 	}
 
 	Type* type_void = &_type_void;

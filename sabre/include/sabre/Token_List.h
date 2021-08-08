@@ -70,4 +70,5 @@
 	TOKEN(KEYWORD_FALSE, "false"), \
 	TOKEN(KEYWORD_TRUE, "true"), \
 	TOKEN(KEYWORD_ENUM, "enum"), \
+	TOKEN(KEYWORD_PACKAGE, "package"), \
 	TOKEN(KEYWORDS__END, ""),
