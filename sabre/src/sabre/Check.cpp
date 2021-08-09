@@ -491,6 +491,9 @@ namespace sabre
 						break;
 					}
 
+					// make sure the package is resolved before usage
+					_typer_resolve_symbol(self, package_sym);
+
 					auto package = package_sym->package_sym.package;
 					auto type_symbol = scope_shallow_find(package->global_scope, atom.named.type_name.str);
 					if (type_symbol == nullptr)

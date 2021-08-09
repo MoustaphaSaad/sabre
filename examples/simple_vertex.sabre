@@ -1,5 +1,6 @@
 package main
 
+import "std"
 import "engine.sabre"
 
 type Camera struct {
@@ -8,6 +9,11 @@ type Camera struct {
 }
 
 @uniform var camera: Camera;
+
+@pipeline
+const p: std.Pipeline = {
+
+};
 
 type VS_Input struct {
 	position: vec3,
