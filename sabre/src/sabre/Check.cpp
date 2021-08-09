@@ -312,8 +312,8 @@ namespace sabre
 				auto sym = symbol_const_new(self.unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
 				// search for the pipeline of that shader
-				if (mn::map_lookup(decl->tags.table, KEYWORD_PIPELINE))
-					self.unit->parent_unit->pipeline = sym;
+				if (mn::map_lookup(decl->tags.table, KEYWORD_REFLECT))
+					mn::buf_push(self.unit->parent_unit->reflected_symbols, sym);
 			}
 			break;
 		case Decl::KIND_VAR:
@@ -2929,7 +2929,7 @@ namespace sabre
 			break;
 		}
 
-		if (self.unit->parent_unit->pipeline)
-			_typer_resolve_symbol(self, self.unit->parent_unit->pipeline);
+		for (auto s: self.unit->parent_unit->reflected_symbols)
+			_typer_resolve_symbol(self, s);
 	}
 }

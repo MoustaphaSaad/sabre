@@ -10,10 +10,13 @@ type Camera struct {
 
 @uniform var camera: Camera;
 
-@pipeline
+@reflect
 const p: std.Pipeline = {
 
 };
+
+@reflect
+const draw_id = 2000;
 
 type VS_Input struct {
 	position: vec3,

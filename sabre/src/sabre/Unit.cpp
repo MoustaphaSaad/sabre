@@ -528,7 +528,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_PIXEL));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_POSITION));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GLSL));
-		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_PIPELINE));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_REFLECT));
 
 		if (entry.count > 0)
 			self->entry = mn::str_intern(self->str_interner, entry.ptr);
@@ -554,6 +554,7 @@ namespace sabre
 		mn::str_free(self->std_library_folder_path);
 		mn::map_free(self->input_layout);
 		mn::buf_free(self->reachable_uniforms);
+		mn::buf_free(self->reflected_symbols);
 		mn::free(self);
 	}
 
@@ -704,22 +705,31 @@ namespace sabre
 			mn::json::value_array_push(json_types, json_type);
 		}
 
-		mn::json::Value json_pipeline{};
-		if (self->pipeline)
-		{
-			if (self->pipeline->const_sym.value)
-				json_pipeline = expr_value_to_json(self->pipeline->const_sym.value->const_value);
-			else
-				json_pipeline = expr_value_to_json(expr_value_zero(mn::memory::tmp(), self->pipeline->type));
-		}
-
 		auto json_result = mn::json::value_object_new();
 		mn_defer(mn::json::value_free(json_result));
 
 		mn::json::value_object_insert(json_result, "entry", json_entry);
 		mn::json::value_object_insert(json_result, "uniforms", json_uniforms);
 		mn::json::value_object_insert(json_result, "types", json_types);
-		mn::json::value_object_insert(json_result, "pipeline", json_pipeline);
+
+		for (auto s: self->reflected_symbols)
+		{
+			mn::json::Value json_sym{};
+			if (s->const_sym.value)
+				json_sym = expr_value_to_json(s->const_sym.value->const_value);
+			else
+				json_sym = expr_value_to_json(expr_value_zero(mn::memory::tmp(), s->type));
+
+			if (s->package != root)
+			{
+				auto sym_name = mn::str_tmpf("{}.{}", s->package->name.str, s->name);
+				mn::json::value_object_insert(json_result, sym_name, json_sym);
+			}
+			else
+			{
+				mn::json::value_object_insert(json_result, s->name, json_sym);
+			}
+		}
 
 		return mn::strf(allocator, "{}", json_result);
 	}
