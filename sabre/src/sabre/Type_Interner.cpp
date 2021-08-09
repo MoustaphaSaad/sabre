@@ -190,6 +190,7 @@ namespace sabre
 			type->size += field.type->size;
 		}
 		type->alignment = _round_up(type->alignment, type_vec4->size);
+		type->size = _round_up(type->size, type->alignment);
 	}
 
 	void
