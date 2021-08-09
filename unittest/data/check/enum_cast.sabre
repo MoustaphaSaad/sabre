@@ -1,0 +1,14 @@
+package main
+
+type Level enum {
+	Easy = 0,
+	Hard = 1000,
+}
+
+func foo(): int {
+	return Level.Easy: int;
+}
+
+func bar(): Level {
+	return foo(): Level;
+}

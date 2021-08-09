@@ -1073,6 +1073,11 @@ namespace sabre
 		{
 			res = to_type;
 		}
+		else if ((type_is_enum(from_type) && type_is_numeric_scalar(to_type)) ||
+				 (type_is_numeric_scalar(from_type) && type_is_enum(to_type)))
+		{
+			res = to_type;
+		}
 		else
 		{
 			Err err{};
