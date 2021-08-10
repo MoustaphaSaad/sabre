@@ -702,8 +702,8 @@ namespace sabre
 		{
 			glsl_expr_gen(self, e->dot.lhs);
 			const char* dot = ".";
-			if (e->dot.lhs->kind == Expr::KIND_ATOM)
-				if (auto decl = e->dot.lhs->atom.decl)
+			if (e->dot.lhs->symbol)
+				if (auto decl = symbol_decl(e->dot.lhs->symbol))
 					if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
 						dot = "_";
 			mn::print_to(self.out, "{}", dot);

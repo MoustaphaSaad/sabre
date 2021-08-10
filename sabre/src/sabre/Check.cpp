@@ -626,6 +626,8 @@ namespace sabre
 					e->mode = ADDRESS_MODE_VARIABLE;
 				else if (sym->kind == Symbol::KIND_FUNC && sym->type->func.return_type != type_void)
 					e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+
+				e->symbol = sym;
 				return sym->type;
 			}
 			else
@@ -1186,6 +1188,7 @@ namespace sabre
 			}
 
 			e->mode = e->dot.lhs->mode;
+			e->symbol = type->struct_type.symbol;
 			return type->struct_type.fields[it->value].type;
 		}
 		else if (type->kind == Type::KIND_PACKAGE)
@@ -1221,6 +1224,7 @@ namespace sabre
 			e->dot.rhs->atom.sym = symbol;
 			e->dot.rhs->atom.decl = symbol_decl(symbol);
 			_typer_resolve_symbol(self, symbol);
+			e->symbol = symbol;
 			return symbol->type;
 		}
 		else if (type->kind == Type::KIND_ENUM)
@@ -1257,6 +1261,7 @@ namespace sabre
 				err.msg = mn::strf("enum field has no value yet");
 				unit_err(self.unit, err);
 			}
+			e->symbol = type->enum_type.symbol;
 			return type;
 		}
 		else

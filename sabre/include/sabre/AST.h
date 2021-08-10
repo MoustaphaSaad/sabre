@@ -148,6 +148,8 @@ namespace sabre
 		bool in_parens;
 		ADDRESS_MODE mode;
 		Expr_Value const_value;
+		// symbol which this expression refer to, this can be null if it doesn't refer to a symbol
+		Symbol* symbol;
 
 		union
 		{
