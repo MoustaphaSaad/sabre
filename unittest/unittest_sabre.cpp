@@ -171,7 +171,7 @@ TEST_CASE("[sabre]: typecheck")
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
 
-		auto [answer, err] = sabre::check_file(filepath, f.name, mn::str_lit(""), mn::str_lit(""));
+		auto [answer, err] = sabre::check_file(filepath, f.name, mn::str_lit(""), {});
 		CHECK(err == false);
 		mn_defer(mn::str_free(answer));
 		mn::str_replace(answer, "\r\n", "\n");
@@ -208,7 +208,7 @@ TEST_CASE("[sabre]: glsl")
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
 
-		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit(""), mn::str_lit(""));
+		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit(""), {});
 		CHECK(err == false);
 		mn_defer(mn::str_free(answer));
 		mn::str_replace(answer, "\r\n", "\n");
@@ -244,7 +244,7 @@ TEST_CASE("[sabre]: glsl-entry")
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
 
-		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit("main"), mn::str_lit(""));
+		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit("main"), {});
 		CHECK(err == false);
 		mn_defer(mn::str_free(answer));
 		mn::str_replace(answer, "\r\n", "\n");
@@ -280,7 +280,7 @@ TEST_CASE("[sabre]: reflect")
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
 
-		auto [answer, err] = sabre::reflect_file(filepath, mn::str_lit("main"), mn::str_lit(""));
+		auto [answer, err] = sabre::reflect_file(filepath, mn::str_lit("main"), {});
 		CHECK(err == false);
 		mn_defer(mn::str_free(answer));
 		mn::str_replace(answer, "\r\n", "\n");

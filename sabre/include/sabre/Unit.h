@@ -11,6 +11,7 @@
 #include <mn/Map.h>
 #include <mn/Result.h>
 #include <mn/Log.h>
+#include <mn/Path.h>
 
 namespace sabre
 {
@@ -244,8 +245,6 @@ namespace sabre
 
 	struct Unit
 	{
-		// path of the standard library of the compiler
-		mn::Str std_library_folder_path;
 		// used to intern strings, usually token strings
 		mn::Str_Intern str_interner;
 		// all the types live here, it makes it simple to manage this memory and compare types
@@ -272,15 +271,17 @@ namespace sabre
 		mn::Buf<Reachable_Uniform> reachable_uniforms;
 		// reflected symbols, they should be const because we write their values in json reflection info
 		mn::Buf<Symbol*> reflected_symbols;
+		// library collections, map from collection name to its path
+		mn::Map<mn::Str, mn::Str> library_collections;
 	};
 
 	SABRE_EXPORT Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry, const mn::Str& std_path);
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry);
 
 	inline static Unit*
-	unit_from_file(const char* filepath, const mn::Str& entry, const mn::Str& std_path)
+	unit_from_file(const char* filepath, const mn::Str& entry)
 	{
-		return unit_from_file(mn::str_lit(filepath), entry, std_path);
+		return unit_from_file(mn::str_lit(filepath), entry);
 	}
 
 	SABRE_EXPORT void
@@ -290,6 +291,27 @@ namespace sabre
 	destruct(Unit* self)
 	{
 		unit_free(self);
+	}
+
+	// adds a library collection
+	inline static mn::Err
+	unit_add_library_collection(Unit* self, const mn::Str& name, const mn::Str& path)
+	{
+		if (auto it = mn::map_lookup(self->library_collections, name))
+		{
+			if (it->value != path)
+				return mn::Err{"library collection '{}' already exists and pointing to '{}'", name, path};
+			else
+				return mn::Err{};
+		}
+
+		if (mn::path_is_folder(path) == false)
+		{
+			return mn::Err{"library collection path '{}' doesn't exist", path};
+		}
+
+		mn::map_insert(self->library_collections, clone(name), clone(path));
+		return mn::Err{};
 	}
 
 	// adds a given package to the compilation unit

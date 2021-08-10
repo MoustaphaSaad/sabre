@@ -307,15 +307,27 @@ namespace sabre
 		auto old_pwd = mn::path_current(mn::memory::tmp());
 		mn_defer(mn::path_current_change(old_pwd));
 
-		// search for package in std library
-		if (self->parent_package->parent_unit->std_library_folder_path.count > 0)
-		{
-			auto unit = self->parent_package->parent_unit;
-			mn::path_current_change(unit->std_library_folder_path);
+		auto unit = self->parent_package->parent_unit;
 
-			auto absolute_path = mn::path_absolute(path, mn::memory::tmp());
-			if (mn::path_exists(absolute_path))
-				return unit_package_resolve_package(self->parent_package, absolute_path);
+		// check if path is a library collection name
+		if (auto it = mn::map_lookup(unit->library_collections, path))
+		{
+			return unit_package_resolve_package(self->parent_package, it->value);
+		}
+
+		// handle collection paths
+		if (path.count > 0)
+		{
+			auto colon_pos = mn::str_find(path, ':', 0);
+			if (colon_pos != SIZE_MAX)
+			{
+				auto collection_name = mn::str_from_substr(path.ptr, path.ptr + colon_pos, mn::memory::tmp());
+				if (auto it = mn::map_lookup(unit->library_collections, collection_name))
+				{
+					auto path_in_collection = mn::path_join(mn::str_tmp(), it->value, path.ptr + colon_pos + 1);
+					return unit_package_resolve_package(self->parent_package, path_in_collection);
+				}
+			}
 		}
 
 		// search for package relative to the file
@@ -506,11 +518,10 @@ namespace sabre
 	}
 
 	Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry, const mn::Str& std_path)
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry)
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
-		self->std_library_folder_path = clone(std_path);
 		auto root_file = unit_file_from_path(filepath);
 		auto root_package = unit_package_new();
 		// single file packages has their paths be the file path
@@ -551,10 +562,10 @@ namespace sabre
 		destruct(self->scope_table);
 		destruct(self->packages);
 		mn::map_free(self->absolute_path_to_package);
-		mn::str_free(self->std_library_folder_path);
 		mn::map_free(self->input_layout);
 		mn::buf_free(self->reachable_uniforms);
 		mn::buf_free(self->reflected_symbols);
+		destruct(self->library_collections);
 		mn::free(self);
 	}
 

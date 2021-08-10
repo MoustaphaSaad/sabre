@@ -34,7 +34,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""), mn::str_lit(""));
+		auto unit = unit_from_file(filepath, mn::str_lit(""));
 		mn_defer(unit_free(unit));
 
 		if (unit_scan(unit))
@@ -49,7 +49,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""), mn::str_lit(""));
+		auto unit = unit_from_file(filepath, mn::str_lit(""));
 		mn_defer(unit_free(unit));
 
 		_unit_change_paths(unit, fake_path);
@@ -81,7 +81,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""), mn::str_lit(""));
+		auto unit = unit_from_file(filepath, mn::str_lit(""));
 		mn_defer(unit_free(unit));
 
 		_unit_change_paths(unit, fake_path);
@@ -113,7 +113,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""), mn::str_lit(""));
+		auto unit = unit_from_file(filepath, mn::str_lit(""));
 		mn_defer(unit_free(unit));
 
 		_unit_change_paths(unit, fake_path);
@@ -140,13 +140,17 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str, mn::Err>
-	check_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Str& std_path)
+	check_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections)
 	{
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry, std_path);
+		auto unit = unit_from_file(filepath, entry);
 		mn_defer(unit_free(unit));
+
+		for (const auto& [name, path]: library_collections)
+			if (auto err = unit_add_library_collection(unit, name, path))
+				return err;
 
 		_unit_change_paths(unit, fake_path);
 
@@ -161,13 +165,17 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str, mn::Err>
-	glsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Str& std_path)
+	glsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections)
 	{
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry, std_path);
+		auto unit = unit_from_file(filepath, entry);
 		mn_defer(unit_free(unit));
+
+		for (const auto& [name, path]: library_collections)
+			if (auto err = unit_add_library_collection(unit, name, path))
+				return err;
 
 		_unit_change_paths(unit, fake_path);
 
@@ -184,13 +192,17 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	reflect_file(const mn::Str& filepath, const mn::Str& entry, const mn::Str& std_path)
+	reflect_file(const mn::Str& filepath, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections)
 	{
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry, std_path);
+		auto unit = unit_from_file(filepath, entry);
 		mn_defer(unit_free(unit));
+
+		for (const auto& [name, path]: library_collections)
+			if (auto err = unit_add_library_collection(unit, name, path))
+				return err;
 
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
