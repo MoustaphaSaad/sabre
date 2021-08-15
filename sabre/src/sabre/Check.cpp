@@ -1731,20 +1731,12 @@ namespace sabre
 	inline static bool
 	_typer_check_type_suitable_for_uniform(Typer& self, Type* type, size_t depth)
 	{
-		if (type->kind == Type::KIND_STRUCT)
+		if (type_is_struct(type))
 		{
 			bool res = true;
 			for (auto field: type->struct_type.fields)
 			{
-				bool field_res = true;
-				if (field.type->kind == Type::KIND_STRUCT)
-				{
-					field_res = _typer_check_type_suitable_for_uniform(self, field.type, depth + 1);
-				}
-				else
-				{
-					field_res = type_is_uniform(field.type);
-				}
+				bool field_res = _typer_check_type_suitable_for_uniform(self, field.type, depth + 1);
 				res &= field_res;
 
 				if (field_res == false)
@@ -1760,6 +1752,17 @@ namespace sabre
 		else if (type->kind == Type::KIND_TEXTURE)
 		{
 			return depth == 0;
+		}
+		else if (type_is_unbounded_array(type))
+		{
+			Err err{};
+			err.msg = mn::strf("'{}' unbounded arrays cannot be used in uniforms", type);
+			unit_err(self.unit, err);
+			return false;
+		}
+		else if (type_is_bounded_array(type))
+		{
+			return _typer_check_type_suitable_for_uniform(self, type->array.base, depth + 1);
 		}
 		else
 		{

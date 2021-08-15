@@ -24,6 +24,20 @@ type Light struct {
 @uniform{binding = 3} var model: Model;
 @uniform{binding = 2} var light: Light;
 
+type Dir_Light struct {
+	dir: vec3,
+	color: vec3,
+}
+
+const DIR_LIGHT_MAX = 4;
+
+type Lighting struct {
+	dir_lights: [DIR_LIGHT_MAX]Dir_Light,
+	dir_lights_count: int,
+}
+
+@uniform var lighting: Lighting;
+
 // dummy builtin functions for now
 @builtin
 func normalize(a: vec4): vec4
@@ -39,6 +53,7 @@ const draw_order = 2000;
 
 @pixel
 func main(input: PS_Input): PS_Output {
+	lighting.dir_lights[0];
 	var world_pos = model.model_matrix * :vec4{input.vertex_position, 1.0};
 	var normal = (model.model_inverse_transposed * :vec4{input.vertex_normal, 0.0}).xyz;
 	normal = normalize(normal);

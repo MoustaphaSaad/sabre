@@ -229,10 +229,12 @@ namespace sabre
 	{
 		if (auto it = mn::map_lookup(self.array_table, sign))
 			return it->value;
+
 		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
 		new_type->kind = Type::KIND_ARRAY;
-		new_type->size = _round_up(sign.base->size, type_vec4->size);
-		new_type->alignment = new_type->size;
+		new_type->alignment = _round_up(sign.base->size, type_vec4->size);
+		if (sign.count >= 0)
+			new_type->size = _round_up(sign.base->size, type_vec4->size) * sign.count;
 		new_type->array.base = sign.base;
 		new_type->array.count = sign.count;
 		mn::map_insert(self.array_table, sign, new_type);

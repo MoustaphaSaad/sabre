@@ -30,8 +30,23 @@ type PS_Input struct {
 	@system_position position: vec4,
 }
 
+type Dir_Light struct {
+	dir: vec3,
+	color: vec3,
+}
+
+const DIR_LIGHT_MAX = 4;
+
+type Lighting struct {
+	dir_lights: [DIR_LIGHT_MAX]Dir_Light,
+	dir_lights_count: int,
+}
+
+@uniform var lighting: Lighting;
+
 @vertex
 func vertex(vs_input: VS_Input, vs_input2: VS_Input2): PS_Input {
+	lighting.dir_lights[0];
 	return :PS_Input {
 		position = camera.viewproj * monet.camera.viewproj * :vec4{vs_input.position * vs_input2.position, 1},
 	};
