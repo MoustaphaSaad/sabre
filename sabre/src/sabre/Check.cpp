@@ -1857,10 +1857,25 @@ namespace sabre
 				sym->var_sym.uniform_binding = self.uniform_binding_generator++;
 			}
 
-			Reachable_Uniform uniform{};
-			uniform.binding = sym->var_sym.uniform_binding;
-			uniform.symbol = sym;
-			mn::buf_push(self.unit->parent_unit->reachable_uniforms, uniform);
+			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
+			{
+				auto old_sym = it->value;
+				auto old_loc = symbol_location(old_sym);
+
+				Err err{};
+				err.loc = symbol_location(sym);
+				err.msg = mn::strf(
+					"uniform binding point {} is shared with other uniform defined in {}:{}",
+					sym->var_sym.uniform_binding,
+					old_loc.file->filepath,
+					old_loc.pos.line
+				);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
+			}
 		}
 
 		sym->type = res;

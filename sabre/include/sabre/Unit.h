@@ -237,12 +237,6 @@ namespace sabre
 		COMPILATION_MODE_PIXEL,
 	};
 
-	struct Reachable_Uniform
-	{
-		size_t binding;
-		Symbol* symbol;
-	};
-
 	struct Unit
 	{
 		// used to intern strings, usually token strings
@@ -268,7 +262,7 @@ namespace sabre
 		// input layout of above entry point
 		mn::Map<const char*, Type*> input_layout;
 		// reachable uniforms info
-		mn::Buf<Reachable_Uniform> reachable_uniforms;
+		mn::Map<int, Symbol*> reachable_uniforms;
 		// reflected symbols, they should be const because we write their values in json reflection info
 		mn::Buf<Symbol*> reflected_symbols;
 		// library collections, map from collection name to its path

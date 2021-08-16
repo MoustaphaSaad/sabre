@@ -568,7 +568,7 @@ namespace sabre
 		destruct(self->packages);
 		mn::map_free(self->absolute_path_to_package);
 		mn::map_free(self->input_layout);
-		mn::buf_free(self->reachable_uniforms);
+		mn::map_free(self->reachable_uniforms);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
 		mn::free(self);
@@ -672,23 +672,23 @@ namespace sabre
 			root = self->packages[0];
 
 		auto json_uniforms = mn::json::value_array_new();
-		for (const auto& uniform: self->reachable_uniforms)
+		for (const auto& [binding, symbol]: self->reachable_uniforms)
 		{
 			auto json_uniform = mn::json::value_object_new();
-			if (uniform.symbol->package == root)
+			if (symbol->package == root)
 			{
-				mn::json::value_object_insert(json_uniform, "name", mn::json::value_string_new(uniform.symbol->name));
+				mn::json::value_object_insert(json_uniform, "name", mn::json::value_string_new(symbol->name));
 			}
 			else
 			{
-				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", uniform.symbol->package->name.str, uniform.symbol->name));
+				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", symbol->package->name.str, symbol->name));
 				mn::json::value_object_insert(json_uniform, "name", uniform_name);
 			}
-			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new(uniform.binding));
-			mn::json::value_object_insert(json_uniform, "type", mn::json::value_string_new(_type_to_reflect_json(uniform.symbol->type)));
+			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new(binding));
+			mn::json::value_object_insert(json_uniform, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type)));
 			mn::json::value_array_push(json_uniforms, json_uniform);
 
-			_push_type(types, uniform.symbol->type);
+			_push_type(types, symbol->type);
 		}
 
 		auto json_types = mn::json::value_array_new();

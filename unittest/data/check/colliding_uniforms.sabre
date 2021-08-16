@@ -1,0 +1,16 @@
+package main
+
+type Foo struct {
+	x: int,
+}
+@uniform{binding = 0} var foo: Foo;
+
+type Bar struct {
+	x: int,
+}
+@uniform{binding = 0} var bar: Bar;
+
+@vertex
+func main() {
+	
+}
