@@ -838,6 +838,10 @@ namespace sabre
 				Tkn name;
 				Type_Sign sign;
 				Expr* value;
+
+				// used when a variable refers is a uniform
+				int uniform_binding;
+				bool is_uniform;
 			} var_sym;
 
 			struct

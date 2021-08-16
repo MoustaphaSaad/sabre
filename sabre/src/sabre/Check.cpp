@@ -1831,7 +1831,7 @@ namespace sabre
 
 		// check uniform types
 		auto decl = symbol_decl(sym);
-		if (mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM) != nullptr)
+		if (auto uniform_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
 		{
 			if (_typer_check_type_suitable_for_uniform(self, res, 0) == false)
 			{
@@ -1840,6 +1840,27 @@ namespace sabre
 				err.msg = mn::strf("uniform variable type '{}' contains types which cannot be used in a uniform", res);
 				unit_err(self.unit, err);
 			}
+
+			sym->var_sym.is_uniform = true;
+			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+			{
+				auto value_tkn = binding_it->value.value;
+				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				{
+					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
+						self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
+				}
+			}
+			else
+			{
+				sym->var_sym.uniform_binding = self.uniform_binding_generator++;
+			}
+
+			Reachable_Uniform uniform{};
+			uniform.binding = sym->var_sym.uniform_binding;
+			uniform.symbol = sym;
+			mn::buf_push(self.unit->parent_unit->reachable_uniforms, uniform);
 		}
 
 		sym->type = res;

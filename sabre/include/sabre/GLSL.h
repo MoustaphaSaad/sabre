@@ -27,7 +27,6 @@ namespace sabre
 		mn::Buf<mn::Str> input_names;
 		mn::Buf<mn::Str> output_names;
 		size_t tmp_id;
-		int uniform_binding_generator;
 	};
 
 	// creates a new GLSL generator instance

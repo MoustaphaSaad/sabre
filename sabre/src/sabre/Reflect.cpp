@@ -36,47 +36,6 @@ namespace sabre
 		}
 	}
 
-	inline static void
-	_process_package(Unit_Package* unit, size_t& uniform_binding_generator)
-	{
-		auto compilation_unit = unit->parent_unit;
-		// generate reflection info
-		for (auto sym: unit->reachable_symbols)
-		{
-			if (sym->kind == Symbol::KIND_PACKAGE)
-			{
-				_process_package(sym->package_sym.package, uniform_binding_generator);
-				continue;
-			}
-
-			auto decl = symbol_decl(sym);
-			if (decl == nullptr)
-				continue;
-
-			if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
-			{
-				int binding = -1;
-				if (auto arg_it = mn::map_lookup(it->value.args, KEYWORD_BINDING))
-				{
-					auto value_tkn = arg_it->value.value;
-					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
-					{
-						binding = ::atoi(value_tkn.str);
-						if (binding > uniform_binding_generator)
-							uniform_binding_generator = binding + 1;
-					}
-				}
-				if (binding < 0)
-					binding = uniform_binding_generator++;
-
-				Reachable_Uniform uniform{};
-				uniform.binding = binding;
-				uniform.symbol = sym;
-				mn::buf_push(compilation_unit->reachable_uniforms, uniform);
-			}
-		}
-	}
-
 	// API
 	void
 	reflect_package(Unit_Package* unit)
@@ -96,8 +55,5 @@ namespace sabre
 			assert(false && "unreachable");
 			break;
 		}
-
-		size_t uniform_binding_generator = 0;
-		_process_package(unit, uniform_binding_generator);
 	}
 }

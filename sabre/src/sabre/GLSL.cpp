@@ -988,25 +988,8 @@ namespace sabre
 		if (sym->var_sym.value && in_stmt == false)
 			_glsl_rewrite_complits_in_expr(self, sym->var_sym.value, false);
 
-		auto decl = symbol_decl(sym);
-
-		if (auto it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM))
+		if (sym->var_sym.is_uniform)
 		{
-			int binding = -1;
-			if (auto arg_it = mn::map_lookup(it->value.args, KEYWORD_BINDING))
-			{
-				auto value_tkn = arg_it->value.value;
-				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
-				{
-					binding = ::atoi(value_tkn.str);
-					if (binding > self.uniform_binding_generator)
-						self.uniform_binding_generator = binding + 1;
-				}
-			}
-			// if no user generated uniform binding is found we generate one for it
-			if (binding < 0)
-				binding = self.uniform_binding_generator++;
-
 			auto uniform_name = _glsl_name(self, _glsl_symbol_name(sym));
 			auto uniform_block_name = uniform_name;
 			if (sym->type->kind != Type::KIND_STRUCT)
@@ -1016,11 +999,11 @@ namespace sabre
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				mn::print_to(self.out, "layout(binding = {}) uniform {}", binding, _glsl_write_field(self, sym->type, uniform_name));
+				mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.uniform_binding, _glsl_write_field(self, sym->type, uniform_name));
 			}
 			else
 			{
-				mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", binding, uniform_block_name);
+				mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", sym->var_sym.uniform_binding, uniform_block_name);
 				++self.indent;
 				{
 					auto type = sym->type;
