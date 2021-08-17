@@ -640,11 +640,6 @@ namespace sabre
 		{
 			if (e->atom.sym)
 			{
-				if (::strcmp(e->atom.tkn.str, "dot") == 0)
-				{
-					int x = 234;
-				}
-
 				auto package_name = mn::str_lit(_glsl_symbol_name(e->atom.sym, e->atom.decl));
 				if (package_name.count > 0)
 				{
