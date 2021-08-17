@@ -342,6 +342,53 @@ namespace sabre
 		"min16uint4x4",
 	};
 
+	inline static int64_t
+	_hlsl_buffer_position(HLSL& self)
+	{
+		return mn::stream_cursor_pos(self.out);
+	}
+
+	inline static bool
+	_hlsl_code_generated_after(HLSL& self, int64_t pos)
+	{
+		return mn::stream_cursor_pos(self.out) > pos;
+	}
+
+	inline static void
+	_hlsl_newline(HLSL& self)
+	{
+		mn::print_to(self.out, "\n");
+		for (size_t i = 0; i < self.indent; ++i)
+			mn::print_to(self.out, "\t");
+	}
+
+	inline static void
+	_hlsl_enter_scope(HLSL& self, Scope* scope)
+	{
+		assert(scope != nullptr);
+		mn::buf_push(self.scope_stack, scope);
+	}
+
+	inline static void
+	_hlsl_leave_scope(HLSL& self)
+	{
+		assert(self.scope_stack.count > 1);
+		mn::buf_pop(self.scope_stack);
+	}
+
+	inline static Scope*
+	_hlsl_current_scope(HLSL& self)
+	{
+		return mn::buf_top(self.scope_stack);
+	}
+
+	inline static Symbol*
+	_hlsl_find_symbol(HLSL& self, const char* name)
+	{
+		auto current_scope = _hlsl_current_scope(self);
+		return scope_find(current_scope, name);
+	}
+
 	inline static const char*
 	_hlsl_symbol_name(Symbol* sym, Decl* decl = nullptr)
 	{
@@ -569,19 +616,19 @@ namespace sabre
 			can_write_name = true;
 			if (type == type_texture1d)
 			{
-				str = mn::strf(str, "Texture1D");
+				str = mn::strf(str, "Texture1D<float4>");
 			}
 			else if (type == type_texture2d)
 			{
-				str = mn::strf(str, "Texture2D");
+				str = mn::strf(str, "Texture2D<float4>");
 			}
 			else if (type == type_texture3d)
 			{
-				str = mn::strf(str, "Texture3D");
+				str = mn::strf(str, "Texture3D<float4>");
 			}
 			else if (type == type_texture_cube)
 			{
-				str = mn::strf(str, "TextureCube");
+				str = mn::strf(str, "TextureCube<float4>");
 			}
 			else
 			{
@@ -619,6 +666,79 @@ namespace sabre
 	_hlsl_write_field(HLSL& self, Type* type, const char* name)
 	{
 		return _hlsl_write_field(self, mn::str_tmp(), type, name);
+	}
+
+	inline static void
+	_hlsl_zero_value(HLSL& self, Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_BOOL:
+			mn::print_to(self.out, "false");
+			break;
+		case Type::KIND_INT:
+		case Type::KIND_UINT:
+			mn::print_to(self.out, "0");
+			break;
+		case Type::KIND_FLOAT:
+		case Type::KIND_DOUBLE:
+			mn::print_to(self.out, "0.0");
+			break;
+		case Type::KIND_VEC:
+			mn::print_to(self.out, "{}(", _hlsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->vec.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_hlsl_zero_value(self, t->vec.base);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_MAT:
+			mn::print_to(self.out, "{}(", _hlsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->mat.width * t->mat.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_hlsl_zero_value(self, t->mat.base);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_ARRAY:
+			mn::print_to(self.out, "{}(", _hlsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->array.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				_hlsl_zero_value(self, t->array.base);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_STRUCT:
+			mn::print_to(self.out, "{}(", _hlsl_write_field(self, t, nullptr));
+			for (size_t i = 0; i < t->struct_type.fields.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				if (t->struct_type.fields[i].default_value)
+					hlsl_expr_gen(self, t->struct_type.fields[i].default_value);
+				else
+					_hlsl_zero_value(self, t->struct_type.fields[i].type);
+			}
+			mn::print_to(self.out, ")");
+			break;
+		case Type::KIND_ENUM:
+			mn::print_to(self.out, "{}(0)", _hlsl_write_field(self, t, nullptr));
+			break;
+		case Type::KIND_VOID:
+		case Type::KIND_FUNC:
+		case Type::KIND_TEXTURE:
+		case Type::KIND_PACKAGE:
+		case Type::KIND_FUNC_OVERLOAD_SET:
+		default:
+			assert(false && "unreachable");
+			break;
+		}
 	}
 
 	inline static void
@@ -746,6 +866,934 @@ namespace sabre
 		}
 	}
 
+	inline static const char*
+	_hlsl_tmp_name(HLSL& self)
+	{
+		auto scope = _hlsl_current_scope(self);
+		auto res = mn::str_tmp();
+		const char* interned_res = nullptr;
+		while (true)
+		{
+			auto id = ++self.tmp_id;
+			res = mn::strf(res, "_tmp_{}", id);
+			interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+			if (scope_shallow_find(scope, interned_res) == nullptr)
+				break;
+			mn::str_clear(res);
+		}
+		return _hlsl_name(self, interned_res);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_expr(HLSL& self, Expr* e, bool is_const);
+
+	inline static void
+	_hlsl_rewrite_complits_in_binary_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		_hlsl_rewrite_complits_in_expr(self, e->binary.left, is_const);
+		_hlsl_rewrite_complits_in_expr(self, e->binary.right, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_unary_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		_hlsl_rewrite_complits_in_expr(self, e->unary.base, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_dot_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		if (e->dot.lhs)
+			_hlsl_rewrite_complits_in_expr(self, e->dot.lhs, is_const);
+		_hlsl_rewrite_complits_in_expr(self, e->dot.rhs, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_indexed_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		_hlsl_rewrite_complits_in_expr(self, e->indexed.base, is_const);
+		_hlsl_rewrite_complits_in_expr(self, e->indexed.index, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_call_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		_hlsl_rewrite_complits_in_expr(self, e->call.base, is_const);
+		for (auto arg: e->call.args)
+			_hlsl_rewrite_complits_in_expr(self, arg, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_cast_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		_hlsl_rewrite_complits_in_expr(self, e->cast.base, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_complit_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		for (size_t i = 0; i < e->complit.fields.count; ++i)
+		{
+			if (e->complit.fields[i].value)
+				_hlsl_rewrite_complits_in_expr(self, e->complit.fields[i].value, is_const);
+		}
+
+		if (is_const)
+			mn::print_to(self.out, "const ");
+
+		// handle arrays differently
+		if (type_is_array(e->type))
+		{
+			auto tmp_name = _hlsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {}(", _hlsl_write_field(self, e->type, tmp_name), _hlsl_write_field(self, e->type, nullptr));
+			for (size_t i = 0; i < e->type->array.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				if (i < e->complit.fields.count)
+					hlsl_expr_gen(self, e->complit.fields[i].value);
+				else
+					_hlsl_zero_value(self, e->type->array.base);
+			}
+			mn::print_to(self.out, ");");
+			_hlsl_newline(self);
+		}
+		else if (type_is_vec(e->type))
+		{
+			auto tmp_name = _hlsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {}(", _hlsl_write_field(self, e->type, tmp_name), _hlsl_write_field(self, e->type, nullptr));
+			for (size_t i = 0; i < e->type->vec.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+
+				if (auto field_it = mn::map_lookup(e->complit.referenced_fields, i))
+				{
+					auto field = e->complit.fields[field_it->value];
+					hlsl_expr_gen(self, field.value);
+					// advance the field index by sub vector size to handle vector upcast cases
+					if (type_is_vec(field.value->type))
+						i += field.value->type->vec.width - 1;
+				}
+				else
+				{
+					_hlsl_zero_value(self, e->type->vec.base);
+				}
+			}
+			mn::print_to(self.out, ");");
+			_hlsl_newline(self);
+		}
+		else if (type_is_struct(e->type))
+		{
+			auto tmp_name = _hlsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {{", _hlsl_write_field(self, e->type, tmp_name));
+			for (size_t i = 0; i < e->type->struct_type.fields.count; ++i)
+			{
+				const auto& struct_field = e->type->struct_type.fields[i];
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+
+				if (auto field_it = mn::map_lookup(e->complit.referenced_fields, i))
+				{
+					auto field = e->complit.fields[field_it->value];
+					hlsl_expr_gen(self, field.value);
+				}
+				else
+				{
+					if (struct_field.default_value)
+						hlsl_expr_gen(self, struct_field.default_value);
+					else
+						_hlsl_zero_value(self, struct_field.type);
+				}
+			}
+			mn::print_to(self.out, "}};");
+			_hlsl_newline(self);
+		}
+		else
+		{
+			assert(false && "unreachable");
+		}
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_expr(HLSL& self, Expr* e, bool is_const)
+	{
+		switch (e->kind)
+		{
+		case Expr::KIND_ATOM:
+			// do nothing, no complit here
+			break;
+		case Expr::KIND_BINARY:
+			_hlsl_rewrite_complits_in_binary_expr(self, e, is_const);
+			break;
+		case Expr::KIND_UNARY:
+			_hlsl_rewrite_complits_in_unary_expr(self, e, is_const);
+			break;
+		case Expr::KIND_DOT:
+			_hlsl_rewrite_complits_in_dot_expr(self, e, is_const);
+			break;
+		case Expr::KIND_INDEXED:
+			_hlsl_rewrite_complits_in_indexed_expr(self, e, is_const);
+			break;
+		case Expr::KIND_CALL:
+			_hlsl_rewrite_complits_in_call_expr(self, e, is_const);
+			break;
+		case Expr::KIND_CAST:
+			_hlsl_rewrite_complits_in_cast_expr(self, e, is_const);
+			break;
+		case Expr::KIND_COMPLIT:
+			_hlsl_rewrite_complits_in_complit_expr(self, e, is_const);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_return_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		_hlsl_rewrite_complits_in_expr(self, s->return_stmt, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_if_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		for (auto cond: s->if_stmt.cond)
+			_hlsl_rewrite_complits_in_expr(self, cond, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_stmt(HLSL& self, Stmt* s, bool is_const);
+
+	inline static void
+	_hlsl_rewrite_complits_in_for_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		if (s->for_stmt.init)
+			_hlsl_rewrite_complits_in_stmt(self, s->for_stmt.init, is_const);
+		if (s->for_stmt.cond)
+			_hlsl_rewrite_complits_in_expr(self, s->for_stmt.cond, is_const);
+		if (s->for_stmt.post)
+			_hlsl_rewrite_complits_in_stmt(self, s->for_stmt.post, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_assign_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		for (auto e: s->assign_stmt.lhs)
+			_hlsl_rewrite_complits_in_expr(self, e, is_const);
+
+		for (auto e: s->assign_stmt.rhs)
+			_hlsl_rewrite_complits_in_expr(self, e, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_block_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		for (auto stmt: s->block_stmt)
+			_hlsl_rewrite_complits_in_stmt(self, stmt, is_const);
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_decl_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		auto scope = _hlsl_current_scope(self);
+		auto d = s->decl_stmt;
+		switch (d->kind)
+		{
+		case Decl::KIND_VAR:
+		{
+			for (size_t i = 0; i < d->var_decl.names.count; ++i)
+			{
+				auto name = d->var_decl.names[i];
+				if (auto sym = scope_find(scope, name.str))
+				{
+					if (sym->var_sym.value)
+						_hlsl_rewrite_complits_in_expr(self, sym->var_sym.value, is_const);
+				}
+			}
+			break;
+		}
+		case Decl::KIND_CONST:
+		{
+			for (size_t i = 0; i < d->const_decl.names.count; ++i)
+			{
+				auto name = d->const_decl.names[i];
+				if (auto sym = scope_find(scope, name.str))
+				{
+					if (sym->const_sym.value)
+						_hlsl_rewrite_complits_in_expr(self, sym->const_sym.value, is_const);
+				}
+			}
+			break;
+		}
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_hlsl_rewrite_complits_in_stmt(HLSL& self, Stmt* s, bool is_const)
+	{
+		switch (s->kind)
+		{
+		case Stmt::KIND_BREAK:
+		case Stmt::KIND_CONTINUE:
+			// do nothing, no complits here
+			break;
+		case Stmt::KIND_RETURN:
+			_hlsl_rewrite_complits_in_return_stmt(self, s, is_const);
+			break;
+		case Stmt::KIND_IF:
+			_hlsl_rewrite_complits_in_if_stmt(self, s, is_const);
+			break;
+		case Stmt::KIND_FOR:
+			_hlsl_rewrite_complits_in_for_stmt(self, s, is_const);
+			break;
+		case Stmt::KIND_ASSIGN:
+			_hlsl_rewrite_complits_in_assign_stmt(self, s, is_const);
+			break;
+		case Stmt::KIND_EXPR:
+			_hlsl_rewrite_complits_in_expr(self, s->expr_stmt, is_const);
+			break;
+		case Stmt::KIND_BLOCK:
+			_hlsl_rewrite_complits_in_block_stmt(self, s, is_const);
+			break;
+		case Stmt::KIND_DECL:
+			_hlsl_rewrite_complits_in_decl_stmt(self, s, is_const);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_hlsl_gen_break_stmt(HLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "break");
+	}
+
+	inline static void
+	_hlsl_gen_continue_stmt(HLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "continue");
+	}
+
+	inline static void
+	_hlsl_gen_return_stmt(HLSL& self, Stmt* s)
+	{
+		if (s->return_stmt)
+		{
+			mn::print_to(self.out, "return ");
+			hlsl_expr_gen(self, s->return_stmt);
+		}
+		else
+		{
+			mn::print_to(self.out, "return");
+		}
+	}
+
+	inline static bool
+	_hlsl_add_semicolon_after(HLSL& self, Stmt* s)
+	{
+		if (s->kind == Stmt::KIND_BREAK ||
+			s->kind == Stmt::KIND_CONTINUE ||
+			s->kind == Stmt::KIND_RETURN ||
+			s->kind == Stmt::KIND_ASSIGN ||
+			s->kind == Stmt::KIND_EXPR)
+		{
+			return true;
+		}
+		return false;
+	}
+
+	inline static void
+	_hlsl_gen_block_stmt(HLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "{{");
+		++self.indent;
+
+		for (auto stmt: s->block_stmt)
+		{
+			_hlsl_newline(self);
+			hlsl_stmt_gen(self, stmt);
+			if (_hlsl_add_semicolon_after(self, stmt))
+			{
+				mn::print_to(self.out, ";");
+			}
+		}
+
+		--self.indent;
+		_hlsl_newline(self);
+		mn::print_to(self.out, "}}");
+	}
+
+	inline static void
+	_hlsl_gen_if_stmt(HLSL& self, Stmt* s)
+	{
+		for (size_t i = 0; i < s->if_stmt.body.count; ++i)
+		{
+			if (i > 0)
+				mn::print_to(self.out, " else ");
+
+			mn::print_to(self.out, "if (");
+			hlsl_expr_gen(self, s->if_stmt.cond[i]);
+			mn::print_to(self.out, ") ");
+			_hlsl_gen_block_stmt(self, s->if_stmt.body[i]);
+		}
+
+		if (s->if_stmt.else_body != nullptr)
+		{
+			mn::print_to(self.out, " else ");
+			_hlsl_gen_block_stmt(self, s->if_stmt.else_body);
+		}
+	}
+
+	inline static void
+	_hlsl_gen_for_stmt(HLSL& self, Stmt* s)
+	{
+		_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, s));
+		mn_defer(_hlsl_leave_scope(self));
+
+		mn::print_to(self.out, "{{ // for scope");
+		++self.indent;
+
+		_hlsl_newline(self);
+		mn::print_to(self.out, "// for init statement");
+		if (s->for_stmt.init != nullptr)
+		{
+			_hlsl_newline(self);
+			hlsl_stmt_gen(self, s->for_stmt.init);
+			if (_hlsl_add_semicolon_after(self, s->for_stmt.init))
+				mn::print_to(self.out, ";");
+		}
+
+		_hlsl_newline(self);
+		mn::print_to(self.out, "while (");
+		if (s->for_stmt.cond != nullptr)
+			hlsl_expr_gen(self, s->for_stmt.cond);
+		else
+			mn::print_to(self.out, "true");
+		mn::print_to(self.out, ") {{");
+		++self.indent;
+
+		_hlsl_newline(self);
+		mn::print_to(self.out, "// for body");
+		for (auto stmt: s->for_stmt.body->block_stmt)
+		{
+			_hlsl_newline(self);
+			hlsl_stmt_gen(self, stmt);
+			if (_hlsl_add_semicolon_after(self, stmt))
+			{
+				mn::print_to(self.out, ";");
+			}
+		}
+
+		if (s->for_stmt.post != nullptr)
+		{
+			_hlsl_newline(self);
+			mn::print_to(self.out, "// for post statement");
+			_hlsl_newline(self);
+			hlsl_stmt_gen(self, s->for_stmt.post);
+			mn::print_to(self.out, ";");
+		}
+
+		--self.indent;
+		_hlsl_newline(self);
+		mn::print_to(self.out, "}}");
+
+		--self.indent;
+		_hlsl_newline(self);
+		mn::print_to(self.out, "}} // for scope");
+	}
+
+	inline static void
+	_hlsl_assign(HLSL& self, Expr* lhs, const char* op, Expr* rhs)
+	{
+		hlsl_expr_gen(self, lhs);
+		mn::print_to(self.out, " {} ", op);
+		hlsl_expr_gen(self, rhs);
+	}
+
+	inline static void
+	_hlsl_assign(HLSL& self, Symbol* lhs, const char* op, Expr* rhs)
+	{
+		auto e = expr_atom_new(self.unit->symbols_arena, lhs->var_sym.name);
+		e->type = lhs->type;
+		e->mode = ADDRESS_MODE_VARIABLE;
+		_hlsl_assign(self, e, op, rhs);
+	}
+
+	inline static void
+	_hlsl_gen_assign_stmt(HLSL& self, Stmt* s)
+	{
+		for (size_t i = 0; i < s->assign_stmt.lhs.count; ++i)
+		{
+			if (i > 0)
+			{
+				mn::print_to(self.out, ";");
+				_hlsl_newline(self);
+			}
+
+			auto lhs = s->assign_stmt.lhs[i];
+			auto rhs = s->assign_stmt.rhs[i];
+
+			_hlsl_assign(self, lhs, s->assign_stmt.op.str, rhs);
+		}
+	}
+
+	inline static void
+	_hlsl_symbol_gen(HLSL& self, Symbol* sym, bool in_stmt);
+
+	inline static void
+	_hlsl_gen_decl_stmt(HLSL& self, Stmt* s)
+	{
+		auto scope = _hlsl_current_scope(self);
+		auto d = s->decl_stmt;
+		switch (d->kind)
+		{
+		case Decl::KIND_VAR:
+		{
+			for (size_t i = 0; i < d->var_decl.names.count; ++i)
+			{
+				if (i > 0)
+					_hlsl_newline(self);
+				auto name = d->var_decl.names[i];
+				_hlsl_symbol_gen(self, scope_find(scope, name.str), true);
+			}
+			break;
+		}
+		case Decl::KIND_CONST:
+		{
+			for (size_t i = 0; i < d->const_decl.names.count; ++i)
+			{
+				if (i > 0)
+					_hlsl_newline(self);
+				auto name = d->const_decl.names[i];
+				_hlsl_symbol_gen(self, scope_find(scope, name.str), true);
+			}
+			break;
+		}
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_hlsl_func_gen_internal(HLSL& self, Decl* d, Type* t, const char* name)
+	{
+		bool is_builtin = false;
+
+		if (mn::map_lookup(d->tags.table, KEYWORD_BUILTIN))
+			is_builtin = true;
+
+		if (is_builtin)
+			return;
+
+		auto return_type = t->func.return_type;
+		mn::print_to(self.out, "{} {}(", _hlsl_write_field(self, return_type, ""), _hlsl_name(self, name));
+
+		if (d->func_decl.body != nullptr)
+			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
+		mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
+
+		size_t i = 0;
+		for (auto arg: d->func_decl.args)
+		{
+			auto arg_type = t->func.args.types[i];
+			for (auto name: arg.names)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+				++i;
+			}
+		}
+
+		mn::print_to(self.out, ")");
+
+		if (d->func_decl.body != nullptr)
+		{
+			mn::print_to(self.out, " ");
+			_hlsl_gen_block_stmt(self, d->func_decl.body);
+		}
+	}
+
+	inline static void
+	_hlsl_func_gen(HLSL& self, Symbol* sym)
+	{
+		_hlsl_func_gen_internal(self, sym->func_sym.decl, sym->type, _hlsl_symbol_name(sym));
+	}
+
+	inline static void
+	_hlsl_var_gen(HLSL& self, Symbol* sym, bool in_stmt)
+	{
+		if (sym->var_sym.value && in_stmt == false)
+			_hlsl_rewrite_complits_in_expr(self, sym->var_sym.value, false);
+
+		if (sym->var_sym.is_uniform)
+		{
+			auto uniform_name = _hlsl_name(self, _hlsl_symbol_name(sym));
+			auto uniform_block_name = uniform_name;
+			if (sym->type->kind != Type::KIND_STRUCT)
+			{
+				uniform_block_name = _hlsl_name(self, mn::str_tmpf("uniform{}", _hlsl_tmp_name(self)).ptr);
+			}
+
+			if (sym->type->kind == Type::KIND_TEXTURE)
+			{
+				mn::print_to(self.out, "{}: register(t{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
+			}
+			else
+			{
+				mn::print_to(self.out, "cbuffer {}: register(b{}) {{", uniform_block_name, sym->var_sym.uniform_binding);
+				++self.indent;
+				{
+					auto type = sym->type;
+					if (type->kind == Type::KIND_STRUCT)
+					{
+						for (auto field: type->struct_type.fields)
+						{
+							_hlsl_newline(self);
+							auto name = mn::str_tmpf("{}_{}", uniform_name, field.name.str);
+							mn::print_to(self.out, "{};", _hlsl_write_field(self, field.type, name.ptr));
+						}
+					}
+					else
+					{
+						_hlsl_newline(self);
+						mn::print_to(self.out, "{};", _hlsl_write_field(self, type, uniform_name));
+					}
+				}
+				--self.indent;
+				_hlsl_newline(self);
+				mn::print_to(self.out, "}}");
+			}
+		}
+		else
+		{
+			mn::print_to(self.out, "{}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(sym)));
+			if (sym->var_sym.value != nullptr)
+			{
+				mn::print_to(self.out, " = ");
+				hlsl_expr_gen(self, sym->var_sym.value);
+			}
+			else
+			{
+				// TODO(Moustapha): handle zero init data
+			}
+		}
+		mn::print_to(self.out, ";");
+	}
+
+	inline static void
+	_hlsl_const_gen(HLSL& self, Symbol* sym, bool in_stmt)
+	{
+		if (sym->const_sym.value && in_stmt == false)
+			_hlsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
+
+		mn::print_to(self.out, "const {}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(sym)));
+		if (sym->const_sym.value != nullptr)
+		{
+			mn::print_to(self.out, " = ");
+			hlsl_expr_gen(self, sym->var_sym.value);
+		}
+		else
+		{
+			mn::print_to(self.out, " = ");
+			_hlsl_zero_value(self, sym->type);
+		}
+		mn::print_to(self.out, ";");
+	}
+
+	inline static void
+	_hlsl_struct_gen(HLSL& self, Symbol* sym)
+	{
+		mn::print_to(self.out, "struct {} {{", _hlsl_name(self, _hlsl_symbol_name(sym)));
+		++self.indent;
+
+		auto d = sym->struct_sym.decl;
+		auto t = sym->type;
+
+		auto io_flags_it = mn::map_lookup(self.io_structs, sym);
+
+		size_t i = 0;
+		for (auto field: d->struct_decl.fields)
+		{
+			auto field_type = t->struct_type.fields[i];
+			for (auto name: field.names)
+			{
+				_hlsl_newline(self);
+				mn::print_to(self.out, "{}", _hlsl_write_field(self, field_type.type, name.str));
+				if (io_flags_it)
+				{
+					if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+					{
+						mn::print_to(self.out, ": SV_POSITION");
+					}
+					if (io_flags_it->value == ENTRY_IO_FLAG_PIXEL_OUT)
+					{
+						mn::print_to(self.out, ": SV_TARGET{}", i);
+					}
+					else
+					{
+						mn::print_to(self.out, ": TEXCOORD{}", i);
+					}
+				}
+				mn::print_to(self.out, ";");
+			}
+			i += field.names.count;
+		}
+
+		--self.indent;
+		_hlsl_newline(self);
+		mn::print_to(self.out, "}};");
+	}
+
+	inline static void
+	_hlsl_enum_gen(HLSL& self, Symbol* sym)
+	{
+		mn::print_to(self.out, "enum {} {{", _hlsl_name(self, _hlsl_symbol_name(sym)));
+		++self.indent;
+
+		auto d = sym->enum_sym.decl;
+		auto t = sym->type;
+
+		size_t i = 0;
+		for (auto field: d->enum_decl.fields)
+		{
+			auto field_type = t->enum_type.fields[i];
+			assert(field_type.value.type == type_int);
+			_hlsl_newline(self);
+			mn::print_to(self.out, "{}_{} = {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
+			++i;
+		}
+
+		--self.indent;
+		_hlsl_newline(self);
+		mn::print_to(self.out, "}};");
+	}
+
+	inline static void
+	_hlsl_symbol_gen(HLSL& self, Symbol* sym, bool in_stmt)
+	{
+		switch (sym->kind)
+		{
+		case Symbol::KIND_FUNC:
+			_hlsl_func_gen(self, sym);
+			break;
+		case Symbol::KIND_VAR:
+			_hlsl_var_gen(self, sym, in_stmt);
+			break;
+		case Symbol::KIND_CONST:
+			_hlsl_const_gen(self, sym, in_stmt);
+			break;
+		case Symbol::KIND_FUNC_OVERLOAD_SET:
+		{
+			bool was_last_symbol_generated = false;
+			for (size_t i = 0; i < sym->func_overload_set_sym.used_decls.count; ++i)
+			{
+				auto decl = sym->func_overload_set_sym.used_decls[i];
+				auto it = mn::map_lookup(sym->func_overload_set_sym.decls, decl);
+				auto type = it->value;
+
+				if (was_last_symbol_generated)
+					_hlsl_newline(self);
+
+				auto pos = _hlsl_buffer_position(self);
+				_hlsl_func_gen_internal(self, decl, type, _hlsl_symbol_name(sym, decl));
+				was_last_symbol_generated = _hlsl_code_generated_after(self, pos);
+			}
+			break;
+		}
+		case Symbol::KIND_STRUCT:
+			_hlsl_struct_gen(self, sym);
+			break;
+		case Symbol::KIND_PACKAGE:
+		{
+			auto package = sym->package_sym.package;
+			if (package->stage == COMPILATION_STAGE_CODEGEN)
+			{
+				for (size_t i = 0; i < package->reachable_symbols.count; ++i)
+				{
+					if (i > 0)
+						_hlsl_newline(self);
+					_hlsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
+				}
+				if (package->reachable_symbols.count > 0)
+					_hlsl_newline(self);
+				package->stage = COMPILATION_STAGE_SUCCESS;
+			}
+			break;
+		}
+		case Symbol::KIND_ENUM:
+			_hlsl_enum_gen(self, sym);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	inline static void
+	_hlsl_generate_vertex_shader_io(HLSL& self, Symbol* entry)
+	{
+		auto decl = entry->func_sym.decl;
+		auto entry_type = entry->type;
+		size_t type_index = 0;
+		// generate input
+		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
+		{
+			const auto& arg = decl->func_decl.args[i];
+
+			for (const auto& name: arg.names)
+			{
+				auto input_name = _hlsl_name(self, name.str);
+				auto arg_type = entry_type->func.args.types[type_index++];
+				switch(arg_type->kind)
+				{
+				case Type::KIND_STRUCT:
+					mn::map_insert(self.io_structs, arg_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+					break;
+				default:
+					assert(false && "unreachable");
+					break;
+				}
+			}
+		}
+
+		size_t out_location = 0;
+		if (entry_type->func.return_type != type_void)
+		{
+			auto ret_type = entry_type->func.return_type;
+
+			switch(ret_type->kind)
+			{
+			case Type::KIND_STRUCT:
+				mn::map_insert(self.io_structs, ret_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+				break;
+			default:
+				assert(false && "unreachable");
+				break;
+			}
+		}
+
+		if (out_location > 0)
+			_hlsl_newline(self);
+	}
+
+	inline static void
+	_hlsl_generate_pixel_shader_io(HLSL& self, Symbol* entry)
+	{
+		auto decl = entry->func_sym.decl;
+		auto entry_type = entry->type;
+		size_t type_index = 0;
+		// generate input
+		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
+		{
+			const auto& arg = decl->func_decl.args[i];
+
+			for (const auto& name: arg.names)
+			{
+				auto input_name = _hlsl_name(self, name.str);
+				auto arg_type = entry_type->func.args.types[type_index++];
+				switch(arg_type->kind)
+				{
+				case Type::KIND_STRUCT:
+					mn::map_insert(self.io_structs, arg_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+					break;
+				default:
+					assert(false && "unreachable");
+					break;
+				}
+			}
+		}
+
+		size_t out_location = 0;
+		if (entry_type->func.return_type != type_void)
+		{
+			auto ret_type = entry_type->func.return_type;
+
+			switch(ret_type->kind)
+			{
+			case Type::KIND_STRUCT:
+				mn::map_insert(self.io_structs, ret_type->struct_type.symbol, ENTRY_IO_FLAG_PIXEL_OUT);
+				break;
+			default:
+				assert(false && "unreachable");
+				break;
+			}
+		}
+
+		if (out_location > 0)
+			_hlsl_newline(self);
+	}
+
+	inline static void
+	_hlsl_generate_main_func(HLSL& self, Symbol* entry)
+	{
+		assert(entry->kind == Symbol::KIND_FUNC);
+
+		auto d = entry->func_sym.decl;
+		auto t = entry->type;
+		auto return_type = t->func.return_type;
+		mn::print_to(self.out, "{} main(", _hlsl_write_field(self, return_type, ""));
+
+		if (d->func_decl.body != nullptr)
+			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
+		mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
+
+		size_t i = 0;
+		for (auto arg: d->func_decl.args)
+		{
+			auto arg_type = t->func.args.types[i];
+			for (auto name: arg.names)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+				++i;
+			}
+		}
+
+		mn::print_to(self.out, ")");
+
+		_hlsl_newline(self);
+		mn::print_to(self.out, "{{");
+		++self.indent;
+
+		_hlsl_newline(self);
+		if (return_type && return_type != type_void)
+		{
+			mn::print_to(self.out, "return ");
+		}
+
+		mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(entry)));
+		i = 0;
+		for (auto arg: d->func_decl.args)
+		{
+			auto arg_type = t->func.args.types[i];
+			for (auto name: arg.names)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				mn::print_to(self.out, "{}", name.str);
+				++i;
+			}
+		}
+		mn::print_to(self.out, ");");
+
+		--self.indent;
+		_hlsl_newline(self);
+		mn::print_to(self.out, "}}");
+	}
+
 
 	// API
 	HLSL
@@ -754,6 +1802,11 @@ namespace sabre
 		HLSL self{};
 		self.unit = unit;
 		self.out = out;
+
+		// push global scope as first entry in scope stack
+		auto global_scope = self.unit->global_scope;
+		assert(global_scope != nullptr);
+		mn::buf_push(self.scope_stack, global_scope);
 
 		constexpr auto keywords_count = sizeof(HLSL_KEYWORDS) / sizeof(*HLSL_KEYWORDS);
 		for (size_t i = 0; i < keywords_count; ++i)
@@ -768,8 +1821,10 @@ namespace sabre
 	void
 	hlsl_free(HLSL& self)
 	{
+		mn::buf_free(self.scope_stack);
 		mn::map_free(self.reserved_to_alternative);
 		mn::map_free(self.symbol_to_names);
+		mn::set_free(self.io_structs);
 	}
 
 	void
@@ -811,5 +1866,88 @@ namespace sabre
 
 		if (e->in_parens)
 			mn::print_to(self.out, ")");
+	}
+
+	void
+	hlsl_stmt_gen(HLSL& self, Stmt* s)
+	{
+		// handle compound literal expressions
+		bool is_const = s->kind == Stmt::KIND_DECL && s->decl_stmt->kind == Decl::KIND_CONST;
+		_hlsl_rewrite_complits_in_stmt(self, s, is_const);
+
+		switch (s->kind)
+		{
+		case Stmt::KIND_BREAK:
+			_hlsl_gen_break_stmt(self, s);
+			break;
+		case Stmt::KIND_CONTINUE:
+			_hlsl_gen_continue_stmt(self, s);
+			break;
+		case Stmt::KIND_RETURN:
+			_hlsl_gen_return_stmt(self, s);
+			break;
+		case Stmt::KIND_IF:
+			_hlsl_gen_if_stmt(self, s);
+			break;
+		case Stmt::KIND_FOR:
+			_hlsl_gen_for_stmt(self, s);
+			break;
+		case Stmt::KIND_ASSIGN:
+			_hlsl_gen_assign_stmt(self, s);
+			break;
+		case Stmt::KIND_EXPR:
+			hlsl_expr_gen(self, s->expr_stmt);
+			break;
+		case Stmt::KIND_BLOCK:
+			_hlsl_gen_block_stmt(self, s);
+			break;
+		case Stmt::KIND_DECL:
+			_hlsl_gen_decl_stmt(self, s);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+	}
+
+	void
+	hlsl_gen(HLSL& self)
+	{
+		auto compilation_unit = self.unit->parent_unit;
+
+		switch (compilation_unit->mode)
+		{
+		case COMPILATION_MODE_LIBRARY:
+			// do nothing
+			break;
+		case COMPILATION_MODE_VERTEX:
+			_hlsl_generate_vertex_shader_io(self, compilation_unit->entry_symbol);
+			break;
+		case COMPILATION_MODE_PIXEL:
+			_hlsl_generate_pixel_shader_io(self, compilation_unit->entry_symbol);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+		}
+
+		bool last_symbol_was_generated = false;
+		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
+		{
+			if (last_symbol_was_generated)
+				_hlsl_newline(self);
+
+			auto pos = _hlsl_buffer_position(self);
+			_hlsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
+			last_symbol_was_generated = _hlsl_code_generated_after(self, pos);
+		}
+
+		// generate real entry function
+		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
+		{
+			_hlsl_newline(self);
+			_hlsl_newline(self);
+			_hlsl_generate_main_func(self, compilation_unit->entry_symbol);
+		}
 	}
 }

@@ -4,6 +4,7 @@
 #include "sabre/Check.h"
 #include "sabre/Reflect.h"
 #include "sabre/GLSL.h"
+#include "sabre/HLSL.h"
 
 #include <mn/Path.h>
 #include <mn/IO.h>
@@ -770,6 +771,23 @@ namespace sabre
 		mn_defer(glsl_free(glsl));
 
 		glsl_gen(glsl);
+
+		return mn::memory_stream_str(stream);
+	}
+
+	mn::Result<mn::Str>
+	unit_hlsl(Unit* self, mn::Allocator allocator)
+	{
+		if (unit_has_errors(self))
+			return mn::Err {"unit has errors"};
+
+		auto stream = mn::memory_stream_new(allocator);
+		mn_defer(mn::memory_stream_free(stream));
+
+		auto hlsl = hlsl_new(self->packages[0], stream);
+		mn_defer(hlsl_free(hlsl));
+
+		hlsl_gen(hlsl);
 
 		return mn::memory_stream_str(stream);
 	}

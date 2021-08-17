@@ -347,6 +347,11 @@ namespace sabre
 	SABRE_EXPORT mn::Result<mn::Str>
 	unit_glsl(Unit* self, mn::Allocator allocator = mn::allocator_top());
 
+	// generates hlsl code for the given unit, if it has errors
+	// it will return the an error
+	SABRE_EXPORT mn::Result<mn::Str>
+	unit_hlsl(Unit* self, mn::Allocator allocator = mn::allocator_top());
+
 	// dumps all the scanned tokens to a string
 	SABRE_EXPORT mn::Str
 	unit_dump_tokens(Unit* self, mn::Allocator allocator = mn::allocator_top());

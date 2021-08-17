@@ -191,6 +191,33 @@ namespace sabre
 		return unit_glsl(unit);
 	}
 
+	mn::Result<mn::Str, mn::Err>
+	hlsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections)
+	{
+		if (mn::path_is_file(filepath) == false)
+			return mn::Err{ "file '{}' not found", filepath };
+
+		auto unit = unit_from_file(filepath, entry);
+		mn_defer(unit_free(unit));
+
+		for (const auto& [name, path]: library_collections)
+			if (auto err = unit_add_library_collection(unit, name, path))
+				return err;
+
+		_unit_change_paths(unit, fake_path);
+
+		if (unit_scan(unit) == false)
+			return unit_dump_errors(unit);
+
+		if (unit_parse(unit) == false)
+			return unit_dump_errors(unit);
+
+		if (unit_check(unit) == false)
+			return unit_dump_errors(unit);
+
+		return unit_hlsl(unit);
+	}
+
 	mn::Result<mn::Str>
 	reflect_file(const mn::Str& filepath, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections)
 	{

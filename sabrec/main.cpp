@@ -14,6 +14,7 @@ COMMANDS:
   parse-decl: parses a single declaration from the given files and prints it's AST representation
   check: performs type checking on the given files
   glsl-gen: generates GLSL code from the given files
+  hlsl-gen: generates HLSL code from the given files
   reflect: generates reflection information for the given files
 
 OPTIONS:
@@ -241,6 +242,26 @@ int main(int argc, char** argv)
 		auto path = args.input[0];
 
 		auto [answer, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
+		return EXIT_SUCCESS;
+	}
+	else if (args.cmd == "hlsl-gen")
+	{
+		if (args.input.count != 1)
+		{
+			mn::printerr("no input files, you should provide path for the entry point file\n\n");
+			print_help();
+			return EXIT_FAILURE;
+		}
+		auto path = args.input[0];
+
+		auto [answer, err] = sabre::hlsl_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
