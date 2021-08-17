@@ -1,5 +1,6 @@
 package std
 
+@hlsl_method
 @builtin {
 	glsl = "texture"
 	hlsl = "Sample"

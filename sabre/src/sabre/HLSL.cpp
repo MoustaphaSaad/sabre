@@ -834,15 +834,41 @@ namespace sabre
 	inline static void
 	_hlsl_gen_call_expr(HLSL& self, Expr* e)
 	{
-		hlsl_expr_gen(self, e->call.base);
-		mn::print_to(self.out, "(");
-		for (size_t i = 0; i < e->call.args.count; ++i)
+		bool is_method = false;
+		if (auto sym = e->call.base->symbol)
 		{
-			if (i > 0)
-				mn::print_to(self.out, ", ");
-			hlsl_expr_gen(self, e->call.args[i]);
+			if (auto d = symbol_decl(sym))
+			{
+				is_method = mn::map_lookup(d->tags.table, KEYWORD_HLSL_METHOD) != nullptr;
+			}
 		}
-		mn::print_to(self.out, ")");
+
+		if (is_method && e->call.args.count > 0)
+		{
+			hlsl_expr_gen(self, e->call.args[0]);
+			mn::print_to(self.out, ".");
+			hlsl_expr_gen(self, e->call.base);
+			mn::print_to(self.out, "(");
+			for (size_t i = 1; i < e->call.args.count; ++i)
+			{
+				if (i > 1)
+					mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, e->call.args[i]);
+			}
+			mn::print_to(self.out, ")");
+		}
+		else
+		{
+			hlsl_expr_gen(self, e->call.base);
+			mn::print_to(self.out, "(");
+			for (size_t i = 0; i < e->call.args.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, e->call.args[i]);
+			}
+			mn::print_to(self.out, ")");
+		}
 	}
 
 	inline static void

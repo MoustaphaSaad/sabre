@@ -34,7 +34,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_GLSL = "glsl";
 	inline constexpr const char* KEYWORD_REFLECT = "reflect";
 	inline constexpr const char* KEYWORD_HLSL = "hlsl";
-	inline constexpr const char* KEYWORD_METHOD = "method";
+	inline constexpr const char* KEYWORD_HLSL_METHOD = "hlsl_method";
 
 	enum COMPILATION_STAGE
 	{
