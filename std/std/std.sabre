@@ -2,6 +2,7 @@ package std
 
 @builtin {
 	glsl = "texture"
+	hlsl = "Sample"
 }
 func texture_sample(:Texture2D, :vec2): vec4
 

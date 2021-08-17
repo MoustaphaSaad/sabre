@@ -1,0 +1,39 @@
+package main
+
+import std "std"
+
+type VS_Input struct {
+	position: vec2,
+	texcoord: vec2,
+	color: vec4,
+}
+
+type PS_Input struct {
+	@system_position position: vec4,
+	texcoord: vec2,
+	color: vec4
+}
+
+@uniform{binding = 0} var viewproj: mat4;
+
+@vertex
+func main_vertex(input: VS_Input): PS_Input {
+	return {
+		position = viewproj * :vec4{input.position, 0, 1},
+		texcoord = input.texcoord,
+		color = input.color,
+	};
+}
+
+type PS_Output struct {
+	color: vec4,
+}
+
+@uniform{binding = 0} var texture0: Texture2D;
+
+@pixel
+func main_pixel(input: PS_Input): PS_Output {
+	return {
+		color = input.color * std.texture_sample(texture0, input.texcoord),
+	};
+}

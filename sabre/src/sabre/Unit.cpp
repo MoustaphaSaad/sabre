@@ -546,6 +546,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_POSITION));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GLSL));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_REFLECT));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_HLSL));
 
 		if (entry.count > 0)
 			self->entry = mn::str_intern(self->str_interner, entry.ptr);

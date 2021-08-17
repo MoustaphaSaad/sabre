@@ -1,16 +1,18 @@
+package main
+
 type Point struct {
 	p: vec2
 }
 
+@method
 func add(a, b: Point): Point {
-	return :Point {
-		.p.x = a.p.x + b.p.x,
-		.p.y = a.p.y + b.p.y,
+	return {
+		p = {a.p.x + b.p.x, a.p.y + b.p.y},
 	};
 }
 
 func add2(a, b: Point): Point {
-	return :Point { a.p + b.p };
+	return { a.p + b.p };
 }
 
 func is_white(color: vec4): bool {
@@ -19,4 +21,9 @@ func is_white(color: vec4): bool {
 	} else {
 		return false;
 	}
+}
+
+func foo(a, b: Point)
+{
+	var c = a.add(b);
 }

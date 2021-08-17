@@ -401,7 +401,7 @@ namespace sabre
 		case Symbol::KIND_FUNC:
 			if (auto tag = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN))
 			{
-				if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
+				if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 				{
 					res = arg->value.value.str;
 				}
@@ -416,7 +416,7 @@ namespace sabre
 			{
 				if (auto tag = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN))
 				{
-					if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
+					if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 					{
 						res = arg->value.value.str;
 					}
@@ -433,7 +433,7 @@ namespace sabre
 				{
 					if (auto tag = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN))
 					{
-						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
+						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 						{
 							res = arg->value.value.str;
 						}
