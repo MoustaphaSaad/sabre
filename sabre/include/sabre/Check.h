@@ -18,6 +18,7 @@ namespace sabre
 		mn::Buf<Scope*> scope_stack;
 		mn::Buf<Type*> expected_expr_type;
 		int uniform_binding_generator;
+		int texture_binding_generator;
 	};
 
 	// creates a new type checker

@@ -1828,6 +1828,7 @@ namespace sabre
 				}
 			}
 		}
+		sym->type = res;
 
 		// check uniform types
 		auto decl = symbol_decl(sym);
@@ -1841,44 +1842,84 @@ namespace sabre
 				unit_err(self.unit, err);
 			}
 
-			sym->var_sym.is_uniform = true;
-			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				auto value_tkn = binding_it->value.value;
-				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				sym->var_sym.is_uniform = true;
+				if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
 				{
-					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-					if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
-						self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
+					auto value_tkn = binding_it->value.value;
+					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+					{
+						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+						if (sym->var_sym.uniform_binding > self.texture_binding_generator)
+							self.texture_binding_generator = sym->var_sym.uniform_binding + 1;
+					}
+				}
+				else
+				{
+					sym->var_sym.uniform_binding = self.texture_binding_generator++;
+				}
+
+				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding))
+				{
+					auto old_sym = it->value;
+					auto old_loc = symbol_location(old_sym);
+
+					Err err{};
+					err.loc = symbol_location(sym);
+					err.msg = mn::strf(
+						"texture binding point {} is shared with other texture defined in {}:{}",
+						sym->var_sym.uniform_binding,
+						old_loc.file->filepath,
+						old_loc.pos.line
+					);
+					unit_err(self.unit, err);
+				}
+				else
+				{
+					mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
 				}
 			}
 			else
 			{
-				sym->var_sym.uniform_binding = self.uniform_binding_generator++;
-			}
+				sym->var_sym.is_uniform = true;
+				if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+				{
+					auto value_tkn = binding_it->value.value;
+					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+					{
+						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+						if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
+							self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
+					}
+				}
+				else
+				{
+					sym->var_sym.uniform_binding = self.uniform_binding_generator++;
+				}
 
-			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
-			{
-				auto old_sym = it->value;
-				auto old_loc = symbol_location(old_sym);
+				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
+				{
+					auto old_sym = it->value;
+					auto old_loc = symbol_location(old_sym);
 
-				Err err{};
-				err.loc = symbol_location(sym);
-				err.msg = mn::strf(
-					"uniform binding point {} is shared with other uniform defined in {}:{}",
-					sym->var_sym.uniform_binding,
-					old_loc.file->filepath,
-					old_loc.pos.line
-				);
-				unit_err(self.unit, err);
-			}
-			else
-			{
-				mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
+					Err err{};
+					err.loc = symbol_location(sym);
+					err.msg = mn::strf(
+						"uniform binding point {} is shared with other uniform defined in {}:{}",
+						sym->var_sym.uniform_binding,
+						old_loc.file->filepath,
+						old_loc.pos.line
+					);
+					unit_err(self.unit, err);
+				}
+				else
+				{
+					mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
+				}
 			}
 		}
 
-		sym->type = res;
 		return res;
 	}
 

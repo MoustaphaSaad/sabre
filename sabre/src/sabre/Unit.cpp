@@ -572,6 +572,7 @@ namespace sabre
 		mn::map_free(self->absolute_path_to_package);
 		mn::map_free(self->input_layout);
 		mn::map_free(self->reachable_uniforms);
+		mn::map_free(self->reachable_textures);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
 		mn::free(self);
@@ -694,6 +695,26 @@ namespace sabre
 			_push_type(types, symbol->type);
 		}
 
+		auto json_textures = mn::json::value_array_new();
+		for (const auto& [binding, symbol]: self->reachable_textures)
+		{
+			auto json_texture = mn::json::value_object_new();
+			if (symbol->package == root)
+			{
+				mn::json::value_object_insert(json_texture, "name", mn::json::value_string_new(symbol->name));
+			}
+			else
+			{
+				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", symbol->package->name.str, symbol->name));
+				mn::json::value_object_insert(json_texture, "name", uniform_name);
+			}
+			mn::json::value_object_insert(json_texture, "binding", mn::json::value_number_new(binding));
+			mn::json::value_object_insert(json_texture, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type)));
+			mn::json::value_array_push(json_textures, json_texture);
+
+			_push_type(types, symbol->type);
+		}
+
 		auto json_types = mn::json::value_array_new();
 		for (auto type: types)
 		{
@@ -736,6 +757,7 @@ namespace sabre
 
 		mn::json::value_object_insert(json_result, "entry", json_entry);
 		mn::json::value_object_insert(json_result, "uniforms", json_uniforms);
+		mn::json::value_object_insert(json_result, "textures", json_textures);
 		mn::json::value_object_insert(json_result, "types", json_types);
 
 		for (auto s: self->reflected_symbols)
