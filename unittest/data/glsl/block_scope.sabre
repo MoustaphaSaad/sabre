@@ -1,0 +1,9 @@
+package main
+
+func foo(d: float): float {
+	if d > 1 {
+		var d_inv = 1 - d;
+		return d_inv;
+	}
+	return d;
+}

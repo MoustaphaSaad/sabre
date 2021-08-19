@@ -910,6 +910,10 @@ namespace sabre
 	inline static void
 	_glsl_gen_block_stmt(GLSL& self, Stmt* s)
 	{
+		auto scope = unit_scope_find(self.unit->parent_unit, s);
+		if (scope)
+			_glsl_enter_scope(self, scope);
+
 		mn::print_to(self.out, "{{");
 		++self.indent;
 
@@ -926,6 +930,9 @@ namespace sabre
 		--self.indent;
 		_glsl_newline(self);
 		mn::print_to(self.out, "}}");
+
+		if (scope)
+			_glsl_leave_scope(self);
 	}
 
 	inline static void

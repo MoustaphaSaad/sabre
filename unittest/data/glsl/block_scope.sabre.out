@@ -1,0 +1,7 @@
+float main_foo(float d) {
+	if (d > 1) {
+		int d_inv = 1 - d;
+		return d_inv;
+	}
+	return d;
+}

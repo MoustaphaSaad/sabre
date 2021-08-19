@@ -31,6 +31,18 @@ func dot(a, b: vec3): float
 @builtin
 func dot(a, b: vec2): float
 
+@builtin
+func length(a: vec2): float
+
+@builtin
+func length(a: vec3): float
+
+@builtin
+func length(a: vec4): float
+
+@builtin
+func pow(base, power: float): float
+
 const MAX_COLOR_ATTACHMENT = 4;
 
 type Pipeline struct {

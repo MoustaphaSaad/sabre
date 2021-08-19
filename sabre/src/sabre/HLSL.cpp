@@ -1241,6 +1241,10 @@ namespace sabre
 	inline static void
 	_hlsl_gen_block_stmt(HLSL& self, Stmt* s)
 	{
+		auto scope = unit_scope_find(self.unit->parent_unit, s);
+		if (scope)
+			_hlsl_enter_scope(self, scope);
+
 		mn::print_to(self.out, "{{");
 		++self.indent;
 
@@ -1257,6 +1261,9 @@ namespace sabre
 		--self.indent;
 		_hlsl_newline(self);
 		mn::print_to(self.out, "}}");
+
+		if (scope)
+			_hlsl_leave_scope(self);
 	}
 
 	inline static void

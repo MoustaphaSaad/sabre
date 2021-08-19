@@ -1,0 +1,30 @@
+package main
+
+import "std"
+
+type PS_Input struct {
+	@system_position position: vec4,
+	color: vec4,
+	uv: vec2,
+}
+
+type PS_Output struct {
+	color: vec4
+}
+
+@pixel
+func vermeer_pixel(input: PS_Input): PS_Output {
+	var output: PS_Output;
+	output.color = input.color;
+	var d = std.length(input.uv);
+	if (d > 1)
+	{
+		output.color.w = 0;
+	}
+	else
+	{
+		var d_inv = 1 - d;
+		output.color.w *= std.pow(d, 1/d);
+	}
+	return output;
+}
