@@ -3,7 +3,8 @@ package main
 func foo(d: float): float {
 	if d > 1 {
 		var d_inv = 1 - d;
-		return d_inv;
+		var d_inv2 = d - 1;
+		return d_inv + d_inv2;
 	}
 	return d;
 }

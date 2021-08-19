@@ -861,7 +861,14 @@ namespace sabre
 			return type_bool;
 		}
 
-		return lhs_type;
+		if (lhs_type == type_lit_int || lhs_type == type_lit_float)
+		{
+			return rhs_type;
+		}
+		else
+		{
+			return lhs_type;
+		}
 	}
 
 	inline static Type*
