@@ -1527,7 +1527,7 @@ namespace sabre
 			if (failed == false)
 			{
 				// special case vector upcast
-				if (field.selector_name == false && type->kind == Type::KIND_VEC && value_type->kind == Type::KIND_VEC)
+				if (field.selector_name == nullptr && type->kind == Type::KIND_VEC && value_type->kind == Type::KIND_VEC)
 				{
 					if (value_type->vec.width <= type->vec.width && type_is_equal(value_type->vec.base, type->vec.base))
 					{
