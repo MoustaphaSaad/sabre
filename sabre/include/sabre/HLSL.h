@@ -8,6 +8,7 @@ namespace sabre
 {
 	struct Unit_Package;
 	struct Expr;
+	struct Symbol;
 
 	enum ENTRY_IO_FLAG
 	{

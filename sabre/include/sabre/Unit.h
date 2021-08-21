@@ -3,7 +3,7 @@
 #include "sabre/Exports.h"
 #include "sabre/Tkn.h"
 #include "sabre/Err.h"
-#include "sabre/Type_Interner.h"
+#include "sabre/Scope.h"
 
 #include <mn/Str.h>
 #include <mn/Buf.h>
@@ -15,10 +15,12 @@
 
 namespace sabre
 {
-	struct Scope;
 	struct Unit_File;
 	struct Unit_Package;
 	struct Unit;
+	struct Type_Interner;
+	struct Decl;
+	struct Type;
 
 	// this is a list of constant strings that's used across stages
 	// it's placed here so that when we use them as map keyes we don't
@@ -35,6 +37,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_REFLECT = "reflect";
 	inline constexpr const char* KEYWORD_HLSL = "hlsl";
 	inline constexpr const char* KEYWORD_HLSL_METHOD = "hlsl_method";
+	inline constexpr const char* KEYWORD_SAMPLER = "sampler";
 
 	enum COMPILATION_STAGE
 	{
@@ -246,7 +249,7 @@ namespace sabre
 		// all the types live here, it makes it simple to manage this memory and compare types
 		// because it works just like string interning where pointer == pointer if
 		// the content is the same
-		Type_Interner type_interner;
+		Type_Interner* type_interner;
 		// maps from and AST node to a scope
 		mn::Map<void*, Scope*> scope_table;
 		// list of imported packages in this compilation unit

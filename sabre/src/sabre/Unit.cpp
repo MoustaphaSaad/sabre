@@ -5,6 +5,7 @@
 #include "sabre/Reflect.h"
 #include "sabre/GLSL.h"
 #include "sabre/HLSL.h"
+#include "sabre/Type_Interner.h"
 
 #include <mn/Path.h>
 #include <mn/IO.h>
@@ -595,6 +596,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_REFLECT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_HLSL));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_HLSL_METHOD));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SAMPLER));
 
 		if (entry.count > 0)
 			self->entry = mn::str_intern(self->str_interner, entry.ptr);
@@ -610,7 +612,7 @@ namespace sabre
 		#if SABRE_LOG_METRICS
 		mn::log_info(
 			"Types: {}/{}, (used/reserved)bytes",
-			self->type_interner.arena->used_mem, self->type_interner.arena->total_mem
+			self->type_interner->arena->used_mem, self->type_interner->arena->total_mem
 		);
 		#endif
 
