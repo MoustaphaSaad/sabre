@@ -7,6 +7,10 @@ package std
 }
 func texture_sample(:Texture2D, :vec2): vec4
 
+func texture_sample2(t :Texture2D, :Sampler, uv :vec2): vec4 {
+	return texture_sample(t, uv);
+}
+
 @builtin
 func normalize(:vec4): vec4
 

@@ -962,12 +962,22 @@ namespace sabre
 		for (auto arg: d->func_decl.args)
 		{
 			auto arg_type = t->func.args.types[i];
-			for (auto name: arg.names)
+			if (arg.names.count == 0)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				mn::print_to(self.out, "{}", _glsl_write_field(self, arg_type, name.str));
+				mn::print_to(self.out, "{}", _glsl_write_field(self, arg_type, ""));
 				++i;
+			}
+			else
+			{
+				for (auto name: arg.names)
+				{
+					if (i > 0)
+						mn::print_to(self.out, ", ");
+					mn::print_to(self.out, "{}", _glsl_write_field(self, arg_type, name.str));
+					++i;
+				}
 			}
 		}
 

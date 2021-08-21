@@ -1,11 +1,19 @@
 package main
 
+import "std"
+
 @sampler
 type Sampler_State struct {
 	x, y: float
 }
 
-@uniform var x: Sampler = :Sampler_State {
+@uniform var sampler: Sampler = :Sampler_State {
 	x = 1.3,
 	y = 2
 };
+
+@uniform var texture: Texture2D;
+
+func foo(): vec4 {
+	return std.texture_sample2(texture, sampler, :vec2{});
+}

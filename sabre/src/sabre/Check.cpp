@@ -2410,13 +2410,20 @@ namespace sabre
 			for (auto arg: d->func_decl.args)
 			{
 				auto arg_type = t->func.args.types[i];
-				for (auto name: arg.names)
+				if (arg.names.count == 0)
 				{
-					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
-					v->type = arg_type;
-					v->state = STATE_RESOLVED;
-					_typer_add_symbol(self, v);
 					++i;
+				}
+				else
+				{
+					for (auto name: arg.names)
+					{
+						auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+						v->type = arg_type;
+						v->state = STATE_RESOLVED;
+						_typer_add_symbol(self, v);
+						++i;
+					}
 				}
 			}
 
