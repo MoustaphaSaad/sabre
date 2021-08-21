@@ -65,6 +65,7 @@ namespace sabre
 	static Type _type_texture2d = _texture_builtin(TEXTURE_TYPE_2D);
 	static Type _type_texture3d = _texture_builtin(TEXTURE_TYPE_3D);
 	static Type _type_texture_cube = _texture_builtin(TEXTURE_TYPE_CUBE);
+	static Type _type_sampler { Type::KIND_SAMPLER, 0, 0 };
 
 	inline static size_t
 	_round_up(size_t num, size_t factor)
@@ -126,6 +127,7 @@ namespace sabre
 	Type* type_texture2d = &_type_texture2d;
 	Type* type_texture3d = &_type_texture3d;
 	Type* type_texture_cube = &_type_texture_cube;
+	Type* type_sampler = &_type_sampler;
 
 	Type_Interner
 	type_interner_new()

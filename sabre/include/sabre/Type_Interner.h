@@ -207,6 +207,7 @@ namespace sabre
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ARRAY,
 			KIND_ENUM,
+			KIND_SAMPLER,
 		};
 
 		KIND kind;
@@ -298,6 +299,7 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_texture2d;
 	SABRE_EXPORT extern Type* type_texture3d;
 	SABRE_EXPORT extern Type* type_texture_cube;
+	SABRE_EXPORT extern Type* type_sampler;
 
 	// given a type name it will return a type
 	inline static Type*
@@ -361,6 +363,8 @@ namespace sabre
 			return type_texture3d;
 		else if (str == "TextureCube")
 			return type_texture_cube;
+		else if (str == "Sampler")
+			return type_sampler;
 		else
 			return type_void;
 	}
@@ -1292,6 +1296,10 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_ENUM)
 			{
 				return format_to(ctx.out(), "enum {}", t->enum_type.symbol->name);
+			}
+			else if (t->kind == sabre::Type::KIND_SAMPLER)
+			{
+				return format_to(ctx.out(), "sampler");
 			}
 			else
 			{
