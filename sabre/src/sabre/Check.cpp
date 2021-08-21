@@ -103,6 +103,10 @@ namespace sabre
 	inline static bool
 	_typer_can_assign(Type* lhs, Expr* rhs)
 	{
+		// special case samplers
+		if (type_is_sampler(lhs) && type_is_sampler(rhs->type))
+			return true;
+
 		// if we have different types then we can't assign
 		if (type_is_equal(lhs, rhs->type) == false)
 			return false;
@@ -1715,7 +1719,7 @@ namespace sabre
 					res = expr_type;
 				}
 
-				if (type_is_equal(expr_type, res) == false)
+				if (_typer_can_assign(expr_type, e) == false)
 				{
 					Err err{};
 					err.loc = e->loc;
@@ -1772,6 +1776,10 @@ namespace sabre
 		else if (type_is_bounded_array(type))
 		{
 			return _typer_check_type_suitable_for_uniform(self, type->array.base, depth + 1);
+		}
+		else if (type_is_sampler(type))
+		{
+			return depth == 0;
 		}
 		else
 		{

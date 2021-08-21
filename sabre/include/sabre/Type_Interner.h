@@ -490,6 +490,32 @@ namespace sabre
 		);
 	}
 
+	// returns whether a type is a struct
+	inline static bool
+	type_is_struct(Type* t)
+	{
+		return t->kind == Type::KIND_STRUCT;
+	}
+
+	// returns whether a type is sampler, or a struct tagged with sampler
+	inline static bool
+	type_is_sampler(Type* t)
+	{
+		if (t->kind == Type::KIND_SAMPLER)
+		{
+			return true;
+		}
+		else if (t->kind == Type::KIND_STRUCT)
+		{
+			if (auto decl = t->struct_type.symbol->struct_sym.decl)
+			{
+				if (mn::map_lookup(decl->tags.table, KEYWORD_SAMPLER))
+					return true;
+			}
+		}
+		return false;
+	}
+
 	// returns whether the type can be used in uniform block
 	inline static bool
 	type_is_uniform(Type* a)
@@ -515,32 +541,6 @@ namespace sabre
 			a == type_mat3 ||
 			a == type_mat4
 		);
-	}
-
-	// returns whether a type is a struct
-	inline static bool
-	type_is_struct(Type* t)
-	{
-		return t->kind == Type::KIND_STRUCT;
-	}
-
-	// returns whether a type is sampler, or a struct tagged with sampler
-	inline static bool
-	type_is_sampler(Type* t)
-	{
-		if (t->kind == Type::KIND_SAMPLER)
-		{
-			return true;
-		}
-		else if (t->kind == Type::KIND_STRUCT)
-		{
-			if (auto decl = t->struct_type.symbol->struct_sym.decl)
-			{
-				if (mn::map_lookup(decl->tags.table, KEYWORD_SAMPLER))
-					return true;
-			}
-		}
-		return false;
 	}
 
 	// returns whether the type is a vector

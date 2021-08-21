@@ -214,6 +214,7 @@ namespace sabre
 		"namespace",
 		"using",
 		"main",
+		"Sabre_Sampler",
 	};
 
 	inline static int64_t
@@ -537,6 +538,10 @@ namespace sabre
 		case Type::KIND_ENUM:
 			can_write_name = true;
 			str = mn::strf(str, "int");
+			break;
+		case Type::KIND_SAMPLER:
+			can_write_name = true;
+			str = mn::strf(str, "Sabre_Sampler");
 			break;
 		default:
 			assert(false && "unreachable");
@@ -990,7 +995,12 @@ namespace sabre
 		if (sym->var_sym.value && in_stmt == false)
 			_glsl_rewrite_complits_in_expr(self, sym->var_sym.value, false);
 
-		if (sym->var_sym.is_uniform)
+		// we ignore sampler code generation in glsl
+		if (type_is_sampler(sym->type))
+		{
+			mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
+		}
+		else if (sym->var_sym.is_uniform)
 		{
 			auto uniform_name = _glsl_name(self, _glsl_symbol_name(sym));
 			auto uniform_block_name = uniform_name;
@@ -1051,16 +1061,23 @@ namespace sabre
 		if (sym->const_sym.value && in_stmt == false)
 			_glsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
 
-		mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
-		if (sym->const_sym.value != nullptr)
+		if (type_is_sampler(sym->type))
 		{
-			mn::print_to(self.out, " = ");
-			glsl_expr_gen(self, sym->var_sym.value);
+			mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
 		}
 		else
 		{
-			mn::print_to(self.out, " = ");
-			_glsl_zero_value(self, sym->type);
+			mn::print_to(self.out, "const {}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
+			if (sym->const_sym.value != nullptr)
+			{
+				mn::print_to(self.out, " = ");
+				glsl_expr_gen(self, sym->var_sym.value);
+			}
+			else
+			{
+				mn::print_to(self.out, " = ");
+				_glsl_zero_value(self, sym->type);
+			}
 		}
 		mn::print_to(self.out, ";");
 	}
@@ -1857,6 +1874,9 @@ namespace sabre
 			mn::print_to(self.out, "#version 450");
 			_glsl_newline(self);
 		}
+
+		mn::print_to(self.out, "struct Sabre_Sampler {{ int x; }};");
+		_glsl_newline(self);
 
 		switch (compilation_unit->mode)
 		{
