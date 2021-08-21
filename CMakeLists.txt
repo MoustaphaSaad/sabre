@@ -21,6 +21,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 option(SABRE_BUILD_EXAMPLES    "Build example applications and playgrounds that showcase the sabre library." ${MASTER_PROJECT})
 option(SABRE_BUILD_TESTS       "Build sabre unit tests."                                                     ${MASTER_PROJECT})
+option(SABRE_LOG_METRICS       "Measures and logs different performance metrics."                            ${MASTER_PROJECT})
 option(SABRE_INSTALL           "Generates the install target"                                                ${MASTER_PROJECT})
 option(SABRE_UNITY_BUILD       "Combine all sabre source files into one jumbo build."                        ON)
 

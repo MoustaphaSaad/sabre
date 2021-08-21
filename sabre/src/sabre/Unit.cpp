@@ -12,8 +12,18 @@
 #include <mn/Defer.h>
 #include <mn/Json.h>
 
+#include <fmt/chrono.h>
+
+#include <chrono>
+
 namespace sabre
 {
+	inline static auto
+	_capture_timepoint()
+	{
+		return std::chrono::time_point<std::chrono::high_resolution_clock, std::chrono::duration<double, std::milli>>(std::chrono::high_resolution_clock::now());
+	}
+
 	inline static void
 	_push_type(mn::Set<Type*>& types, Type* t)
 	{
@@ -234,11 +244,14 @@ namespace sabre
 	void
 	unit_file_free(Unit_File* self)
 	{
-		mn::log_debug(
+		#if SABRE_LOG_METRICS
+		mn::log_info(
 			"File '{}': AST {}/{}, (used/reserved)bytes",
 			self->absolute_path,
 			self->ast_arena->used_mem, self->ast_arena->total_mem
 		);
+		#endif
+
 		mn::str_free(self->absolute_path);
 		mn::str_free(self->filepath);
 		mn::str_free(self->content);
@@ -255,6 +268,8 @@ namespace sabre
 	unit_file_scan(Unit_File* self)
 	{
 		auto scanner = scanner_new(self);
+
+		auto start = _capture_timepoint();
 		while (true)
 		{
 			auto tkn = scanner_scan(scanner);
@@ -266,6 +281,11 @@ namespace sabre
 				mn::buf_push(self->tkns, tkn);
 			}
 		}
+		auto end = _capture_timepoint();
+		#if SABRE_LOG_METRICS
+		mn::log_info("File '{}' scan time {}", self->absolute_path, end - start);
+		#endif
+
 		return self->errs.count == 0;
 	}
 
@@ -275,6 +295,7 @@ namespace sabre
 		auto parser = parser_new(self);
 		mn_defer(parser_free(parser));
 
+		auto start = _capture_timepoint();
 		self->package_name = parser_parse_package(parser);
 
 		while (true)
@@ -284,6 +305,11 @@ namespace sabre
 				break;
 			mn::buf_push(self->decls, decl);
 		}
+		auto end = _capture_timepoint();
+
+		#if SABRE_LOG_METRICS
+		mn::log_info("File '{}' parse time {}", self->absolute_path, end - start);
+		#endif
 
 		return self->errs.count == 0;
 	}
@@ -359,11 +385,14 @@ namespace sabre
 	void
 	unit_package_free(Unit_Package* self)
 	{
-		mn::log_debug(
+		#if SABRE_LOG_METRICS
+		mn::log_info(
 			"Package '{}': Symbols {}/{}, (used/reserved)bytes",
 			self->absolute_path,
 			self->symbols_arena->used_mem, self->symbols_arena->total_mem
 		);
+		#endif
+
 		mn::str_free(self->absolute_path);
 		destruct(self->files);
 		mn::map_free(self->absolute_path_to_file);
@@ -393,9 +422,16 @@ namespace sabre
 		if (self->stage == COMPILATION_STAGE_SCAN)
 		{
 			bool has_errors = false;
+
+			auto start = _capture_timepoint();
 			for (auto file: self->files)
 				if (unit_file_scan(file) == false)
 					has_errors = true;
+			auto end = _capture_timepoint();
+
+			#if SABRE_LOG_METRICS
+			mn::log_info("Package '{}' scan time: {}", self->absolute_path, end - start);
+			#endif
 
 			if (has_errors)
 				self->stage = COMPILATION_STAGE_FAILED;
@@ -414,6 +450,7 @@ namespace sabre
 	{
 		if (self->stage == COMPILATION_STAGE_PARSE)
 		{
+			auto start = _capture_timepoint();
 			bool has_errors = false;
 			Tkn package_name{};
 			for (auto file: self->files)
@@ -461,6 +498,11 @@ namespace sabre
 				for (auto file: self->files)
 					file->file_scope = scope_new(self->global_scope, "", nullptr, Scope::FLAG_NONE);
 			}
+
+			auto end = _capture_timepoint();
+			#if SABRE_LOG_METRICS
+			mn::log_info("Package '{}' parse time {}", self->absolute_path, end - start);
+			#endif
 			return has_errors == false;
 		}
 		else
@@ -474,6 +516,7 @@ namespace sabre
 	{
 		if (self->stage == COMPILATION_STAGE_CHECK)
 		{
+			auto start = _capture_timepoint();
 			bool has_errors = false;
 			auto typer = typer_new(self);
 			mn_defer(typer_free(typer));
@@ -487,6 +530,10 @@ namespace sabre
 			{
 				self->stage = COMPILATION_STAGE_CODEGEN;
 			}
+			auto end = _capture_timepoint();
+			#if SABRE_LOG_METRICS
+			mn::log_info("Package '{}' checking time {}", self->absolute_path, end - start);
+			#endif
 			return has_errors == false;
 		}
 		else
@@ -560,10 +607,12 @@ namespace sabre
 	void
 	unit_free(Unit* self)
 	{
-		mn::log_debug(
+		#if SABRE_LOG_METRICS
+		mn::log_info(
 			"Types: {}/{}, (used/reserved)bytes",
 			self->type_interner.arena->used_mem, self->type_interner.arena->total_mem
 		);
+		#endif
 
 		mn::str_intern_free(self->str_interner);
 		type_interner_free(self->type_interner);
@@ -582,9 +631,16 @@ namespace sabre
 	unit_scan(Unit* self)
 	{
 		bool has_errors = false;
+
+		auto start = _capture_timepoint();
 		for (auto package: self->packages)
 			if (unit_package_scan(package) == false)
 				has_errors = true;
+		auto end = _capture_timepoint();
+
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total scan time: {}", end - start);
+		#endif
 		return has_errors == false;
 	}
 
@@ -592,6 +648,7 @@ namespace sabre
 	unit_parse(Unit* self)
 	{
 		bool has_errors = false;
+		auto start = _capture_timepoint();
 		for (size_t i = 0; i < self->packages.count; ++i)
 		{
 			auto package = self->packages[i];
@@ -610,6 +667,11 @@ namespace sabre
 		{
 			package->state = Unit_Package::STATE_RESOLVED;
 		}
+		auto end = _capture_timepoint();
+
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total parse time: {}", end - start);
+		#endif
 		return has_errors == false;
 	}
 
@@ -617,6 +679,7 @@ namespace sabre
 	unit_check(Unit* self)
 	{
 		bool has_errors = false;
+		auto start = _capture_timepoint();
 		for (size_t i = 0; i < self->packages.count; ++i)
 		{
 			auto package = self->packages[i];
@@ -632,6 +695,10 @@ namespace sabre
 				break;
 			}
 		}
+		auto end = _capture_timepoint();
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total checking time {}", end - start);
+		#endif
 		return has_errors == false;
 	}
 
@@ -788,6 +855,7 @@ namespace sabre
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
 
+		auto start = _capture_timepoint();
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
@@ -795,6 +863,11 @@ namespace sabre
 		mn_defer(glsl_free(glsl));
 
 		glsl_gen(glsl);
+		auto end = _capture_timepoint();
+
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total GLSL gen time {}", end - start);
+		#endif
 
 		return mn::memory_stream_str(stream);
 	}
@@ -805,6 +878,7 @@ namespace sabre
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
 
+		auto start = _capture_timepoint();
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
@@ -812,6 +886,10 @@ namespace sabre
 		mn_defer(hlsl_free(hlsl));
 
 		hlsl_gen(hlsl);
+		auto end = _capture_timepoint();
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total HLSL gen time {}", end - start);
+		#endif
 
 		return mn::memory_stream_str(stream);
 	}

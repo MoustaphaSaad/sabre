@@ -52,6 +52,11 @@ target_link_libraries(sabre
 		MoustaphaSaad::mn
 )
 
+target_compile_definitions(sabre
+	PRIVATE
+		SABRE_LOG_METRICS=$<BOOL:${SABRE_LOG_METRICS}>
+)
+
 # enable C++17
 # disable any compiler specifc extensions
 # add d suffix in debug mode
