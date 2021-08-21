@@ -1,3 +1,5 @@
+package main
+
 import std "std"
 
 type VS_Input struct {
@@ -30,10 +32,10 @@ type Light struct {
 
 @vertex
 func vertex(input: VS_Input): PS_Input {
-	return :PS_Input {
-		.position = mvp * :vec4{input.position, 1.0},
-		.vertex_position = input.position,
-		.vertex_normal = input.normal,
+	return {
+		position = mvp * :vec4{input.position, 1.0},
+		vertex_position = input.position,
+		vertex_normal = input.normal,
 	};
 }
 
