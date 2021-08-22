@@ -763,6 +763,12 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_gen_discard_stmt(GLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "discard");
+	}
+
+	inline static void
 	_glsl_gen_return_stmt(GLSL& self, Stmt* s)
 	{
 		if (s->return_stmt)
@@ -805,6 +811,7 @@ namespace sabre
 	{
 		if (s->kind == Stmt::KIND_BREAK ||
 			s->kind == Stmt::KIND_CONTINUE ||
+			s->kind == Stmt::KIND_DISCARD ||
 			s->kind == Stmt::KIND_RETURN ||
 			s->kind == Stmt::KIND_ASSIGN ||
 			s->kind == Stmt::KIND_EXPR)
@@ -1460,6 +1467,7 @@ namespace sabre
 		{
 		case Stmt::KIND_BREAK:
 		case Stmt::KIND_CONTINUE:
+		case Stmt::KIND_DISCARD:
 			// do nothing, no complits here
 			break;
 		case Stmt::KIND_RETURN:
@@ -1819,6 +1827,9 @@ namespace sabre
 			break;
 		case Stmt::KIND_CONTINUE:
 			_glsl_gen_continue_stmt(self, s);
+			break;
+		case Stmt::KIND_DISCARD:
+			_glsl_gen_discard_stmt(self, s);
 			break;
 		case Stmt::KIND_RETURN:
 			_glsl_gen_return_stmt(self, s);

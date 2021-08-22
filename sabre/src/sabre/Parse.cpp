@@ -740,6 +740,10 @@ namespace sabre
 		{
 			res = stmt_continue_new(self.unit->ast_arena, _parser_eat(self));
 		}
+		else if (tkn.kind == Tkn::KIND_KEYWORD_DISCARD)
+		{
+			res = stmt_discard_new(self.unit->ast_arena, _parser_eat(self));
+		}
 		else if (tkn.kind == Tkn::KIND_KEYWORD_RETURN)
 		{
 			_parser_eat(self); // for the return keyword

@@ -2010,6 +2010,12 @@ namespace sabre
 	}
 
 	inline static Type*
+	_typer_resolve_discard_stmt(Typer& self, Stmt* s)
+	{
+		return type_void;
+	}
+
+	inline static Type*
 	_typer_resolve_return_stmt(Typer& self, Stmt* s)
 	{
 		auto expected = _typer_expected_return_type(self);
@@ -2269,6 +2275,8 @@ namespace sabre
 			return _typer_resolve_break_stmt(self, s);
 		case Stmt::KIND_CONTINUE:
 			return _typer_resolve_continue_stmt(self, s);
+		case Stmt::KIND_DISCARD:
+			return _typer_resolve_discard_stmt(self, s);
 		case Stmt::KIND_RETURN:
 			return _typer_resolve_return_stmt(self, s);
 		case Stmt::KIND_IF:

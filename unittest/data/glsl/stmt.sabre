@@ -16,6 +16,8 @@ func sum_to_n(x: bool): int {
 			continue;
 		} else if i % 3 == 0 {
 			break;
+		} else if i % 5 == 0 {
+			discard;
 		}
 		res += i;
 	}
