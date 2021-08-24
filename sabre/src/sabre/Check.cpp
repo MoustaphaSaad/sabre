@@ -858,7 +858,18 @@ namespace sabre
 			e->binary.op.kind == Tkn::KIND_EQUAL_EQUAL ||
 			e->binary.op.kind == Tkn::KIND_NOT_EQUAL)
 		{
-			return type_bool;
+			if (type_is_vec(lhs_type))
+			{
+				return type_vectorize(type_bool, lhs_type->vec.width);
+			}
+			else if (type_is_vec(rhs_type))
+			{
+				return type_vectorize(type_bool, rhs_type->vec.width);
+			}
+			else
+			{
+				return type_bool;
+			}
 		}
 
 		if (lhs_type == type_lit_int || lhs_type == type_lit_float)
