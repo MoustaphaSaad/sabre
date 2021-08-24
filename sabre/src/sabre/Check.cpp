@@ -851,12 +851,7 @@ namespace sabre
 			e->mode = ADDRESS_MODE_COMPUTED_VALUE;
 		}
 
-		if (e->binary.op.kind == Tkn::KIND_LESS ||
-			e->binary.op.kind == Tkn::KIND_LESS_EQUAL ||
-			e->binary.op.kind == Tkn::KIND_GREATER ||
-			e->binary.op.kind == Tkn::KIND_GREATER_EQUAL ||
-			e->binary.op.kind == Tkn::KIND_EQUAL_EQUAL ||
-			e->binary.op.kind == Tkn::KIND_NOT_EQUAL)
+		if (tkn_is_cmp(e->binary.op.kind))
 		{
 			if (type_is_vec(lhs_type))
 			{
