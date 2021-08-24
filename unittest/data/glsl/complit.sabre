@@ -17,8 +17,11 @@ func add2(a, b: Point): Point {
 	return :Point { a.p + b.p };
 }
 
+@builtin
+func all(a: bvec4): bool
+
 func is_white(color: vec4): bool {
-	if color == :vec4{1.0, 1.0, 1.0, 1.0} {
+	if all(color == :vec4{1.0, 1.0, 1.0, 1.0}) {
 		return true;
 	} else {
 		return false;

@@ -12,7 +12,7 @@ main_Point main_add2(main_Point a, main_Point b) {
 }
 bool main_is_white(vec4 color) {
 	vec4 _tmp_4 = vec4(1.0, 1.0, 1.0, 1.0);
-	if (color == _tmp_4) {
+	if (all(color == _tmp_4)) {
 		return true;
 	} else {
 		return false;
