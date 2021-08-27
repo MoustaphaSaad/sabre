@@ -11,9 +11,8 @@ type Sampler_State struct {
 	x = 1.3,
 	y = 2
 };
-
 @uniform var texture: Texture2D;
 
 func foo(): vec4 {
-	return std.texture_sample2(texture, sampler, :vec2{});
+	return std.texture_sample(texture, sampler, :vec2{});
 }

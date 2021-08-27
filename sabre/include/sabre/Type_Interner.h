@@ -516,6 +516,13 @@ namespace sabre
 		return false;
 	}
 
+	// returns whether a type is a texture
+	inline static bool
+	type_is_texture(Type* t)
+	{
+		return t->kind == Type::KIND_TEXTURE;
+	}
+
 	// returns whether the type can be used in uniform block
 	inline static bool
 	type_is_uniform(Type* a)

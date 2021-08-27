@@ -749,15 +749,38 @@ namespace sabre
 	inline static void
 	_glsl_gen_call_expr(GLSL& self, Expr* e)
 	{
+		bool is_sample_func = mn::map_lookup(e->call.func->tags.table, KEYWORD_SAMPLE_FUNC) != nullptr;
+		Symbol* texture_sym = nullptr;
+		Symbol* sampler_sym = nullptr;
+
 		glsl_expr_gen(self, e->call.base);
 		mn::print_to(self.out, "(");
+		size_t arg_count = 0;
 		for (size_t i = 0; i < e->call.args.count; ++i)
 		{
-			if (i > 0)
+			auto arg = e->call.args[i];
+
+			if (is_sample_func && arg->type->kind == Type::KIND_SAMPLER)
+			{
+				// we ignore samplers in glsl
+				sampler_sym = arg->symbol;
+				continue;
+			}
+
+			if (is_sample_func && type_is_texture(arg->type))
+				texture_sym = arg->symbol;
+
+			if (arg_count > 0)
 				mn::print_to(self.out, ", ");
-			glsl_expr_gen(self, e->call.args[i]);
+			glsl_expr_gen(self, arg);
+			++arg_count;
 		}
 		mn::print_to(self.out, ")");
+
+		if (texture_sym && sampler_sym)
+		{
+			mn::log_debug("texture: {}, was used with sampler: {}", texture_sym->package_name, sampler_sym->package_name);
+		}
 	}
 
 	inline static void
