@@ -857,14 +857,20 @@ namespace sabre
 			e->mode = ADDRESS_MODE_COMPUTED_VALUE;
 		}
 
-		if (e->binary.op.kind == Tkn::KIND_LESS ||
-			e->binary.op.kind == Tkn::KIND_LESS_EQUAL ||
-			e->binary.op.kind == Tkn::KIND_GREATER ||
-			e->binary.op.kind == Tkn::KIND_GREATER_EQUAL ||
-			e->binary.op.kind == Tkn::KIND_EQUAL_EQUAL ||
-			e->binary.op.kind == Tkn::KIND_NOT_EQUAL)
+		if (tkn_is_cmp(e->binary.op.kind))
 		{
-			return type_bool;
+			if (type_is_vec(lhs_type))
+			{
+				return type_vectorize(type_bool, lhs_type->vec.width);
+			}
+			else if (type_is_vec(rhs_type))
+			{
+				return type_vectorize(type_bool, rhs_type->vec.width);
+			}
+			else
+			{
+				return type_bool;
+			}
 		}
 
 		if (lhs_type == type_lit_int || lhs_type == type_lit_float)
@@ -2020,6 +2026,12 @@ namespace sabre
 	}
 
 	inline static Type*
+	_typer_resolve_discard_stmt(Typer& self, Stmt* s)
+	{
+		return type_void;
+	}
+
+	inline static Type*
 	_typer_resolve_return_stmt(Typer& self, Stmt* s)
 	{
 		auto expected = _typer_expected_return_type(self);
@@ -2279,6 +2291,8 @@ namespace sabre
 			return _typer_resolve_break_stmt(self, s);
 		case Stmt::KIND_CONTINUE:
 			return _typer_resolve_continue_stmt(self, s);
+		case Stmt::KIND_DISCARD:
+			return _typer_resolve_discard_stmt(self, s);
 		case Stmt::KIND_RETURN:
 			return _typer_resolve_return_stmt(self, s);
 		case Stmt::KIND_IF:

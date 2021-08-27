@@ -667,9 +667,35 @@ namespace sabre
 	inline static void
 	_glsl_gen_binary_expr(GLSL& self, Expr* e)
 	{
-		glsl_expr_gen(self, e->binary.left);
-		mn::print_to(self.out, " {} ", e->binary.op.str);
-		glsl_expr_gen(self, e->binary.right);
+		// special case vec compare
+		if (type_is_vec(e->binary.left->type) &&
+			type_is_vec(e->binary.right->type) &&
+			tkn_is_cmp(e->binary.op.kind))
+		{
+			const char* cmp_func = "";
+			switch(e->binary.op.kind)
+			{
+			case Tkn::KIND_LESS: cmp_func = "lessThan"; break;
+			case Tkn::KIND_GREATER: cmp_func = "greaterThan"; break;
+			case Tkn::KIND_LESS_EQUAL: cmp_func = "lessThanEqual"; break;
+			case Tkn::KIND_GREATER_EQUAL: cmp_func = "greaterThanEqual"; break;
+			case Tkn::KIND_EQUAL_EQUAL: cmp_func = "equal"; break;
+			case Tkn::KIND_NOT_EQUAL: cmp_func = "notEqual"; break;
+			default: assert(false && "unreachable"); break;
+			}
+
+			mn::print_to(self.out, "{}(", cmp_func);
+			glsl_expr_gen(self, e->binary.left);
+			mn::print_to(self.out, ", ");
+			glsl_expr_gen(self, e->binary.right);
+			mn::print_to(self.out, ")");
+		}
+		else
+		{
+			glsl_expr_gen(self, e->binary.left);
+			mn::print_to(self.out, " {} ", e->binary.op.str);
+			glsl_expr_gen(self, e->binary.right);
+		}
 	}
 
 	inline static void
@@ -768,6 +794,12 @@ namespace sabre
 	}
 
 	inline static void
+	_glsl_gen_discard_stmt(GLSL& self, Stmt* s)
+	{
+		mn::print_to(self.out, "discard");
+	}
+
+	inline static void
 	_glsl_gen_return_stmt(GLSL& self, Stmt* s)
 	{
 		if (s->return_stmt)
@@ -810,6 +842,7 @@ namespace sabre
 	{
 		if (s->kind == Stmt::KIND_BREAK ||
 			s->kind == Stmt::KIND_CONTINUE ||
+			s->kind == Stmt::KIND_DISCARD ||
 			s->kind == Stmt::KIND_RETURN ||
 			s->kind == Stmt::KIND_ASSIGN ||
 			s->kind == Stmt::KIND_EXPR)
@@ -1487,6 +1520,7 @@ namespace sabre
 		{
 		case Stmt::KIND_BREAK:
 		case Stmt::KIND_CONTINUE:
+		case Stmt::KIND_DISCARD:
 			// do nothing, no complits here
 			break;
 		case Stmt::KIND_RETURN:
@@ -1846,6 +1880,9 @@ namespace sabre
 			break;
 		case Stmt::KIND_CONTINUE:
 			_glsl_gen_continue_stmt(self, s);
+			break;
+		case Stmt::KIND_DISCARD:
+			_glsl_gen_discard_stmt(self, s);
 			break;
 		case Stmt::KIND_RETURN:
 			_glsl_gen_return_stmt(self, s);

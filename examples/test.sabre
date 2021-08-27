@@ -1,9 +1,7 @@
-import libB "./B"
-import libA "A"
+package main
 
-var x = 234;
+import "std"
 
-func foo(): int {
-	var weijr = libB.baz();
-	return libB.bar() + x + libA.x + libA.foo() + libB.bar2();
+func foo(a, b: vec3): bool {
+	return std.all(a < b);
 }

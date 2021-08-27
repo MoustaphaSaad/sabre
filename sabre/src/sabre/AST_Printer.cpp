@@ -229,6 +229,9 @@ namespace sabre
 		case Stmt::KIND_CONTINUE:
 			mn::print_to(self.out, "(continue-stmt)");
 			break;
+		case Stmt::KIND_DISCARD:
+			mn::print_to(self.out, "(discard-stmt)");
+			break;
 		case Stmt::KIND_RETURN:
 			mn::print_to(self.out, "(return-stmt");
 			_ast_printer_enter_scope(self);

@@ -7,6 +7,13 @@ package std
 }
 func texture_sample(:Texture2D, :vec2): vec4
 
+@hlsl_method
+@builtin {
+	glsl = "texture"
+	hlsl = "Sample"
+}
+func texture_sample(:Texture3D, :vec3): vec4
+
 func texture_sample2(t :Texture2D, :Sampler, uv :vec2): vec4 {
 	return texture_sample(t, uv);
 }
@@ -46,6 +53,24 @@ func length(a: vec4): float
 
 @builtin
 func pow(base, power: float): float
+
+@builtin
+func any(x: bvec2): bool
+
+@builtin
+func any(x: bvec3): bool
+
+@builtin
+func any(x: bvec4): bool
+
+@builtin
+func all(x: bvec2): bool
+
+@builtin
+func all(x: bvec3): bool
+
+@builtin
+func all(x: bvec4): bool
 
 const MAX_COLOR_ATTACHMENT = 4;
 

@@ -308,6 +308,7 @@ namespace sabre
 		{
 			KIND_BREAK,
 			KIND_CONTINUE,
+			KIND_DISCARD,
 			KIND_RETURN,
 			KIND_IF,
 			KIND_FOR,
@@ -324,6 +325,8 @@ namespace sabre
 			Tkn break_stmt;
 
 			Tkn continue_stmt;
+
+			Tkn discard_stmt;
 
 			Expr* return_stmt;
 
@@ -374,6 +377,16 @@ namespace sabre
 		auto self = mn::alloc_zerod_from<Stmt>(arena);
 		self->kind = Stmt::KIND_CONTINUE;
 		self->continue_stmt = tkn;
+		return self;
+	}
+
+	// creates a new discard stmt
+	inline static Stmt*
+	stmt_discard_new(mn::Allocator arena, Tkn tkn)
+	{
+		auto self = mn::alloc_zerod_from<Stmt>(arena);
+		self->kind = Stmt::KIND_DISCARD;
+		self->discard_stmt = tkn;
 		return self;
 	}
 

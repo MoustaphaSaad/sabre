@@ -17,6 +17,8 @@ int main_sum_to_n(bool x) {
 				continue;
 			} else if (i % 3 == 0) {
 				break;
+			} else if (i % 5 == 0) {
+				discard;
 			}
 			res += i;
 			// for post statement
