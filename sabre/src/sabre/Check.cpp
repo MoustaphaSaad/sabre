@@ -1,5 +1,6 @@
 #include "sabre/Check.h"
 #include "sabre/Unit.h"
+#include "sabre/Type_Interner.h"
 
 #include <mn/IO.h>
 #include <mn/Log.h>

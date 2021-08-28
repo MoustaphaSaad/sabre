@@ -11,13 +11,21 @@ type Sampler_State struct {
 	x = 1.3,
 	y = 2
 };
+@uniform var sampler2: Sampler = :Sampler_State {
+	x = 1.3,
+	y = 2
+};
 @uniform var texture: Texture2D;
 
 func get_color(t: Texture2D, s: Sampler): vec4 {
-	return std.texture_sample(t, :vec2{});
+	return std.texture_sample(t, s, :vec2{});
+}
+
+func get_color2(t: Texture2D): vec4 {
+	return std.texture_sample(t, sampler2, :vec2{});
 }
 
 func foo(): vec4 {
-	return get_color(texture, sampler);
-	return std.texture_sample(texture, :vec2{});
+	return get_color(texture, sampler) + get_color2(texture);
+	return std.texture_sample(texture, sampler, :vec2{});
 }

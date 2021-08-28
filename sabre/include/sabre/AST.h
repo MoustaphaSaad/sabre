@@ -103,7 +103,6 @@ namespace sabre
 
 	struct Type;
 	struct Symbol;
-	struct Decl;
 
 	// address mode of expressions which is used to check assignment statements, etc...
 	enum ADDRESS_MODE
@@ -547,6 +546,29 @@ namespace sabre
 		Expr* value;
 	};
 
+	struct Texture_Sample_Operand
+	{
+		enum KIND
+		{
+			KIND_ARG,
+			KIND_GLOBAL,
+		};
+
+		KIND kind;
+		union
+		{
+			size_t arg_index;
+			Symbol* global_sym;
+		};
+	};
+
+	// represents a texture sample operation, this is used to associate combined texture sampler for opengl level glsl
+	struct Texture_Sample_Op
+	{
+		Texture_Sample_Operand texture;
+		Texture_Sample_Operand sampler;
+	};
+
 	// Decl
 	struct Decl
 	{
@@ -586,6 +608,8 @@ namespace sabre
 				mn::Buf<Arg> args;
 				Type_Sign return_type;
 				Stmt* body;
+				// texture sample operations within this function
+				mn::Buf<Texture_Sample_Op> sample_ops;
 			} func_decl;
 
 			struct
@@ -647,6 +671,7 @@ namespace sabre
 		self->func_decl.args = args;
 		self->func_decl.return_type = ret;
 		self->func_decl.body = body;
+		self->func_decl.sample_ops = mn::buf_with_allocator<Texture_Sample_Op>(arena);
 		return self;
 	}
 
