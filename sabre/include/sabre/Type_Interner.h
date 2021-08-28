@@ -751,375 +751,46 @@ namespace sabre
 	};
 
 	// creates a new type interner
-	SABRE_EXPORT Type_Interner
+	SABRE_EXPORT Type_Interner*
 	type_interner_new();
 
 	// frees the given type interner
 	SABRE_EXPORT void
-	type_interner_free(Type_Interner& self);
+	type_interner_free(Type_Interner* self);
 
 	inline static void
-	destruct(Type_Interner& self)
+	destruct(Type_Interner* self)
 	{
 		type_interner_free(self);
 	}
 
 	// interns a function signature into a type, it will consume the given function signature
 	SABRE_EXPORT Type*
-	type_interner_func(Type_Interner& self, Func_Sign sign);
+	type_interner_func(Type_Interner* self, Func_Sign sign);
 
 	// creates a new incomplete type for the given symbol
 	SABRE_EXPORT Type*
-	type_interner_incomplete(Type_Interner& self, Symbol* symbol);
+	type_interner_incomplete(Type_Interner* self, Symbol* symbol);
 
 	// completes the given struct/aggregate types
 	SABRE_EXPORT void
-	type_interner_complete_struct(Type_Interner& self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
+	type_interner_complete_struct(Type_Interner* self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
 
 	// completes an enum type
 	SABRE_EXPORT void
-	type_interner_complete_enum(Type_Interner& self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
+	type_interner_complete_enum(Type_Interner* self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
 
 	// creates a new package type
 	SABRE_EXPORT Type*
-	type_interner_package(Type_Interner& self, Unit_Package* package);
+	type_interner_package(Type_Interner* self, Unit_Package* package);
 
 	// creates a new overload set type
 	SABRE_EXPORT Type*
-	type_interner_overload_set(Type_Interner& self, Symbol* symbol);
+	type_interner_overload_set(Type_Interner* self, Symbol* symbol);
 
 	// creates a new array type
 	SABRE_EXPORT Type*
-	type_interner_array(Type_Interner& self, Array_Sign sign);
-
-	// represent the stages of resolving a value, useful for detecting cyclic dependencies
-	enum STATE
-	{
-		STATE_UNRESOLVED,
-		STATE_RESOLVING,
-		STATE_RESOLVED,
-	};
-
-	// represents a symbol in the code
-	struct Symbol
-	{
-		enum KIND
-		{
-			KIND_CONST,
-			KIND_VAR,
-			KIND_FUNC,
-			KIND_STRUCT,
-			KIND_PACKAGE,
-			KIND_FUNC_OVERLOAD_SET,
-			KIND_ENUM,
-		};
-
-		KIND kind;
-		STATE state;
-		Type* type;
-		Unit_Package* package;
-		Scope* scope;
-		const char* name;
-		const char* package_name;
-
-		union
-		{
-			struct
-			{
-				Decl* decl;
-				Tkn name;
-				Type_Sign sign;
-				Expr* value;
-			} const_sym;
-
-			struct
-			{
-				Decl* decl;
-				Tkn name;
-				Type_Sign sign;
-				Expr* value;
-
-				// used when a variable refers is a uniform
-				int uniform_binding;
-				bool is_uniform;
-			} var_sym;
-
-			struct
-			{
-				Decl* decl;
-				Tkn name;
-			} func_sym;
-
-			struct
-			{
-				Decl* decl;
-				Tkn name;
-			} struct_sym;
-
-			struct
-			{
-				Decl* decl;
-			} enum_sym;
-
-			struct
-			{
-				Decl* decl;
-				Tkn name;
-				Unit_Package* package;
-			} package_sym;
-
-			struct
-			{
-				mn::Map<Decl*, Type*> decls;
-				mn::Buf<Decl*> used_decls;
-				mn::Set<Decl*> unique_used_decls;
-			} func_overload_set_sym;
-		};
-	};
-
-	// creates a new symbol for a constant declaration
-	inline static Symbol*
-	symbol_const_new(mn::Allocator arena, Tkn name, Decl* decl, Type_Sign sign, Expr* value)
-	{
-		auto self = mn::alloc_zerod_from<Symbol>(arena);
-		self->kind = Symbol::KIND_CONST;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->name = name.str;
-		self->const_sym.decl = decl;
-		self->const_sym.name = name;
-		self->const_sym.sign = sign;
-		self->const_sym.value = value;
-		return self;
-	}
-
-	// creates a new symbol for a variable declaration
-	inline static Symbol*
-	symbol_var_new(mn::Allocator arena, Tkn name, Decl* decl, Type_Sign sign, Expr* value)
-	{
-		auto self = mn::alloc_zerod_from<Symbol>(arena);
-		self->kind = Symbol::KIND_VAR;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->name = name.str;
-		self->var_sym.decl = decl;
-		self->var_sym.name = name;
-		self->var_sym.sign = sign;
-		self->var_sym.value = value;
-		return self;
-	}
-
-	// creates a new symbol for a function declaration
-	inline static Symbol*
-	symbol_func_new(mn::Allocator arena, Tkn name, Decl* decl)
-	{
-		auto self = mn::alloc_zerod_from<Symbol>(arena);
-		self->kind = Symbol::KIND_FUNC;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->name = name.str;
-		self->func_sym.decl = decl;
-		self->func_sym.name = name;
-		return self;
-	}
-
-	// creates a new symbol for a struct declaration
-	inline static Symbol*
-	symbol_struct_new(mn::Allocator arena, Tkn name, Decl* decl)
-	{
-		auto self = mn::alloc_zerod_from<Symbol>(arena);
-		self->kind = Symbol::KIND_STRUCT;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->name = name.str;
-		self->struct_sym.decl = decl;
-		self->struct_sym.name = name;
-		return self;
-	}
-
-	// creates a new symbol for enum declaration
-	inline static Symbol*
-	symbol_enum_new(mn::Allocator arena, Tkn name, Decl* decl)
-	{
-		auto self = mn::alloc_zerod_from<Symbol>(arena);
-		self->kind = Symbol::KIND_ENUM;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->name = name.str;
-		self->enum_sym.decl = decl;
-		return self;
-	}
-
-	// creates a new symbol for package declaration
-	inline static Symbol*
-	symbol_package_new(mn::Allocator arena, Tkn name, Decl* decl, Unit_Package* package)
-	{
-		auto self = mn::alloc_zerod_from<Symbol>(arena);
-		self->kind = Symbol::KIND_PACKAGE;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->name = name.str;
-		self->package_sym.decl = decl;
-		self->package_sym.name = name;
-		self->package_sym.package = package;
-		return self;
-	}
-
-	// creates a new symbol for function overload set given a function
-	inline static Symbol*
-	symbol_func_overload_set_new(mn::Allocator arena, Symbol* func)
-	{
-		auto func_decl = func->func_sym.decl;
-		auto func_name = func->func_sym.name;
-		auto func_type = func->type;
-		auto func_used = func->state == STATE_RESOLVED;
-
-		auto self = func;
-		self->kind = Symbol::KIND_FUNC_OVERLOAD_SET;
-		self->state = STATE_UNRESOLVED;
-		self->type = type_void;
-		self->func_overload_set_sym.decls = mn::map_with_allocator<Decl*, Type*>(arena);
-		self->func_overload_set_sym.used_decls = mn::buf_with_allocator<Decl*>(arena);
-		self->func_overload_set_sym.unique_used_decls = mn::set_with_allocator<Decl*>(arena);
-		mn::map_insert(self->func_overload_set_sym.decls, func_decl, func_type);
-		if (func_used)
-		{
-			mn::buf_push(self->func_overload_set_sym.used_decls, func_decl);
-			mn::set_insert(self->func_overload_set_sym.unique_used_decls, func_decl);
-		}
-		return self;
-	}
-
-	// given a symbols it will return its location in compilation unit
-	inline static Location
-	symbol_location(const Symbol* self)
-	{
-		switch (self->kind)
-		{
-		case Symbol::KIND_CONST:
-			return self->const_sym.decl->loc;
-		case Symbol::KIND_VAR:
-			return self->var_sym.decl->loc;
-		case Symbol::KIND_FUNC:
-			return self->func_sym.decl->loc;
-		case Symbol::KIND_STRUCT:
-			return self->struct_sym.decl->loc;
-		case Symbol::KIND_PACKAGE:
-			return self->package_sym.decl->loc;
-		case Symbol::KIND_ENUM:
-			return self->enum_sym.decl->loc;
-		default:
-			assert(false && "unreachable");
-			return Location{};
-		}
-	}
-
-	// given a symbol it will return the declaration it represents
-	inline static Decl*
-	symbol_decl(const Symbol* self)
-	{
-		switch (self->kind)
-		{
-		case Symbol::KIND_CONST:
-			return self->const_sym.decl;
-		case Symbol::KIND_VAR:
-			return self->var_sym.decl;
-		case Symbol::KIND_FUNC:
-			return self->func_sym.decl;
-		case Symbol::KIND_STRUCT:
-			return self->struct_sym.decl;
-		case Symbol::KIND_PACKAGE:
-			return self->package_sym.decl;
-		case Symbol::KIND_FUNC_OVERLOAD_SET:
-			return nullptr;
-		case Symbol::KIND_ENUM:
-			return self->enum_sym.decl;
-		default:
-			assert(false && "unreachable");
-			return nullptr;
-		}
-	}
-
-	// scope contains symbols inside a scope node in the AST (like a func)
-	struct Scope
-	{
-		enum FLAG
-		{
-			FLAG_NONE,
-			FLAG_INSIDE_LOOP,
-		};
-
-		Scope* parent;
-		const char* name;
-		mn::Buf<Symbol*> symbols;
-		mn::Map<const char*, Symbol*> symbol_table;
-		Type* expected_type;
-		mn::Map<const char*, size_t> generated_names;
-		FLAG flags;
-	};
-
-	// creates a new scope
-	SABRE_EXPORT Scope*
-	scope_new(Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags);
-
-	// frees the given scope
-	SABRE_EXPORT void
-	scope_free(Scope* self);
-
-	inline static void
-	destruct(Scope* self)
-	{
-		scope_free(self);
-	}
-
-	// search the given scope only for a symbol with the given name
-	inline static Symbol*
-	scope_shallow_find(const Scope* self, const char* name)
-	{
-		if (auto it = mn::map_lookup(self->symbol_table, name))
-			return it->value;
-		return nullptr;
-	}
-
-	inline static bool
-	scope_add(Scope* self, Symbol* symbol)
-	{
-		if (scope_shallow_find(self, symbol->name) != nullptr)
-			return false;
-
-		mn::map_insert(self->symbol_table, symbol->name, symbol);
-		mn::buf_push(self->symbols, symbol);
-		return true;
-	}
-
-	inline static Symbol*
-	scope_find(const Scope* self, const char* name)
-	{
-		for (auto it = self; it != nullptr; it = it->parent)
-		{
-			if (auto sym = scope_shallow_find(it, name))
-				return sym;
-		}
-		return nullptr;
-	}
-
-	inline static bool
-	scope_is_top_level(Scope* self, Symbol* symbol)
-	{
-		for (auto sym: self->symbols)
-			if (sym == symbol)
-				return true;
-		return false;
-	}
-
-	inline static bool
-	scope_find_flag(Scope* self, Scope::FLAG flag)
-	{
-		for (auto it = self; it != nullptr; it = it->parent)
-			if ((it->flags & flag) != 0)
-				return true;
-		return false;
-	}
+	type_interner_array(Type_Interner* self, Array_Sign sign);
 }
 
 namespace fmt

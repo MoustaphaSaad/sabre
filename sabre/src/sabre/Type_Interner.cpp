@@ -73,29 +73,6 @@ namespace sabre
 	}
 
 	// API
-	Scope*
-	scope_new(Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags)
-	{
-		auto self = mn::alloc_zerod<Scope>();
-		self->parent = parent;
-		self->name = name;
-		self->expected_type = expected_type;
-		self->flags = flags;
-		return self;
-	}
-
-	void
-	scope_free(Scope* self)
-	{
-		if (self)
-		{
-			mn::buf_free(self->symbols);
-			mn::map_free(self->symbol_table);
-			mn::map_free(self->generated_names);
-			mn::free(self);
-		}
-	}
-
 	Type* type_void = &_type_void;
 	Type* type_bool = &_type_bool;
 	Type* type_int = &_type_int;
@@ -127,50 +104,54 @@ namespace sabre
 	Type* type_texture3d = &_type_texture3d;
 	Type* type_texture_cube = &_type_texture_cube;
 
-	Type_Interner
+	Type_Interner*
 	type_interner_new()
 	{
-		Type_Interner self{};
-		self.arena = mn::allocator_arena_new();
+		auto self = mn::alloc_zerod<Type_Interner>();
+		self->arena = mn::allocator_arena_new();
 		return self;
 	}
 
 	void
-	type_interner_free(Type_Interner& self)
+	type_interner_free(Type_Interner* self)
 	{
-		mn::allocator_free(self.arena);
-		destruct(self.func_table);
-		mn::map_free(self.package_table);
-		mn::map_free(self.array_table);
+		if (self)
+		{
+			mn::allocator_free(self->arena);
+			destruct(self->func_table);
+			mn::map_free(self->package_table);
+			mn::map_free(self->array_table);
+			mn::free(self);
+		}
 	}
 
 	Type*
-	type_interner_func(Type_Interner& self, Func_Sign sign)
+	type_interner_func(Type_Interner* self, Func_Sign sign)
 	{
-		if(auto it = mn::map_lookup(self.func_table, sign))
+		if(auto it = mn::map_lookup(self->func_table, sign))
 		{
 			func_sign_free(sign);
 			return it->value;
 		}
 
-		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_FUNC;
 		new_type->func = sign;
-		mn::map_insert(self.func_table, sign, new_type);
+		mn::map_insert(self->func_table, sign, new_type);
 		return new_type;
 	}
 
 	Type*
-	type_interner_incomplete(Type_Interner& self, Symbol* symbol)
+	type_interner_incomplete(Type_Interner* self, Symbol* symbol)
 	{
-		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_INCOMPLETE;
 		new_type->struct_type.symbol = symbol;
 		return new_type;
 	}
 
 	void
-	type_interner_complete_struct(Type_Interner& self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	type_interner_complete_struct(Type_Interner* self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
 	{
 		assert(type->kind == Type::KIND_COMPLETING);
 		type->kind = Type::KIND_STRUCT;
@@ -194,7 +175,7 @@ namespace sabre
 	}
 
 	void
-	type_interner_complete_enum(Type_Interner& self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	type_interner_complete_enum(Type_Interner* self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
 	{
 		assert(type->kind == Type::KIND_COMPLETING);
 		type->kind = Type::KIND_ENUM;
@@ -203,41 +184,41 @@ namespace sabre
 	}
 
 	Type*
-	type_interner_package(Type_Interner& self, Unit_Package* package)
+	type_interner_package(Type_Interner* self, Unit_Package* package)
 	{
-		if (auto it = mn::map_lookup(self.package_table, package))
+		if (auto it = mn::map_lookup(self->package_table, package))
 			return it->value;
-		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_PACKAGE;
 		new_type->package_type.package = package;
-		mn::map_insert(self.package_table, package, new_type);
+		mn::map_insert(self->package_table, package, new_type);
 		return new_type;
 	}
 
 	Type*
-	type_interner_overload_set(Type_Interner& self, Symbol* symbol)
+	type_interner_overload_set(Type_Interner* self, Symbol* symbol)
 	{
-		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_FUNC_OVERLOAD_SET;
 		new_type->func_overload_set_type.symbol = symbol;
-		new_type->func_overload_set_type.overloads = mn::map_with_allocator<Func_Args_Sign, Type_Overload_Entry, Func_Args_Sign_Hasher>(self.arena);
+		new_type->func_overload_set_type.overloads = mn::map_with_allocator<Func_Args_Sign, Type_Overload_Entry, Func_Args_Sign_Hasher>(self->arena);
 		return new_type;
 	}
 
 	Type*
-	type_interner_array(Type_Interner& self, Array_Sign sign)
+	type_interner_array(Type_Interner* self, Array_Sign sign)
 	{
-		if (auto it = mn::map_lookup(self.array_table, sign))
+		if (auto it = mn::map_lookup(self->array_table, sign))
 			return it->value;
 
-		auto new_type = mn::alloc_zerod_from<Type>(self.arena);
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_ARRAY;
 		new_type->alignment = _round_up(sign.base->size, type_vec4->size);
 		if (sign.count >= 0)
 			new_type->size = _round_up(sign.base->size, type_vec4->size) * sign.count;
 		new_type->array.base = sign.base;
 		new_type->array.count = sign.count;
-		mn::map_insert(self.array_table, sign, new_type);
+		mn::map_insert(self->array_table, sign, new_type);
 		return new_type;
 	}
 }

@@ -5,6 +5,7 @@
 #include "sabre/Reflect.h"
 #include "sabre/GLSL.h"
 #include "sabre/HLSL.h"
+#include "sabre/Type_Interner.h"
 
 #include <mn/Path.h>
 #include <mn/IO.h>
@@ -610,7 +611,7 @@ namespace sabre
 		#if SABRE_LOG_METRICS
 		mn::log_info(
 			"Types: {}/{}, (used/reserved)bytes",
-			self->type_interner.arena->used_mem, self->type_interner.arena->total_mem
+			self->type_interner->arena->used_mem, self->type_interner->arena->total_mem
 		);
 		#endif
 

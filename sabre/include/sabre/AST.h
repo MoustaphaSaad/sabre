@@ -9,6 +9,7 @@
 namespace sabre
 {
 	struct Expr;
+	struct Decl;
 
 	// represents a type signature atom
 	struct Type_Sign_Atom

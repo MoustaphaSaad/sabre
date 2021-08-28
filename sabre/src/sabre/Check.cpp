@@ -2482,8 +2482,8 @@ namespace sabre
 		if (sym->kind == Symbol::KIND_STRUCT)
 		{
 			auto d = sym->struct_sym.decl;
-			auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner.arena);
-			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner.arena);
+			auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner->arena);
+			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
 			for (auto field: d->struct_decl.fields)
 			{
 				auto field_type = _typer_resolve_type_sign(self, field.type);
@@ -2541,8 +2541,8 @@ namespace sabre
 		{
 			auto d = sym->enum_sym.decl;
 			// first complete the type
-			auto enum_fields = mn::buf_with_allocator<Enum_Field_Type>(self.unit->parent_unit->type_interner.arena);
-			auto enum_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner.arena);
+			auto enum_fields = mn::buf_with_allocator<Enum_Field_Type>(self.unit->parent_unit->type_interner->arena);
+			auto enum_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
 			for (auto field: d->enum_decl.fields)
 			{
 				Enum_Field_Type enum_field{};
