@@ -231,6 +231,36 @@ namespace sabre
 		return false;
 	}
 
+	// combined texture sampler is used to track which textures was
+	// used with which samplers so that we can generated correct opengl glsl
+	struct Combined_Texture_Sampler
+	{
+		Symbol* texture;
+		Symbol* sampler;
+
+		bool
+		operator==(const Combined_Texture_Sampler& other) const
+		{
+			return texture == other.texture && sampler == other.sampler;
+		}
+
+		bool
+		operator!=(const Combined_Texture_Sampler& other) const
+		{
+			return !operator==(other);
+		}
+	};
+
+	struct Combined_Texture_Sampler_Hasher
+	{
+		inline size_t
+		operator()(const Combined_Texture_Sampler& v) const
+		{
+			mn::Hash<Symbol*> symbol_hasher;
+			return mn::hash_mix(symbol_hasher(v.texture), symbol_hasher(v.sampler));
+		}
+	};
+
 	// processes the package given its path
 	SABRE_EXPORT mn::Result<Unit_Package*>
 	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path);
@@ -271,6 +301,8 @@ namespace sabre
 		mn::Map<int, Symbol*> reachable_uniforms;
 		// reachable textures info
 		mn::Map<int, Symbol*> reachable_textures;
+		// combined texture + sampler
+		mn::Map<Combined_Texture_Sampler, const char*, Combined_Texture_Sampler_Hasher> reachable_combined_texture_samplers;
 		// reflected symbols, they should be const because we write their values in json reflection info
 		mn::Buf<Symbol*> reflected_symbols;
 		// library collections, map from collection name to its path

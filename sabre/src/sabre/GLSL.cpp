@@ -342,6 +342,8 @@ namespace sabre
 			break;
 		}
 
+		if (res == nullptr)
+			res = sym->name;
 		return res;
 	}
 
@@ -749,37 +751,50 @@ namespace sabre
 	inline static void
 	_glsl_gen_call_expr(GLSL& self, Expr* e)
 	{
-		bool is_sample_func = mn::map_lookup(e->call.func->tags.table, KEYWORD_SAMPLE_FUNC) != nullptr;
-		Symbol* texture_sym = nullptr;
-		Symbol* sampler_sym = nullptr;
-
-		glsl_expr_gen(self, e->call.base);
-		mn::print_to(self.out, "(");
-		size_t arg_count = 0;
-		for (size_t i = 0; i < e->call.args.count; ++i)
+		if (e->call.is_sample_func)
 		{
-			auto arg = e->call.args[i];
+			auto compilation_unit = self.unit->parent_unit;
 
-			if (is_sample_func && arg->type->kind == Type::KIND_SAMPLER)
+			Combined_Texture_Sampler cts{};
+			cts.texture = e->call.texture;
+			cts.sampler = e->call.sampler;
+			auto tex_name_it = mn::map_lookup(compilation_unit->reachable_combined_texture_samplers, cts);
+			auto tex_name = tex_name_it->value;
+
+			glsl_expr_gen(self, e->call.base);
+			mn::print_to(self.out, "(");
+			size_t arg_count = 0;
+			for (size_t i = 0; i < e->call.args.count; ++i)
 			{
-				// we ignore samplers in glsl
-				sampler_sym = arg->symbol;
-				continue;
+				auto arg = e->call.args[i];
+
+				if (arg->type->kind == Type::KIND_SAMPLER)
+				{
+					continue;
+				}
+
+				if (arg_count > 0)
+					mn::print_to(self.out, ", ");
+
+				if (type_is_texture(arg->type))
+					mn::print_to(self.out, "{}", tex_name);
+				else
+					glsl_expr_gen(self, arg);
+				++arg_count;
 			}
-
-			if (is_sample_func && type_is_texture(arg->type))
-				texture_sym = arg->symbol;
-
-			if (arg_count > 0)
-				mn::print_to(self.out, ", ");
-			glsl_expr_gen(self, arg);
-			++arg_count;
+			mn::print_to(self.out, ")");
 		}
-		mn::print_to(self.out, ")");
-
-		if (texture_sym && sampler_sym)
+		else
 		{
-			mn::log_debug("texture: {}, was used with sampler: {}", texture_sym->package_name, sampler_sym->package_name);
+			glsl_expr_gen(self, e->call.base);
+			mn::print_to(self.out, "(");
+			for (size_t i = 0; i < e->call.args.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				glsl_expr_gen(self, e->call.args[i]);
+			}
+			mn::print_to(self.out, ")");
 		}
 	}
 
@@ -1061,10 +1076,13 @@ namespace sabre
 		if (sym->var_sym.value && in_stmt == false)
 			_glsl_rewrite_complits_in_expr(self, sym->var_sym.value, false);
 
+		bool is_ignored = false;
 		// we ignore sampler code generation in glsl
 		if (type_is_sampler(sym->type))
 		{
-			mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
+			// we ignore sampler code generation
+			is_ignored = true;
+			// mn::print_to(self.out, "{}", _glsl_write_field(self, sym->type, _glsl_symbol_name(sym)));
 		}
 		else if (sym->var_sym.is_uniform)
 		{
@@ -1077,7 +1095,9 @@ namespace sabre
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.uniform_binding, _glsl_write_field(self, sym->type, uniform_name));
+				// we ignore texture code generation
+				is_ignored = true;
+				// mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.uniform_binding, _glsl_write_field(self, sym->type, uniform_name));
 			}
 			else
 			{
@@ -1118,7 +1138,8 @@ namespace sabre
 				// TODO(Moustapha): handle zero init data
 			}
 		}
-		mn::print_to(self.out, ";");
+		if (is_ignored == false)
+			mn::print_to(self.out, ";");
 	}
 
 	inline static void
@@ -1945,8 +1966,8 @@ namespace sabre
 			_glsl_newline(self);
 		}
 
-		mn::print_to(self.out, "struct Sabre_Sampler {{ int x; }};");
-		_glsl_newline(self);
+		// mn::print_to(self.out, "struct Sabre_Sampler {{ int x; }};");
+		// _glsl_newline(self);
 
 		switch (compilation_unit->mode)
 		{
@@ -1962,6 +1983,21 @@ namespace sabre
 		default:
 			assert(false && "unreachable");
 			break;
+		}
+
+		// handle combined texture + sampler
+		for (auto& cts: compilation_unit->reachable_combined_texture_samplers)
+		{
+			auto binding = cts.key.texture->var_sym.uniform_binding;
+
+			if (cts.value == nullptr)
+			{
+				auto texture_name = _glsl_name(self, _glsl_symbol_name(cts.key.texture));
+				auto sampler_name = _glsl_name(self, _glsl_symbol_name(cts.key.sampler));
+				cts.value = unit_intern(self.unit->parent_unit, mn::str_tmpf("{}_{}", texture_name, sampler_name).ptr);
+			}
+			mn::print_to(self.out, "layout(binding = {}) uniform {};", binding, _glsl_write_field(self, cts.key.texture->type, cts.value));
+			_glsl_newline(self);
 		}
 
 		bool last_symbol_was_generated = false;

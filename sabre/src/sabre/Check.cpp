@@ -951,6 +951,29 @@ namespace sabre
 		return type;
 	}
 
+	inline static void
+	_typer_combine_texture_sampler(Typer& self, Expr* e)
+	{
+		// extract texture sampler info
+		e->call.is_sample_func = mn::map_lookup(e->call.func->tags.table, KEYWORD_SAMPLE_FUNC) != nullptr;
+		if (e->call.is_sample_func)
+		{
+			for (auto arg: e->call.args)
+			{
+				if (arg->type->kind == Type::KIND_SAMPLER)
+					e->call.sampler = arg->symbol;
+				if (type_is_texture(arg->type))
+					e->call.texture = arg->symbol;
+			}
+			assert(e->call.sampler != nullptr && e->call.texture != nullptr);
+			auto compilation_unit = self.unit->parent_unit;
+			Combined_Texture_Sampler info{};
+			info.texture = e->call.texture;
+			info.sampler = e->call.sampler;
+			mn::map_insert(compilation_unit->reachable_combined_texture_samplers, info, (const char*)nullptr);
+		}
+	}
+
 	inline static Type*
 	_typer_resolve_call_expr(Typer& self, Expr* e)
 	{
@@ -994,6 +1017,8 @@ namespace sabre
 			{
 				e->call.func = e->call.base->atom.sym->func_sym.decl;
 			}
+
+			_typer_combine_texture_sampler(self, e);
 			return type->func.return_type;
 		}
 		else if (type->kind == Type::KIND_FUNC_OVERLOAD_SET)
@@ -1066,9 +1091,11 @@ namespace sabre
 			}
 			else
 			{
+				_typer_combine_texture_sampler(self, e);
 				return res;
 			}
 		}
+
 		return type_void;
 	}
 

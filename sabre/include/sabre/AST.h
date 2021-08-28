@@ -181,6 +181,10 @@ namespace sabre
 				mn::Buf<Expr*> args;
 				// the actual function which this call uses
 				Decl* func;
+				// combined texture sampler data
+				bool is_sample_func;
+				Symbol* texture;
+				Symbol* sampler;
 			} call;
 
 			struct
