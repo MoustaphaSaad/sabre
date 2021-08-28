@@ -3,6 +3,7 @@
 #include "sabre/Exports.h"
 #include "sabre/Tkn.h"
 #include "sabre/AST.h"
+#include "sabre/Unit.h"
 
 #include <mn/Memory.h>
 #include <mn/Buf.h>
