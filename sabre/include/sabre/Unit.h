@@ -40,6 +40,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_REFLECT = "reflect";
 	inline constexpr const char* KEYWORD_HLSL = "hlsl";
 	inline constexpr const char* KEYWORD_HLSL_METHOD = "hlsl_method";
+	inline constexpr const char* KEYWORD_SAMPLER_STATE = "sampler_state";
 
 	enum COMPILATION_STAGE
 	{

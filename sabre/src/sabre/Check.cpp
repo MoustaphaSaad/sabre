@@ -101,6 +101,13 @@ namespace sabre
 	inline static bool
 	_typer_can_assign(Type* lhs, Expr* rhs)
 	{
+		// special case sampler + sampler state
+		if (type_is_sampler(lhs))
+		{
+			if (type_is_sampler(rhs->type) || type_is_sampler_state(rhs->type))
+				return true;
+		}
+
 		// if we have different types then we can't assign
 		if (type_is_equal(lhs, rhs->type) == false)
 			return false;
@@ -1744,7 +1751,15 @@ namespace sabre
 	inline static bool
 	_typer_check_type_suitable_for_uniform(Typer& self, Type* type, size_t depth)
 	{
-		if (type_is_struct(type))
+		if (type_is_sampler(type))
+		{
+			return depth == 0;
+		}
+		else if (type->kind == Type::KIND_TEXTURE)
+		{
+			return depth == 0;
+		}
+		else if (type_is_struct(type))
 		{
 			bool res = true;
 			for (auto field: type->struct_type.fields)
@@ -1761,10 +1776,6 @@ namespace sabre
 				}
 			}
 			return res;
-		}
-		else if (type->kind == Type::KIND_TEXTURE)
-		{
-			return depth == 0;
 		}
 		else if (type_is_unbounded_array(type))
 		{

@@ -208,6 +208,7 @@ namespace sabre
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ARRAY,
 			KIND_ENUM,
+			KIND_SAMPLER,
 		};
 
 		KIND kind;
@@ -299,6 +300,7 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_texture2d;
 	SABRE_EXPORT extern Type* type_texture3d;
 	SABRE_EXPORT extern Type* type_texture_cube;
+	SABRE_EXPORT extern Type* type_sampler;
 
 	// given a type name it will return a type
 	inline static Type*
@@ -362,6 +364,8 @@ namespace sabre
 			return type_texture3d;
 		else if (str == "TextureCube")
 			return type_texture_cube;
+		else if (str == "Sampler")
+			return type_sampler;
 		else
 			return type_void;
 	}
@@ -552,6 +556,25 @@ namespace sabre
 	type_is_enum(Type* t)
 	{
 		return t->kind == Type::KIND_ENUM;
+	}
+
+	// returns whether the type is a sampler
+	inline static bool
+	type_is_sampler(Type* t)
+	{
+		return t->kind == Type::KIND_SAMPLER;
+	}
+
+	// returns whether the type is a sampler state structure
+	inline static bool
+	type_is_sampler_state(Type* t)
+	{
+		if (type_is_struct(t))
+		{
+			auto decl = symbol_decl(t->struct_type.symbol);
+			return mn::map_lookup(decl->tags.table, KEYWORD_SAMPLER_STATE) != nullptr;
+		}
+		return false;
 	}
 
 	// returns whether the type can be used in a bit operation
@@ -964,6 +987,10 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_ENUM)
 			{
 				return format_to(ctx.out(), "enum {}", t->enum_type.symbol->name);
+			}
+			else if (t->kind == sabre::Type::KIND_SAMPLER)
+			{
+				return format_to(ctx.out(), "Sampler");
 			}
 			else
 			{
