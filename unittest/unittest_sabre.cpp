@@ -15,6 +15,14 @@ load_out_data(const mn::Str& filepath)
 	return mn::file_content_str(out_path, mn::memory::tmp());
 }
 
+inline static mn::Str
+load_out_glsl_data(const mn::Str& filepath)
+{
+	auto out_path = mn::str_tmpf("{}.out.glsl", filepath);
+	CHECK(mn::path_is_file(out_path));
+	return mn::file_content_str(out_path, mn::memory::tmp());
+}
+
 TEST_CASE("[sabre]: lex")
 {
 	mn_defer(mn::memory::tmp()->clear_all());
@@ -192,19 +200,19 @@ TEST_CASE("[sabre]: glsl")
 {
 	mn_defer(mn::memory::tmp()->clear_all());
 
-	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "glsl");
+	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "codegen");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
 	for (auto f: files)
 	{
 		if (f.kind != mn::Path_Entry::KIND_FILE || f.name == "." || f.name == "..")
 			continue;
 
-		if (mn::str_suffix(f.name, ".out"))
+		if (mn::str_find_last(f.name, ".out", f.name.count) != SIZE_MAX)
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
 		mn::log_info("testing file: {}...", filepath);
-		auto out_data = load_out_data(filepath);
+		auto out_data = load_out_glsl_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
 		mn::str_trim(out_data);
 
