@@ -1905,6 +1905,44 @@ namespace sabre
 					mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
 				}
 			}
+			else if (type_is_sampler(sym->type))
+			{
+				sym->var_sym.is_uniform = true;
+				if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+				{
+					auto value_tkn = binding_it->value.value;
+					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+					{
+						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+						if (sym->var_sym.uniform_binding > self.sampler_binding_generator)
+							self.sampler_binding_generator = sym->var_sym.uniform_binding + 1;
+					}
+				}
+				else
+				{
+					sym->var_sym.uniform_binding = self.sampler_binding_generator++;
+				}
+
+				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding))
+				{
+					auto old_sym = it->value;
+					auto old_loc = symbol_location(old_sym);
+
+					Err err{};
+					err.loc = symbol_location(sym);
+					err.msg = mn::strf(
+						"sampler binding point {} is shared with other sampler defined in {}:{}",
+						sym->var_sym.uniform_binding,
+						old_loc.file->filepath,
+						old_loc.pos.line
+					);
+					unit_err(self.unit, err);
+				}
+				else
+				{
+					mn::map_insert(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding, sym);
+				}
+			}
 			else
 			{
 				sym->var_sym.is_uniform = true;

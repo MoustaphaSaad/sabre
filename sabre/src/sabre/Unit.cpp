@@ -625,6 +625,7 @@ namespace sabre
 		mn::map_free(self->input_layout);
 		mn::map_free(self->reachable_uniforms);
 		mn::map_free(self->reachable_textures);
+		mn::map_free(self->reachable_samplers);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
 		mn::free(self);
