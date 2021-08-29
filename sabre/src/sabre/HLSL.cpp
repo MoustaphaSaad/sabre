@@ -813,6 +813,12 @@ namespace sabre
 		{
 			hlsl_expr_gen(self, e->dot.rhs);
 		}
+		else if (is_lhs_enum)
+		{
+			auto enum_name = _hlsl_symbol_name(e->type->enum_type.symbol);
+			mn::print_to(self.out, "{0}::{0}_", enum_name);
+			hlsl_expr_gen(self, e->dot.rhs);
+		}
 		else
 		{
 			hlsl_expr_gen(self, e->dot.lhs);
@@ -1614,6 +1620,8 @@ namespace sabre
 		size_t i = 0;
 		for (auto field: d->enum_decl.fields)
 		{
+			if (i > 0)
+				mn::print_to(self.out, ", ");
 			auto field_type = t->enum_type.fields[i];
 			assert(field_type.value.type == type_int);
 			_hlsl_newline(self);
