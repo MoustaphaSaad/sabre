@@ -1589,7 +1589,7 @@ namespace sabre
 					{
 						mn::print_to(self.out, ": SV_POSITION");
 					}
-					if (io_flags_it->value == ENTRY_IO_FLAG_PIXEL_OUT)
+					else if (io_flags_it->value == ENTRY_IO_FLAG_PIXEL_OUT)
 					{
 						mn::print_to(self.out, ": SV_TARGET{}", i);
 					}
