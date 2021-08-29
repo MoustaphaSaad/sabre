@@ -41,6 +41,9 @@ func dot(a, b: vec3): float
 func dot(a, b: vec2): float
 
 @builtin
+func cross(a, b: vec3): vec3
+
+@builtin
 func length(a: vec2): float
 
 @builtin
@@ -69,6 +72,54 @@ func all(x: bvec3): bool
 
 @builtin
 func all(x: bvec4): bool
+
+@builtin {
+	glsl = "dFdx"
+	hlsl = "ddx"
+}
+func ddx(a: float): float
+
+@builtin {
+	glsl = "dFdx"
+	hlsl = "ddx"
+}
+func ddx(a: vec2): vec2
+
+@builtin {
+	glsl = "dFdx"
+	hlsl = "ddx"
+}
+func ddx(a: vec3): vec3
+
+@builtin {
+	glsl = "dFdx"
+	hlsl = "ddx"
+}
+func ddx(a: vec4): vec4
+
+@builtin {
+	glsl = "dFdy"
+	hlsl = "ddy"
+}
+func ddy(a: float): float
+
+@builtin {
+	glsl = "dFdy"
+	hlsl = "ddy"
+}
+func ddy(a: vec2): vec2
+
+@builtin {
+	glsl = "dFdy"
+	hlsl = "ddy"
+}
+func ddy(a: vec3): vec3
+
+@builtin {
+	glsl = "dFdy"
+	hlsl = "ddy"
+}
+func ddy(a: vec4): vec4
 
 const MAX_COLOR_ATTACHMENT = 4;
 
