@@ -709,17 +709,17 @@ namespace sabre
 			mn::print_to(self.out, ")");
 			break;
 		case Type::KIND_ARRAY:
-			mn::print_to(self.out, "{}(", _hlsl_write_field(self, t, nullptr));
+			mn::print_to(self.out, "{{");
 			for (size_t i = 0; i < t->array.count; ++i)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
 				_hlsl_zero_value(self, t->array.base);
 			}
-			mn::print_to(self.out, ")");
+			mn::print_to(self.out, "}}");
 			break;
 		case Type::KIND_STRUCT:
-			mn::print_to(self.out, "{}(", _hlsl_write_field(self, t, nullptr));
+			mn::print_to(self.out, "{{");
 			for (size_t i = 0; i < t->struct_type.fields.count; ++i)
 			{
 				if (i > 0)
@@ -729,7 +729,7 @@ namespace sabre
 				else
 					_hlsl_zero_value(self, t->struct_type.fields[i].type);
 			}
-			mn::print_to(self.out, ")");
+			mn::print_to(self.out, "}}");
 			break;
 		case Type::KIND_ENUM:
 			mn::print_to(self.out, "{}(0)", _hlsl_write_field(self, t, nullptr));
@@ -973,7 +973,7 @@ namespace sabre
 		{
 			auto tmp_name = _hlsl_tmp_name(self);
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
-			mn::print_to(self.out, "{} = {}(", _hlsl_write_field(self, e->type, tmp_name), _hlsl_write_field(self, e->type, nullptr));
+			mn::print_to(self.out, "{} = {{", _hlsl_write_field(self, e->type, tmp_name));
 			for (size_t i = 0; i < e->type->array.count; ++i)
 			{
 				if (i > 0)
@@ -983,7 +983,7 @@ namespace sabre
 				else
 					_hlsl_zero_value(self, e->type->array.base);
 			}
-			mn::print_to(self.out, ");");
+			mn::print_to(self.out, "}};");
 			_hlsl_newline(self);
 		}
 		else if (type_is_vec(e->type))

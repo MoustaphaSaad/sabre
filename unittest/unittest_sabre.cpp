@@ -23,6 +23,14 @@ load_out_glsl_data(const mn::Str& filepath)
 	return mn::file_content_str(out_path, mn::memory::tmp());
 }
 
+inline static mn::Str
+load_out_hlsl_data(const mn::Str& filepath)
+{
+	auto out_path = mn::str_tmpf("{}.out.hlsl", filepath);
+	CHECK(mn::path_is_file(out_path));
+	return mn::file_content_str(out_path, mn::memory::tmp());
+}
+
 TEST_CASE("[sabre]: lex")
 {
 	mn_defer(mn::memory::tmp()->clear_all());
@@ -211,6 +219,13 @@ TEST_CASE("[sabre]: glsl")
 			continue;
 
 		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+
+		if (mn::path_is_file(mn::str_tmpf("{}.out.glsl", filepath)) == false)
+		{
+			mn::log_warning("missing glsl output for '{}'", filepath);
+			continue;
+		}
+
 		mn::log_info("testing file: {}...", filepath);
 		auto out_data = load_out_glsl_data(filepath);
 		mn::str_replace(out_data, "\r\n", "\n");
@@ -232,6 +247,48 @@ TEST_CASE("[sabre]: glsl")
 	}
 }
 
+TEST_CASE("[sabre]: hlsl")
+{
+	mn_defer(mn::memory::tmp()->clear_all());
+
+	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "codegen");
+	auto files = mn::path_entries(base_dir, mn::memory::tmp());
+	for (auto f: files)
+	{
+		if (f.kind != mn::Path_Entry::KIND_FILE || f.name == "." || f.name == "..")
+			continue;
+
+		if (mn::str_find_last(f.name, ".out", f.name.count) != SIZE_MAX)
+			continue;
+
+		auto filepath = mn::path_join(mn::str_tmp(), base_dir, f.name);
+
+		if (mn::path_is_file(mn::str_tmpf("{}.out.hlsl", filepath)) == false)
+		{
+			mn::log_warning("missing hlsl output for '{}'", filepath);
+			continue;
+		}
+
+		mn::log_info("testing file: {}...", filepath);
+		auto out_data = load_out_hlsl_data(filepath);
+		mn::str_replace(out_data, "\r\n", "\n");
+		mn::str_trim(out_data);
+
+		auto [answer, err] = sabre::hlsl_gen_from_file(filepath, f.name, mn::str_lit(""), {});
+		CHECK(err == false);
+		mn_defer(mn::str_free(answer));
+		mn::str_replace(answer, "\r\n", "\n");
+		mn::str_trim(answer);
+
+		auto match = answer == out_data;
+		CHECK(match == true);
+		if (match == false)
+		{
+			mn::print("expected:\n{}\n", out_data);
+			mn::print("answer:\n{}\n", answer);
+		}
+	}
+}
 TEST_CASE("[sabre]: glsl-entry")
 {
 	mn_defer(mn::memory::tmp()->clear_all());
