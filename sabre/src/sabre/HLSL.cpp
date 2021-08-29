@@ -646,6 +646,10 @@ namespace sabre
 			can_write_name = true;
 			str = mn::strf(str, "{}", _hlsl_name(self, _hlsl_symbol_name(type->enum_type.symbol)));
 			break;
+		case Type::KIND_SAMPLER:
+			can_write_name = true;
+			str = mn::strf(str, "SamplerState");
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -835,12 +839,9 @@ namespace sabre
 	_hlsl_gen_call_expr(HLSL& self, Expr* e)
 	{
 		bool is_method = false;
-		if (auto sym = e->call.base->symbol)
+		if (auto d = e->call.func)
 		{
-			if (auto d = symbol_decl(sym))
-			{
-				is_method = mn::map_lookup(d->tags.table, KEYWORD_HLSL_METHOD) != nullptr;
-			}
+			is_method = mn::map_lookup(d->tags.table, KEYWORD_HLSL_METHOD) != nullptr;
 		}
 
 		if (is_method && e->call.args.count > 0)
@@ -1490,6 +1491,10 @@ namespace sabre
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
 				mn::print_to(self.out, "{}: register(t{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
+			}
+			else if (type_is_sampler(sym->type))
+			{
+				mn::print_to(self.out, "{}: register(s{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
 			}
 			else
 			{

@@ -3,5 +3,7 @@ package main
 import "std"
 
 func foo(a, b: vec3): bool {
+	var a2 = a * 2;
+	var b2 = b + 3;
 	return std.all(a < b);
 }
