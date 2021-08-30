@@ -3,11 +3,11 @@ struct main_koko {
 	float3 y;
 };
 void main_main() {
-	const int _tmp_1[5] = {1, 2, 3, 4, 5};
-	const int _tmp_2[1][5] = {_tmp_1};
-	const int main_main_numbers[1][5] = _tmp_2;
-	const int main_main_xo[5] = main_main_numbers[0];
-	const int main_main_my_number = main_main_numbers[0][1];
+	static const int _tmp_1[5] = {1, 2, 3, 4, 5};
+	static const int _tmp_2[1][5] = {_tmp_1};
+	static const int main_main_numbers[1][5] = _tmp_2;
+	static const int main_main_xo[5] = main_main_numbers[0];
+	static const int main_main_my_number = main_main_numbers[0][1];
 	int xo2[5] = main_main_xo;
 	float3 _tmp_3 = float3(1, 2, 3);
 	float3 RESERVED_point = _tmp_3;

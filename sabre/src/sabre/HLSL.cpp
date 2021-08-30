@@ -973,7 +973,7 @@ namespace sabre
 		}
 
 		if (is_const)
-			mn::print_to(self.out, "const ");
+			mn::print_to(self.out, "static const ");
 
 		// handle arrays differently
 		if (type_is_array(e->type))
@@ -1551,7 +1551,7 @@ namespace sabre
 		if (sym->const_sym.value && in_stmt == false)
 			_hlsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
 
-		mn::print_to(self.out, "const {}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(sym)));
+		mn::print_to(self.out, "static const {}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(sym)));
 		if (sym->const_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");

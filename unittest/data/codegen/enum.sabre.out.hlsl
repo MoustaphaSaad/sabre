@@ -5,7 +5,7 @@
 #define main_Dir_Right 8
 #define main_Dir_Down_Left 6
 #define main_Dir_Up_Right 9
-const main_Dir main_koko = main_Dir_Left;
+static const main_Dir main_koko = main_Dir_Left;
 float2 main_offset(main_Dir d) {
 	if (d == main_Dir_Up) {
 		float2 _tmp_1 = float2(0, -1);
