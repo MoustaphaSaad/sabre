@@ -815,8 +815,9 @@ namespace sabre
 		}
 		else if (is_lhs_enum)
 		{
+			// glslang hlsl implementation doesn't work with enums so for now we generate them as macros an integers
 			auto enum_name = _hlsl_symbol_name(e->type->enum_type.symbol);
-			mn::print_to(self.out, "{0}::{0}_", enum_name);
+			mn::print_to(self.out, "{}_", enum_name);
 			hlsl_expr_gen(self, e->dot.rhs);
 		}
 		else
@@ -1611,8 +1612,8 @@ namespace sabre
 	inline static void
 	_hlsl_enum_gen(HLSL& self, Symbol* sym)
 	{
-		mn::print_to(self.out, "enum {} {{", _hlsl_name(self, _hlsl_symbol_name(sym)));
-		++self.indent;
+		// glslang hlsl implementation doesn't work with enums so for now we generate them as macros an integers
+		mn::print_to(self.out, "#define {} int", _hlsl_symbol_name(sym));
 
 		auto d = sym->enum_sym.decl;
 		auto t = sym->type;
@@ -1620,18 +1621,34 @@ namespace sabre
 		size_t i = 0;
 		for (auto field: d->enum_decl.fields)
 		{
-			if (i > 0)
-				mn::print_to(self.out, ", ");
 			auto field_type = t->enum_type.fields[i];
 			assert(field_type.value.type == type_int);
 			_hlsl_newline(self);
-			mn::print_to(self.out, "{}_{} = {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
+			mn::print_to(self.out, "#define {}_{} {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
 			++i;
 		}
 
-		--self.indent;
-		_hlsl_newline(self);
-		mn::print_to(self.out, "}};");
+		// mn::print_to(self.out, "enum {} {{", _hlsl_name(self, _hlsl_symbol_name(sym)));
+		// ++self.indent;
+
+		// auto d = sym->enum_sym.decl;
+		// auto t = sym->type;
+
+		// size_t i = 0;
+		// for (auto field: d->enum_decl.fields)
+		// {
+		// 	if (i > 0)
+		// 		mn::print_to(self.out, ", ");
+		// 	auto field_type = t->enum_type.fields[i];
+		// 	assert(field_type.value.type == type_int);
+		// 	_hlsl_newline(self);
+		// 	mn::print_to(self.out, "{}_{} = {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
+		// 	++i;
+		// }
+
+		// --self.indent;
+		// _hlsl_newline(self);
+		// mn::print_to(self.out, "}};");
 	}
 
 	inline static void

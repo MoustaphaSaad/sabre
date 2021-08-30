@@ -536,7 +536,7 @@ namespace sabre
 		}
 		case Type::KIND_ENUM:
 			can_write_name = true;
-			str = mn::strf(str, "int");
+			str = mn::strf(str, "{}", _glsl_name(self, _glsl_symbol_name(type->enum_type.symbol)));
 			break;
 		default:
 			assert(false && "unreachable");
@@ -1127,6 +1127,8 @@ namespace sabre
 	inline static void
 	_glsl_enum_gen(GLSL& self, Symbol* sym)
 	{
+		mn::print_to(self.out, "#define {} int", _glsl_symbol_name(sym));
+
 		auto d = sym->enum_sym.decl;
 		auto t = sym->type;
 
