@@ -8,8 +8,24 @@ type PS_Input struct {
 	@system_position position: vec4,
 }
 
+type Config struct {
+	clip_pos: vec3,
+	clip_enabled: int,
+	clip_norm: vec3,
+	window_level: float,
+	roi_min: vec3,
+	crop_enabled: int,
+	roi_max: vec3,
+	window_width: float,
+	slicing_dir: vec3,
+	noise_tex_size: vec2
+}
+
+@uniform{binding = 2} var config: Config;
+
 @vertex
 func main(vs_input: VS_Input): PS_Input {
+	config.clip_pos;
 	return :PS_Input {
 		position = :vec4{vs_input.position, 1},
 	};

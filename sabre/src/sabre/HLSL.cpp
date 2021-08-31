@@ -1516,21 +1516,24 @@ namespace sabre
 							_hlsl_newline(self);
 							auto name = mn::str_tmpf("{}_{}", uniform_name, field.name.str);
 							mn::print_to(self.out, "{}", _hlsl_write_field(self, field.type, name.ptr));
-							if (field.offset % 16 == 0)
+
+							auto whole_part = field.offset / 16;
+							auto remainder_part = field.offset % 16;
+							if (remainder_part == 0)
 							{
-								mn::print_to(self.out, ": packoffset(c{})", field.offset / 16);
+								mn::print_to(self.out, ": packoffset(c{})", whole_part);
 							}
-							else if (field.offset % 12 == 0)
+							else if (remainder_part == 12)
 							{
-								mn::print_to(self.out, ": packoffset(c{}.z)", field.offset / 16);
+								mn::print_to(self.out, ": packoffset(c{}.w)", whole_part);
 							}
-							else if (field.offset % 8 == 0)
+							else if (remainder_part == 8)
 							{
-								mn::print_to(self.out, ": packoffset(c{}.y)", field.offset / 16);
+								mn::print_to(self.out, ": packoffset(c{}.z)", whole_part);
 							}
-							else if (field.offset % 4 == 0)
+							else if (remainder_part == 4)
 							{
-								mn::print_to(self.out, ": packoffset(c{}.x)", field.offset / 16);
+								mn::print_to(self.out, ": packoffset(c{}.y)", whole_part);
 							}
 							else
 							{
