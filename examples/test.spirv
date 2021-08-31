@@ -1,0 +1,36 @@
+; capabilities are some form of flags, they declare which features you depend on so that
+; implementations can verify that they can run your code, here we use a simple shader capability
+OpCapability Shader
+
+; since we don't define an entry point, then this is not really a complete program, it's a fragment
+; of code which can be linked in a program so we need the linkage capability
+OpCapability Linkage
+
+; define memory model, first we select logical addressing model which means that
+; pointers are abstract things, we don't specify their width or how a represented
+; hence we can't create a pointer and store, etc...
+; GLSL450 memory model is the memory model used by later versions of GLSL, this similar to C++ memory
+; models
+OpMemoryModel Logical GLSL450
+
+; define int as 32 bit wide, and 1 to make it signed, 0 will make it unsigned
+%int = OpTypeInt 32 1
+
+; define function type for our add function, first we declare the return type, then argument types
+%add_function_type = OpTypeFunction %int %int %int
+
+; define add function, for some reason we have to specify return type again :shrug:
+; then we have some flags about the function (None, Inline, DontInline, Pure, Const)
+; then we specify the function type
+%add = OpFunction %int None %add_function_type
+	; then we declare the arguments
+	%a = OpFunctionParameter %int
+	%b = OpFunctionParameter %int
+	; then define the first and only basic block
+	%bb = OpLabel
+	; we then add the two variables together and get a result, we have to specify the output type of the add instruction
+	; which is int
+	%res = OpIAdd %int %a %b
+	; as usual every basic block should end with block terminator in this case it's a return instruction
+	OpReturnValue %res
+OpFunctionEnd
