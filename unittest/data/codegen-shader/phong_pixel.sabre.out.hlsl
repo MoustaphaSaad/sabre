@@ -12,17 +12,17 @@ struct main_Model {
 	float4 color;
 };
 cbuffer main_model: register(b3) {
-	column_major float4x4 main_model_model_matrix;
-	column_major float4x4 main_model_model_inverse_transposed;
-	float4 main_model_color;
+	column_major float4x4 main_model_model_matrix: packoffset(c0);
+	column_major float4x4 main_model_model_inverse_transposed: packoffset(c4);
+	float4 main_model_color: packoffset(c8);
 };
 struct main_Light {
 	float3 direction;
 	float4 color;
 };
 cbuffer main_light: register(b2) {
-	float3 main_light_direction;
-	float4 main_light_color;
+	float3 main_light_direction: packoffset(c0);
+	float4 main_light_color: packoffset(c1);
 };
 main_PS_Output main_main(main_PS_Input input) {
 	float4 _tmp_1 = float4(input.vertex_position, 1.0);

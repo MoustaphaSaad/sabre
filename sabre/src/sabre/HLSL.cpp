@@ -1515,7 +1515,28 @@ namespace sabre
 						{
 							_hlsl_newline(self);
 							auto name = mn::str_tmpf("{}_{}", uniform_name, field.name.str);
-							mn::print_to(self.out, "{};", _hlsl_write_field(self, field.type, name.ptr));
+							mn::print_to(self.out, "{}", _hlsl_write_field(self, field.type, name.ptr));
+							if (field.offset % 16 == 0)
+							{
+								mn::print_to(self.out, ": packoffset(c{})", field.offset / 16);
+							}
+							else if (field.offset % 12 == 0)
+							{
+								mn::print_to(self.out, ": packoffset(c{}.z)", field.offset / 16);
+							}
+							else if (field.offset % 8 == 0)
+							{
+								mn::print_to(self.out, ": packoffset(c{}.y)", field.offset / 16);
+							}
+							else if (field.offset % 4 == 0)
+							{
+								mn::print_to(self.out, ": packoffset(c{}.x)", field.offset / 16);
+							}
+							else
+							{
+								assert(false && "unreachable");
+							}
+							mn::print_to(self.out, ";");
 						}
 					}
 					else
