@@ -70,6 +70,7 @@ namespace sabre
 	inline static size_t
 	_round_up(size_t num, size_t factor)
 	{
+		if (num % factor == 0) return num;
 		return num + factor - 1 - (num + factor - 1) % factor;
 	}
 
@@ -173,7 +174,7 @@ namespace sabre
 			type->size += field.type->size;
 		}
 		type->alignment = _round_up(type->alignment, type_vec4->size);
-		type->size = _round_up(type->size, type->alignment);
+		type->size = _round_up(type->size, type_vec4->size);
 	}
 
 	void
