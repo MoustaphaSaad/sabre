@@ -6,6 +6,14 @@ package std
 	glsl = "texture"
 	hlsl = "Sample"
 }
+func texture_sample(:Texture1D, :Sampler, :float): vec4
+
+@sample_func
+@hlsl_method
+@builtin {
+	glsl = "texture"
+	hlsl = "Sample"
+}
 func texture_sample(:Texture2D, :Sampler, :vec2): vec4
 
 @sample_func
