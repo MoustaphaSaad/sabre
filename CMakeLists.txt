@@ -5,7 +5,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set(MASTER_PROJECT ON)
 endif ()
 
-project(sabre VERSION 0.0.0 LANGUAGES CXX)
+project(sabre LANGUAGES CXX)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/$<CONFIG>")
@@ -30,7 +30,7 @@ include(CPM)
 CPMAddPackage(
 	NAME             mn
 	GIT_REPOSITORY   https://github.com/MoustaphaSaad/mn.git
-	GIT_TAG          0346fb9235f8ec2b4a784922a4a2034b35ccf64d
+	GIT_TAG          v4.2.0
 )
 
 add_subdirectory(std)
