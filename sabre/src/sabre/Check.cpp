@@ -1333,6 +1333,8 @@ namespace sabre
 			unit_err(self.unit, err);
 		}
 
+		// arrays have variable mode by default, unless they are constants
+		e->mode = ADDRESS_MODE_VARIABLE;
 		if (e->indexed.base->mode == ADDRESS_MODE_CONST &&
 			e->indexed.index->mode == ADDRESS_MODE_CONST)
 		{

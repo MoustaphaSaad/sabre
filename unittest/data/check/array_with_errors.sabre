@@ -8,6 +8,7 @@ func main() {
 	const index = 1324;
 	const my_number = numbers[0][index];
 	var xo2: [5]int = xo;
+	xo2[3] = 13;
 
 	var point: vec3 = {1, 2, 3};
 
