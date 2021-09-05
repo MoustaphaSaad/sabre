@@ -64,6 +64,87 @@ func length(a: vec4): float
 func pow(base, power: float): float
 
 @builtin
+func pow(base, power: vec2): vec2
+
+@builtin
+func pow(base, power: vec3): vec3
+
+@builtin
+func pow(base, power: vec4): vec4
+
+@builtin
+func exp(a: float): float
+
+@builtin
+func exp(a: vec2): vec2
+
+@builtin
+func exp(a: vec3): vec3
+
+@builtin
+func exp(a: vec4): vec4
+
+@builtin
+func exp2(a: float): float
+
+@builtin
+func exp2(a: vec2): vec2
+
+@builtin
+func exp2(a: vec3): vec3
+
+@builtin
+func exp2(a: vec4): vec4
+
+@builtin
+func log(a: float): float
+
+@builtin
+func log(a: vec2): vec2
+
+@builtin
+func log(a: vec3): vec3
+
+@builtin
+func log(a: vec4): vec4
+
+@builtin
+func sqrt(a: float): float
+
+@builtin
+func sqrt(a: vec2): vec2
+
+@builtin
+func sqrt(a: vec3): vec3
+
+@builtin
+func sqrt(a: vec4): vec4
+
+@builtin {
+	glsl = "inversesqrt",
+	hlsl = "rsqrt"
+}
+func inversesqrt(a: float): float
+
+@builtin {
+	glsl = "inversesqrt",
+	hlsl = "rsqrt"
+}
+func inversesqrt(a: vec2): vec2
+
+@builtin {
+	glsl = "inversesqrt",
+	hlsl = "rsqrt"
+}
+func inversesqrt(a: vec3): vec3
+
+@builtin {
+	glsl = "inversesqrt",
+	hlsl = "rsqrt"
+}
+func inversesqrt(a: vec4): vec4
+
+@builtin
 func any(x: bvec2): bool
 
 @builtin
@@ -128,6 +209,150 @@ func ddy(a: vec3): vec3
 	hlsl = "ddy"
 }
 func ddy(a: vec4): vec4
+
+@builtin
+func sin(a: float): float
+
+@builtin
+func sin(a: vec2): vec2
+
+@builtin
+func sin(a: vec3): vec3
+
+@builtin
+func sin(a: vec4): vec4
+
+@builtin
+func cos(a: float): float
+
+@builtin
+func cos(a: vec2): vec2
+
+@builtin
+func cos(a: vec3): vec3
+
+@builtin
+func cos(a: vec4): vec4
+
+@builtin
+func tan(a: float): float
+
+@builtin
+func tan(a: vec2): vec2
+
+@builtin
+func tan(a: vec3): vec3
+
+@builtin
+func tan(a: vec4): vec4
+
+@builtin
+func asin(a: float): float
+
+@builtin
+func asin(a: vec2): vec2
+
+@builtin
+func asin(a: vec3): vec3
+
+@builtin
+func asin(a: vec4): vec4
+
+@builtin
+func acos(a: float): float
+
+@builtin
+func acos(a: vec2): vec2
+
+@builtin
+func acos(a: vec3): vec3
+
+@builtin
+func acos(a: vec4): vec4
+
+@builtin
+func atan(a: float): float
+
+@builtin
+func atan(a: vec2): vec2
+
+@builtin
+func atan(a: vec3): vec3
+
+@builtin
+func atan(a: vec4): vec4
+
+@builtin {
+	glsl = "atan",
+	hlsl = "atan2"
+}
+func atan(y, x: float): float
+
+@builtin {
+	glsl = "atan",
+	hlsl = "atan2"
+}
+func atan(y, x: vec2): vec2
+
+@builtin {
+	glsl = "atan",
+	hlsl = "atan2"
+}
+func atan(y, x: vec3): vec3
+
+@builtin {
+	glsl = "atan",
+	hlsl = "atan2"
+}
+func atan(y, x: vec4): vec4
+
+@builtin
+func abs(a: float): float
+
+@builtin
+func abs(a: vec2): vec2
+
+@builtin
+func abs(a: vec3): vec3
+
+@builtin
+func abs(a: vec4): vec4
+
+@builtin
+func sign(a: float): float
+
+@builtin
+func sign(a: vec2): vec2
+
+@builtin
+func sign(a: vec3): vec3
+
+@builtin
+func sign(a: vec4): vec4
+
+@builtin {
+	glsl = "fract",
+	hlsl = "frac"
+}
+func fract(a: float): float
+
+@builtin {
+	glsl = "fract",
+	hlsl = "frac"
+}
+func fract(a: vec2): vec2
+
+@builtin {
+	glsl = "fract",
+	hlsl = "frac"
+}
+func fract(a: vec3): vec3
+
+@builtin {
+	glsl = "fract",
+	hlsl = "frac"
+}
+func fract(a: vec4): vec4
 
 const MAX_COLOR_ATTACHMENT = 4;
 

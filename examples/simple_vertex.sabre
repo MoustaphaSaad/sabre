@@ -8,7 +8,7 @@ type Camera struct {
 	x: int
 }
 
-@uniform var camera: Camera;
+@uniform{binding = 3} var camera: Camera;
 
 @reflect
 const p: std.Pipeline = {
