@@ -110,6 +110,7 @@ namespace sabre
 			res = spirv::module_type_func_new(self.out, return_type);
 			for (auto arg_type: type->func.args.types)
 				spirv::module_type_func_arg(res, _spirv_type_gen(self, arg_type));
+			break;
 		}
 		default:
 			assert(false && "unreachable");
@@ -132,12 +133,27 @@ namespace sabre
 		switch (op)
 		{
 		case Tkn::KIND_PLUS:
-			// CONTINUE HERE
-			break;
+			return spirv::basic_block_add(bb, lhs, rhs);
 		default:
 			break;
 		}
 		return nullptr;
+	}
+
+	inline static spirv::Value*
+	_spirv_expr_atom_gen(SPIRV& self, Expr* expr)
+	{
+		switch (expr->atom.tkn.kind)
+		{
+		case Tkn::KIND_ID:
+		{
+			auto vt = _spirv_current_value_table(self);
+			return value_table_find(vt, expr->atom.tkn.str);
+		}
+		default:
+			assert(false && "unreachable");
+			return nullptr;
+		}
 	}
 
 	inline static spirv::Value*
@@ -154,6 +170,8 @@ namespace sabre
 	{
 		switch (expr->kind)
 		{
+		case Expr::KIND_ATOM:
+			return _spirv_expr_atom_gen(self, expr);
 		case Expr::KIND_BINARY:
 			return _spirv_expr_binary_gen(self, expr);
 		default:
@@ -178,12 +196,23 @@ namespace sabre
 	}
 
 	inline static void
+	_spirv_stmt_return_gen(SPIRV& self, Stmt* stmt)
+	{
+		auto bb = _spirv_current_bb(self);
+		auto res = _spirv_expr_gen(self, stmt->return_stmt);
+		spirv::basic_block_ret(bb, res);
+	}
+
+	inline static void
 	_spirv_stmt_gen(SPIRV& self, Stmt* stmt)
 	{
 		switch (stmt->kind)
 		{
 		case Stmt::KIND_BLOCK:
 			_spirv_stmt_block_gen(self, stmt);
+			break;
+		case Stmt::KIND_RETURN:
+			_spirv_stmt_return_gen(self, stmt);
 			break;
 		case Stmt::KIND_EXPR:
 			_spirv_stmt_expr_gen(self, stmt);

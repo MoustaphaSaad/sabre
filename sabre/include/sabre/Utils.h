@@ -41,6 +41,11 @@ namespace sabre
 	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
 	hlsl_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections);
 
+	// loads, parses, checks, and generates SPIRV for a file, fake_path is used for testing
+	// when you want to make the path uniform across testing environment
+	SABRE_EXPORT mn::Result<mn::Str, mn::Err>
+	spirv_gen_from_file(const mn::Str& filepath, const mn::Str& fake_path, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections);
+
 	// reflects on the given file
 	SABRE_EXPORT mn::Result<mn::Str>
 	reflect_file(const mn::Str& filepath, const mn::Str& entry, const mn::Map<mn::Str, mn::Str>& library_collections);
