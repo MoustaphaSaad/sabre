@@ -8,8 +8,11 @@
 
 namespace sabre::spirv
 {
+	struct Module;
 	struct Type;
 	struct Func;
+	struct Basic_Block;
+	struct Value;
 
 	// represents a unique id of a SPIRV entity
 	using ID = uint32_t;
@@ -21,6 +24,8 @@ namespace sabre::spirv
 		{
 			KIND_TYPE,
 			KIND_FUNC,
+			KIND_BASIC_BLOCK,
+			KIND_VALUE,
 		};
 
 		KIND kind;
@@ -28,6 +33,8 @@ namespace sabre::spirv
 		{
 			Type* as_type;
 			Func* as_func;
+			Basic_Block* as_basic_block;
+			Value* as_value;
 		};
 	};
 
@@ -48,6 +55,26 @@ namespace sabre::spirv
 		Entity self{};
 		self.kind = Entity::KIND_FUNC;
 		self.as_func = func;
+		return self;
+	}
+
+	// wraps the given basic block in an entity
+	inline static Entity
+	entity_from_basic_block(Basic_Block* basic_block)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_BASIC_BLOCK;
+		self.as_basic_block = basic_block;
+		return self;
+	}
+
+	// wraps the given value in an entity
+	inline static Entity
+	entity_from_value(Value* value)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_VALUE;
+		self.as_value = value;
 		return self;
 	}
 
@@ -79,11 +106,26 @@ namespace sabre::spirv
 		};
 	};
 
-	// represents a SPIRV function
-	struct Func
+	struct Value
 	{
 		ID id;
 		Type* type;
+	};
+
+	// represents a SPIRV linear sequence of instructions
+	struct Basic_Block
+	{
+		Func* func;
+		ID id;
+	};
+
+	// represents a SPIRV function
+	struct Func
+	{
+		Module* module;
+		ID id;
+		Type* type;
+		mn::Buf<Value*> args;
 	};
 
 	// represents a SPIRV module, which is a SPIRV compilation unit
@@ -121,6 +163,14 @@ namespace sabre::spirv
 	// creates a new function instance
 	SABRE_EXPORT Func*
 	module_func_new(Module* self, Type* func_type);
+
+	// creates a new basic block instance
+	SABRE_EXPORT Basic_Block*
+	func_basic_block_new(Func* self);
+
+	// returns function's argument value
+	SABRE_EXPORT Value*
+	func_arg(Func* self, size_t i);
 
 	// struct Type;
 	// struct Function;

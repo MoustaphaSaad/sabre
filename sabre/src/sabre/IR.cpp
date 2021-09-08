@@ -2,6 +2,17 @@
 
 namespace sabre::spirv
 {
+	inline static Value*
+	_module_value_new(Module* self, Type* type)
+	{
+		auto value = mn::alloc_zerod_from<Value>(self->arena);
+		value->id = ++self->id_generator;
+		value->type = type;
+
+		mn::map_insert(self->entities, value->id, entity_from_value(value));
+		return value;
+	}
+
 	// API
 	Module*
 	module_new()
@@ -73,10 +84,35 @@ namespace sabre::spirv
 		assert(func_type->kind == Type::KIND_FUNC);
 
 		auto func = mn::alloc_zerod_from<Func>(self->arena);
+		func->module = self;
 		func->id = ++self->id_generator;
 		func->type = func_type;
+		func->args = mn::buf_with_allocator<Value*>(self->arena);
+
+		mn::buf_reserve(func->args, func_type->as_func.args.count);
+		for (auto arg_type: func_type->as_func.args)
+			mn::buf_push(func->args, _module_value_new(self, arg_type));
 
 		mn::map_insert(self->entities, func->id, entity_from_func(func));
 		return func;
+	}
+
+	Basic_Block*
+	func_basic_block_new(Func* self)
+	{
+		auto module = self->module;
+
+		auto basic_block = mn::alloc_zerod_from<Basic_Block>(module->arena);
+		basic_block->func = self;
+		basic_block->id = ++module->id_generator;
+
+		mn::map_insert(module->entities, basic_block->id, entity_from_basic_block(basic_block));
+		return basic_block;
+	}
+
+	Value*
+	func_arg(Func* self, size_t i)
+	{
+		return self->args[i];
 	}
 }
