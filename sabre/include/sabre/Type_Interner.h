@@ -269,6 +269,21 @@ namespace sabre
 		};
 	};
 
+	// returns the underlying symbol which this type represents, it needs to be a user
+	// defined type though
+	inline static Symbol*
+	type_symbol(Type* t)
+	{
+		switch (t->kind)
+		{
+		case Type::KIND_STRUCT: return t->struct_type.symbol;
+		case Type::KIND_FUNC_OVERLOAD_SET: return t->func_overload_set_type.symbol;
+		case Type::KIND_ENUM: return t->enum_type.symbol;
+		default:
+			return nullptr;
+		}
+	}
+
 	// language basic datatypes
 	SABRE_EXPORT extern Type* type_void;
 	SABRE_EXPORT extern Type* type_bool;

@@ -298,6 +298,39 @@ namespace sabre
 		}
 	}
 
+	inline static mn::json::Value
+	_decl_tags_to_json(Decl* decl)
+	{
+		auto json_tags = mn::json::value_object_new();
+		if (decl)
+		{
+			for (const auto& [tag_name, tag_args]: decl->tags.table)
+			{
+				auto json_tag = mn::json::value_object_new();
+				for (const auto& [arg_name, arg_value]: tag_args.args)
+				{
+					mn::json::Value value{};
+					switch (arg_value.value.kind)
+					{
+					case Tkn::KIND_LITERAL_INTEGER:
+						value = mn::json::value_number_new(::atoi(arg_value.value.str));
+						break;
+					case Tkn::KIND_LITERAL_STRING:
+						value = mn::json::value_string_new(arg_value.value.str);
+						break;
+					default:
+						assert(false && "unreachable");
+						break;
+					}
+					mn::json::value_object_insert(json_tag, arg_name, value);
+				}
+				mn::json::value_object_insert(json_tags, tag_name, json_tag);
+			}
+		}
+		return json_tags;
+	}
+
+
 	// API
 	Unit_File*
 	unit_file_from_path(const mn::Str& filepath)
@@ -830,6 +863,8 @@ namespace sabre
 			}
 			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new(binding));
 			mn::json::value_object_insert(json_uniform, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
+			mn::json::value_object_insert(json_uniform, "tags", _decl_tags_to_json(symbol_decl(symbol)));
+
 			mn::json::value_array_push(json_uniforms, json_uniform);
 
 			_push_type(types, symbol->type);
@@ -850,6 +885,7 @@ namespace sabre
 			}
 			mn::json::value_object_insert(json_texture, "binding", mn::json::value_number_new(binding));
 			mn::json::value_object_insert(json_texture, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
+			mn::json::value_object_insert(json_texture, "tags", _decl_tags_to_json(symbol_decl(symbol)));
 			mn::json::value_array_push(json_textures, json_texture);
 
 			_push_type(types, symbol->type);
@@ -864,6 +900,17 @@ namespace sabre
 			mn::json::value_object_insert(json_type, "kind", mn::json::value_string_new(_type_kind(type)));
 			mn::json::value_object_insert(json_type, "size", mn::json::value_number_new(type->size));
 			mn::json::value_object_insert(json_type, "alignment", mn::json::value_number_new(type->alignment));
+
+			mn::json::Value tags{};
+			if (auto symbol = type_symbol(type))
+			{
+				tags = _decl_tags_to_json(symbol_decl(symbol));
+			}
+			else
+			{
+				tags = mn::json::value_object_new();
+			}
+			mn::json::value_object_insert(json_type, "tags", tags);
 
 			switch (type->kind)
 			{
