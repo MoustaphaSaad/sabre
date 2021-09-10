@@ -5,6 +5,8 @@
 #include "sabre/Reflect.h"
 #include "sabre/GLSL.h"
 #include "sabre/HLSL.h"
+#include "sabre/SPIRV.h"
+#include "sabre/IR_Text.h"
 #include "sabre/Type_Interner.h"
 
 #include <mn/Path.h>
@@ -963,6 +965,33 @@ namespace sabre
 		#if SABRE_LOG_METRICS
 		mn::log_info("Total HLSL gen time {}", end - start);
 		#endif
+
+		return mn::memory_stream_str(stream);
+	}
+
+	mn::Result<mn::Str>
+	unit_spirv(Unit* self, mn::Allocator allocator)
+	{
+		if (unit_has_errors(self))
+			return mn::Err {"unit has errors"};
+
+		auto start = _capture_timepoint();
+		auto stream = mn::memory_stream_new(allocator);
+		mn_defer(mn::memory_stream_free(stream));
+
+		auto bc = spirv_new(self->packages[0]);
+		mn_defer(spirv_free(bc));
+
+		spirv_gen(bc);
+		auto end = _capture_timepoint();
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total SPIRV gen time {}", end - start);
+		#endif
+
+		auto ir_text = spirv::ir_text_new(stream, bc.out);
+		mn_defer(spirv::ir_text_free(ir_text));
+
+		spirv::ir_text_gen(ir_text);
 
 		return mn::memory_stream_str(stream);
 	}

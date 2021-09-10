@@ -16,6 +16,7 @@ COMMANDS:
   glsl-gen: generates GLSL code from the given files
   hlsl-gen: generates HLSL code from the given files
   reflect: generates reflection information for the given files
+  spirv-gen: generated SPIRV code from the given files
 
 OPTIONS:
   -entry: specifies the entry point function of the given program)""";
@@ -282,6 +283,26 @@ int main(int argc, char** argv)
 		auto path = args.input[0];
 
 		auto [answer, err] = sabre::reflect_file(path, args.entry, args.collections);
+		if (err)
+		{
+			mn::printerr("{}\n", err);
+			return EXIT_FAILURE;
+		}
+		mn_defer(mn::str_free(answer));
+		mn::print("{}\n", answer);
+		return EXIT_SUCCESS;
+	}
+	else if (args.cmd == "spirv-gen")
+	{
+		if (args.input.count != 1)
+		{
+			mn::printerr("no input files, you should provide path for the entry point file\n\n");
+			print_help();
+			return EXIT_FAILURE;
+		}
+		auto path = args.input[0];
+
+		auto [answer, err] = sabre::spirv_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);

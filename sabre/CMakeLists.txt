@@ -19,6 +19,7 @@ set(HEADER_FILES
 	include/sabre/Scope.h
 	include/sabre/IR.h
 	include/sabre/SPIRV.h
+	include/sabre/IR_Text.h
 )
 
 # list the source files
@@ -38,6 +39,7 @@ set(SOURCE_FILES
 	src/sabre/Scope.cpp
 	src/sabre/IR.cpp
 	src/sabre/SPIRV.cpp
+	src/sabre/IR_Text.cpp
 )
 
 add_library(sabre)

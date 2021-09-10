@@ -14,6 +14,34 @@ namespace sabre::spirv
 	}
 
 	// API
+	Value*
+	basic_block_add(Basic_Block* self, Value* op1, Value* op2)
+	{
+		if (type_is_int(op1->type) && type_is_int(op2->type))
+		{
+			Instruction ins{};
+			ins.kind = Instruction::Op_IAdd;
+			ins.as_iadd.op1 = op1;
+			ins.as_iadd.op2 = op2;
+			ins.as_iadd.res = _module_value_new(self->func->module, op1->type);
+			mn::buf_push(self->instructions, ins);
+
+			return ins.as_iadd.res;
+		}
+		return nullptr;
+	}
+
+	Value*
+	basic_block_ret(Basic_Block* self, Value* res)
+	{
+		Instruction ins{};
+		ins.kind = Instruction::Op_ReturnValue;
+		ins.as_return.value = res;
+		mn::buf_push(self->instructions, ins);
+
+		return ins.as_return.value;
+	}
+
 	Module*
 	module_new()
 	{
@@ -88,6 +116,7 @@ namespace sabre::spirv
 		func->id = ++self->id_generator;
 		func->type = func_type;
 		func->args = mn::buf_with_allocator<Value*>(self->arena);
+		func->blocks = mn::buf_with_allocator<Basic_Block*>(self->arena);
 
 		mn::buf_reserve(func->args, func_type->as_func.args.count);
 		for (auto arg_type: func_type->as_func.args)
@@ -105,8 +134,11 @@ namespace sabre::spirv
 		auto basic_block = mn::alloc_zerod_from<Basic_Block>(module->arena);
 		basic_block->func = self;
 		basic_block->id = ++module->id_generator;
+		basic_block->instructions = mn::buf_with_allocator<Instruction>(self->module->arena);
 
 		mn::map_insert(module->entities, basic_block->id, entity_from_basic_block(basic_block));
+		mn::buf_push(self->blocks, basic_block);
+
 		return basic_block;
 	}
 
