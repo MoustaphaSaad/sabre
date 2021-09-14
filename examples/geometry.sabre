@@ -1,0 +1,75 @@
+package points
+
+import "std"
+
+type GS_Input struct {
+	center: vec3,
+	v_color: vec4,
+	v_radius: float,
+}
+
+type PS_Input struct {
+	position: vec4,
+	v_color: vec4,
+	v_radius: float,
+	v_center: vec2,
+	pos_viewport: vec2,
+}
+
+type Camera struct {
+	viewproj: mat4,
+	right: vec3,
+	up: vec3,
+	viewport: vec2,
+}
+@uniform{binding = 0} var camera: Camera;
+
+@geometry {
+	max_vertex_count = 6,
+	out = "triangle",
+	in = "point",
+	vertex_type = "PS_Input",
+}
+func main(input: [1]GS_Input) {
+	var a = input[0].center + input[0].v_radius * camera.right + input[0].v_radius * camera.up;
+	var b = input[0].center + input[0].v_radius * camera.right - input[0].v_radius * camera.up;
+	var c = input[0].center - input[0].v_radius * camera.right + input[0].v_radius * camera.up;
+	var d = input[0].center - input[0].v_radius * camera.right - input[0].v_radius * camera.up;
+
+	var v0, v1, v2, v3: PS_Input;
+	v0.position = camera.viewproj * :vec4{a, 1};
+	v1.position = camera.viewproj * :vec4{b, 1};
+	v2.position = camera.viewproj * :vec4{c, 1};
+	v3.position = camera.viewproj * :vec4{d, 1};
+
+	v0.v_color = input[0].v_color;
+	v1.v_color = input[0].v_color;
+	v2.v_color = input[0].v_color;
+	v3.v_color = input[0].v_color;
+
+	v0.v_radius = input[0].v_radius;
+	v1.v_radius = input[0].v_radius;
+	v2.v_radius = input[0].v_radius;
+	v3.v_radius = input[0].v_radius;
+
+	var pos = camera.viewproj * :vec4{input[0].center, 1};
+	v0.v_center = 0.5 * (pos.xy + :vec2{1, 1}) * camera.viewport;
+	v1.v_center = v0.v_center;
+	v2.v_center = v0.v_center;
+	v3.v_center = v0.v_center;
+
+	v0.pos_viewport = 0.5 * (v0.position.xy + :vec2{1, 1}) * camera.viewport;
+	v1.pos_viewport = 0.5 * (v1.position.xy + :vec2{1, 1}) * camera.viewport;
+	v2.pos_viewport = 0.5 * (v2.position.xy + :vec2{1, 1}) * camera.viewport;
+	v3.pos_viewport = 0.5 * (v3.position.xy + :vec2{1, 1}) * camera.viewport;
+
+	std.emit(v0);
+	std.emit(v3);
+	std.emit(v1);
+
+	std.emit(v0);
+	std.emit(v2);
+	std.emit(v3);
+
+	std.end_primitive();
+}

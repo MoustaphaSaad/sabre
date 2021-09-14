@@ -24,6 +24,12 @@ func texture_sample(:Texture2D, :Sampler, :vec2): vec4
 }
 func texture_sample(:Texture3D, :Sampler, :vec3): vec4
 
+@geometry_emit_func
+func emit()
+
+@geometry_end_primitive_func
+func end_primitive()
+
 @builtin
 func normalize(:vec4): vec4
 

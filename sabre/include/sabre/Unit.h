@@ -42,6 +42,10 @@ namespace sabre
 	inline constexpr const char* KEYWORD_HLSL_METHOD = "hlsl_method";
 	inline constexpr const char* KEYWORD_SAMPLER_STATE = "sampler_state";
 	inline constexpr const char* KEYWORD_SAMPLE_FUNC = "sample_func";
+	inline constexpr const char* KEYWORD_GEOMETRY = "geometry";
+	inline constexpr const char* KEYWORD_GEOMETRY_EMIT_FUNC = "geometry_emit_func";
+	inline constexpr const char* KEYWORD_GEOMETRY_END_PRIMITIVE_FUNC = "geometry_end_primitive_func";
+	inline constexpr const char* KEYWORD_VERTEX_TYPE = "vertex_type";
 
 	enum COMPILATION_STAGE
 	{
@@ -244,6 +248,7 @@ namespace sabre
 		COMPILATION_MODE_LIBRARY,
 		COMPILATION_MODE_VERTEX,
 		COMPILATION_MODE_PIXEL,
+		COMPILATION_MODE_GEOMETRY,
 	};
 
 	struct Unit
@@ -267,6 +272,8 @@ namespace sabre
 		// entry point symbol which is resolved by the type checker if we provide an entry
 		// option to the command line
 		Symbol* entry_symbol;
+		// geometry shader output type
+		Symbol* geometry_shader_output;
 		// reflection information
 		// input layout of above entry point
 		mn::Map<const char*, Type*> input_layout;

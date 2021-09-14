@@ -700,6 +700,10 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_HLSL_METHOD));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SAMPLER_STATE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SAMPLE_FUNC));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GEOMETRY));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GEOMETRY_EMIT_FUNC));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GEOMETRY_END_PRIMITIVE_FUNC));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_VERTEX_TYPE));
 
 		if (entry.count > 0)
 			self->entry = mn::str_intern(self->str_interner, entry.ptr);

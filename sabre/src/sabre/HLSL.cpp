@@ -1831,6 +1831,56 @@ namespace sabre
 	}
 
 	inline static void
+	_hlsl_generate_geometry_shader_io(HLSL& self, Symbol* entry)
+	{
+		auto decl = entry->func_sym.decl;
+		auto entry_type = entry->type;
+		size_t type_index = 0;
+		// generate input
+		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
+		{
+			const auto& arg = decl->func_decl.args[i];
+
+			for (const auto& name: arg.names)
+			{
+				auto input_name = _hlsl_name(self, name.str);
+				auto arg_type = entry_type->func.args.types[type_index++];
+				switch(arg_type->kind)
+				{
+				case Type::KIND_STRUCT:
+					mn::map_insert(self.io_structs, arg_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+					break;
+				case Type::KIND_ARRAY:
+					mn::map_insert(self.io_structs, arg_type->array.base->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+					break;
+				default:
+					assert(false && "unreachable");
+					break;
+				}
+			}
+		}
+
+		size_t out_location = 0;
+		if (entry_type->func.return_type != type_void)
+		{
+			auto ret_type = entry_type->func.return_type;
+
+			switch(ret_type->kind)
+			{
+			case Type::KIND_STRUCT:
+				mn::map_insert(self.io_structs, ret_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+				break;
+			default:
+				assert(false && "unreachable");
+				break;
+			}
+		}
+
+		if (out_location > 0)
+			_hlsl_newline(self);
+	}
+
+	inline static void
 	_hlsl_generate_main_func(HLSL& self, Symbol* entry)
 	{
 		assert(entry->kind == Symbol::KIND_FUNC);
@@ -2023,6 +2073,9 @@ namespace sabre
 			break;
 		case COMPILATION_MODE_PIXEL:
 			_hlsl_generate_pixel_shader_io(self, compilation_unit->entry_symbol);
+			break;
+		case COMPILATION_MODE_GEOMETRY:
+			_hlsl_generate_geometry_shader_io(self, compilation_unit->entry_symbol);
 			break;
 		default:
 			assert(false && "unreachable");

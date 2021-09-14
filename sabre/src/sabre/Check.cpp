@@ -989,6 +989,37 @@ namespace sabre
 
 		if (type->kind == Type::KIND_FUNC)
 		{
+			auto symbol = e->call.base->symbol;
+			// special case emit function
+			if (auto decl = symbol_decl(symbol))
+			{
+				if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY_EMIT_FUNC) != nullptr)
+				{
+					if (e->call.args.count != 1)
+					{
+						Err err{};
+						err.loc = e->loc;
+						err.msg = mn::strf("function expected {} arguments, but {} were provided", type->func.args.types.count, e->call.args.count);
+						unit_err(self.unit, err);
+						return type->func.return_type;
+					}
+
+					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
+					if (auto out_sym = self.unit->parent_unit->geometry_shader_output)
+					{
+						_typer_resolve_symbol(self, out_sym);
+						if (type_is_equal(out_sym->type, arg_type) == false)
+						{
+							Err err{};
+							err.loc = e->call.args[0]->loc;
+							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 0, out_sym->type, arg_type);
+							unit_err(self.unit, err);
+						}
+					}
+					return type->func.return_type;
+				}
+			}
+
 			if (e->call.args.count != type->func.args.types.count)
 			{
 				Err err{};
@@ -2931,6 +2962,26 @@ namespace sabre
 	}
 
 	inline static void
+	_typer_check_entry_struct_input(Typer& self, Type* type)
+	{
+		auto struct_decl = symbol_decl(type->struct_type.symbol);
+		size_t struct_type_index = 0;
+		for (const auto& field: struct_decl->struct_decl.fields)
+		{
+			const auto& struct_field = type->struct_type.fields[struct_type_index];
+
+			if (type_is_shader_input(struct_field.type) == false)
+			{
+				Err err{};
+				err.loc = struct_field.name.loc;
+				err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
+				unit_err(self.unit, err);
+			}
+			struct_type_index += field.names.count;
+		}
+	}
+
+	inline static void
 	_typer_check_entry_input(Typer& self, Symbol* entry)
 	{
 		auto decl = symbol_decl(entry);
@@ -2942,11 +2993,74 @@ namespace sabre
 			auto arg_type = type->func.args.types[type_index];
 			if (arg_type->kind == Type::KIND_STRUCT)
 			{
-				auto struct_decl = symbol_decl(arg_type->struct_type.symbol);
+				_typer_check_entry_struct_input(self, arg_type);
+				type_index += arg.names.count;
+				continue;
+			}
+			else if (arg_type->kind == Type::KIND_ARRAY)
+			{
+				auto base_type = arg_type->array.base;
+				if (base_type->kind == Type::KIND_STRUCT)
+				{
+					_typer_check_entry_struct_input(self, base_type);
+					type_index += arg.names.count;
+					continue;
+				}
+			}
+
+			Location err_loc{};
+			if (arg.type.atoms.count > 0)
+				err_loc = mn::buf_top(arg.type.atoms).named.type_name.loc;
+			else if (arg.names.count > 0)
+				err_loc = arg.names[0].loc;
+
+			if (type_is_shader_input(arg_type) == false)
+			{
+				Err err{};
+				err.loc = err_loc;
+				err.msg = mn::strf("type '{}' cannot be used as shader input", arg_type);
+				unit_err(self.unit, err);
+			}
+			type_index += arg.names.count;
+		}
+
+		// handle return type
+		auto return_type = type->func.return_type;
+		// special case geometry shaders
+		if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
+		{
+			if (type_is_equal(return_type, type_void) == false)
+			{
+				Location err_loc{};
+				if (decl->func_decl.return_type.atoms.count > 0)
+					err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
+
+				Err err{};
+				err.loc = err_loc;
+				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
+				unit_err(self.unit, err);
+			}
+		}
+		else
+		{
+			if (return_type->kind == Type::KIND_STRUCT)
+			{
+				auto struct_decl = symbol_decl(return_type->struct_type.symbol);
 				size_t struct_type_index = 0;
 				for (const auto& field: struct_decl->struct_decl.fields)
 				{
-					const auto& struct_field = arg_type->struct_type.fields[struct_type_index];
+					const auto& struct_field = return_type->struct_type.fields[struct_type_index];
+
+					if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+					{
+						if (struct_field.type != type_vec4)
+						{
+							Err err{};
+							err.loc = struct_field.name.loc;
+							err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
+							unit_err(self.unit, err);
+						}
+					}
 
 					if (type_is_shader_input(struct_field.type) == false)
 					{
@@ -2961,65 +3075,16 @@ namespace sabre
 			else
 			{
 				Location err_loc{};
-				if (arg.type.atoms.count > 0)
-					err_loc = mn::buf_top(arg.type.atoms).named.type_name.loc;
-				else if (arg.names.count > 0)
-					err_loc = arg.names[0].loc;
+				if (decl->func_decl.return_type.atoms.count > 0)
+					err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
 
-				if (type_is_shader_input(arg_type) == false)
+				if (type_is_shader_input(return_type) == false)
 				{
 					Err err{};
 					err.loc = err_loc;
-					err.msg = mn::strf("type '{}' cannot be used as shader input", arg_type);
+					err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
 					unit_err(self.unit, err);
 				}
-			}
-			type_index += arg.names.count;
-		}
-
-		// handle return type
-		auto return_type = type->func.return_type;
-		if (return_type->kind == Type::KIND_STRUCT)
-		{
-			auto struct_decl = symbol_decl(return_type->struct_type.symbol);
-			size_t struct_type_index = 0;
-			for (const auto& field: struct_decl->struct_decl.fields)
-			{
-				const auto& struct_field = return_type->struct_type.fields[struct_type_index];
-
-				if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
-				{
-					if (struct_field.type != type_vec4)
-					{
-						Err err{};
-						err.loc = struct_field.name.loc;
-						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
-						unit_err(self.unit, err);
-					}
-				}
-
-				if (type_is_shader_input(struct_field.type) == false)
-				{
-					Err err{};
-					err.loc = struct_field.name.loc;
-					err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
-					unit_err(self.unit, err);
-				}
-				struct_type_index += field.names.count;
-			}
-		}
-		else
-		{
-			Location err_loc{};
-			if (decl->func_decl.return_type.atoms.count > 0)
-				err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
-
-			if (type_is_shader_input(return_type) == false)
-			{
-				Err err{};
-				err.loc = err_loc;
-				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
-				unit_err(self.unit, err);
 			}
 		}
 	}
@@ -3081,6 +3146,24 @@ namespace sabre
 					compilation_unit->mode = COMPILATION_MODE_PIXEL;
 					compilation_unit->entry_symbol = entry;
 				}
+				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
+				{
+					compilation_unit->mode = COMPILATION_MODE_GEOMETRY;
+					compilation_unit->entry_symbol = entry;
+
+					if (auto arg_it = mn::map_lookup(tag_it->value.args, KEYWORD_VERTEX_TYPE))
+					{
+						auto type_name = arg_it->value.value;
+						compilation_unit->geometry_shader_output = _typer_find_symbol(self, type_name.str);
+						if (compilation_unit->geometry_shader_output == nullptr)
+						{
+							Err err{};
+							err.loc = type_name.loc;
+							err.msg = mn::strf("cannot find geometry vertex output type '{}'", type_name.str);
+							unit_err(self.unit, err);
+						}
+					}
+				}
 				else
 				{
 					Err err{};
@@ -3102,6 +3185,7 @@ namespace sabre
 		// in case of vertex and pixel we start from the entry point
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
+		case COMPILATION_MODE_GEOMETRY:
 			_typer_resolve_symbol(self, entry);
 			_typer_check_entry_input(self, entry);
 			break;
