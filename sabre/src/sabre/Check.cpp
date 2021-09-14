@@ -460,6 +460,81 @@ namespace sabre
 	}
 
 	inline static Type*
+	_typer_resolve_named_type_atom(Typer& self, const Type_Sign_Atom& atom)
+	{
+		Type* res = nullptr;
+
+		// type from imported package
+		if (atom.named.package_name)
+		{
+			// package sym
+			auto package_sym = _typer_find_symbol(self, atom.named.package_name.str);
+			// search for package import in the same file as usage
+			if (package_sym == nullptr)
+			{
+				auto file_scope = atom.named.package_name.loc.file->file_scope;
+				package_sym = scope_find(file_scope, atom.named.package_name.str);
+			}
+
+			if (package_sym == nullptr)
+			{
+				Err err{};
+				err.loc = atom.named.package_name.loc;
+				err.msg = mn::strf("'{}' undefined symbol", atom.named.package_name.str);
+				unit_err(self.unit, err);
+				return res;
+			}
+
+			if (package_sym->kind != Symbol::KIND_PACKAGE)
+			{
+				Err err{};
+				err.loc = atom.named.package_name.loc;
+				err.msg = mn::strf("'{}' is not an imported package", atom.named.package_name.str);
+				unit_err(self.unit, err);
+				return res;
+			}
+
+			// make sure the package is resolved before usage
+			_typer_resolve_symbol(self, package_sym);
+
+			auto package = package_sym->package_sym.package;
+			auto type_symbol = scope_shallow_find(package->global_scope, atom.named.type_name.str);
+			if (type_symbol == nullptr)
+			{
+				Err err{};
+				err.loc = atom.named.type_name.loc;
+				err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
+				unit_err(self.unit, err);
+				return res;
+			}
+
+			_typer_resolve_symbol(self, type_symbol);
+			res = type_symbol->type;
+		}
+		else
+		{
+			// this maybe a basic type
+			res = type_from_name(atom.named.type_name);
+			if (type_is_equal(res, type_void))
+			{
+				if (auto symbol = _typer_find_symbol(self, atom.named.type_name.str))
+				{
+					_typer_resolve_symbol(self, symbol);
+					res = symbol->type;
+				}
+				else
+				{
+					Err err{};
+					err.loc = atom.named.type_name.loc;
+					err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
+					unit_err(self.unit, err);
+				}
+			}
+		}
+		return res;
+	}
+
+	inline static Type*
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign)
 	{
 		auto res = type_void;
@@ -469,74 +544,11 @@ namespace sabre
 			switch (atom.kind)
 			{
 			case Type_Sign_Atom::KIND_NAMED:
-				// type from imported package
-				if (atom.named.package_name)
-				{
-					// package sym
-					auto package_sym = _typer_find_symbol(self, atom.named.package_name.str);
-					// search for package import in the same file as usage
-					if (package_sym == nullptr)
-					{
-						auto file_scope = atom.named.package_name.loc.file->file_scope;
-						package_sym = scope_find(file_scope, atom.named.package_name.str);
-					}
-
-					if (package_sym == nullptr)
-					{
-						Err err{};
-						err.loc = atom.named.package_name.loc;
-						err.msg = mn::strf("'{}' undefined symbol", atom.named.package_name.str);
-						unit_err(self.unit, err);
-						break;
-					}
-
-					if (package_sym->kind != Symbol::KIND_PACKAGE)
-					{
-						Err err{};
-						err.loc = atom.named.package_name.loc;
-						err.msg = mn::strf("'{}' is not an imported package", atom.named.package_name.str);
-						unit_err(self.unit, err);
-						break;
-					}
-
-					// make sure the package is resolved before usage
-					_typer_resolve_symbol(self, package_sym);
-
-					auto package = package_sym->package_sym.package;
-					auto type_symbol = scope_shallow_find(package->global_scope, atom.named.type_name.str);
-					if (type_symbol == nullptr)
-					{
-						Err err{};
-						err.loc = atom.named.type_name.loc;
-						err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
-						unit_err(self.unit, err);
-						break;
-					}
-
-					_typer_resolve_symbol(self, type_symbol);
-					res = type_symbol->type;
-				}
-				else
-				{
-					// this maybe a basic type
-					res = type_from_name(atom.named.type_name);
-					if (type_is_equal(res, type_void))
-					{
-						if (auto symbol = _typer_find_symbol(self, atom.named.type_name.str))
-						{
-							_typer_resolve_symbol(self, symbol);
-							res = symbol->type;
-						}
-						else
-						{
-							Err err{};
-							err.loc = atom.named.type_name.loc;
-							err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
-							unit_err(self.unit, err);
-						}
-					}
-				}
+			{
+				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
+					res = named_type;
 				break;
+			}
 			case Type_Sign_Atom::KIND_ARRAY:
 			{
 				if (atom.array.static_size)
@@ -576,6 +588,12 @@ namespace sabre
 					sign.count = -1;
 					res = type_interner_array(self.unit->parent_unit->type_interner, sign);
 				}
+				break;
+			}
+			case Type_Sign_Atom::KIND_TEMPLATED:
+			{
+				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
+					res = named_type;
 				break;
 			}
 			default:

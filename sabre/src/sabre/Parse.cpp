@@ -88,6 +88,22 @@ namespace sabre
 		return Tkn{};
 	}
 
+	inline static bool
+	_parser_should_stop_at_tkn_with_optional_comma(Parser& self, Tkn::KIND kind)
+	{
+		return (
+			_parser_look_kind(self, kind) ||
+			(_parser_look_kind(self, Tkn::KIND_COMMA) && _parser_look_ahead_k(self, 1).kind == kind) ||
+			_parser_look_kind(self, Tkn::KIND_EOF)
+		);
+	}
+
+	inline static bool
+	_parser_should_stop_at_curly_with_optional_comma(Parser& self)
+	{
+		return _parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_CLOSE_CURLY);
+	}
+
 	inline static Type_Sign
 	_parser_parse_type(Parser& self)
 	{
@@ -111,8 +127,28 @@ namespace sabre
 					type_name = package_name;
 					package_name = Tkn{};
 				}
-				// if we end up with a named type signature token this means that we finished the type signature parsing
-				type_sign_push(type, type_sign_atom_named(type_name, package_name));
+
+				if (_parser_eat_kind(self, Tkn::KIND_LESS))
+				{
+					auto args = mn::buf_with_allocator<Type_Sign>(self.unit->ast_arena);
+					while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
+					{
+						if (args.count > 0)
+							_parser_eat_must(self, Tkn::KIND_COMMA);
+
+						auto template_type = _parser_parse_type(self);
+						if (template_type.atoms.count == 0)
+							break;
+						mn::buf_push(args, template_type);
+					}
+					_parser_eat_must(self, Tkn::KIND_GREATER);
+					type_sign_push(type, type_sign_atom_templated(type_name, package_name, args));
+				}
+				else
+				{
+					// if we end up with a named type signature token this means that we finished the type signature parsing
+					type_sign_push(type, type_sign_atom_named(type_name, package_name));
+				}
 				break;
 			}
 			else if (tkn.kind == Tkn::KIND_OPEN_BRACKET)
@@ -137,22 +173,6 @@ namespace sabre
 			}
 		}
 		return type;
-	}
-
-	inline static bool
-	_parser_should_stop_at_tkn_with_optional_comma(Parser& self, Tkn::KIND kind)
-	{
-		return (
-			_parser_look_kind(self, kind) ||
-			(_parser_look_kind(self, Tkn::KIND_COMMA) && _parser_look_ahead_k(self, 1).kind == kind) ||
-			_parser_look_kind(self, Tkn::KIND_EOF)
-		);
-	}
-
-	inline static bool
-	_parser_should_stop_at_curly_with_optional_comma(Parser& self)
-	{
-		return _parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_CLOSE_CURLY);
 	}
 
 	inline static Expr*

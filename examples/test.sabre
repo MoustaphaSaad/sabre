@@ -1,5 +1,14 @@
 package main
 
+type Vec struct<T: type> {
+	x, y, z: T,
+}
+
+var v: Vec<float> = {
+	x = 1.5,
+	y = 2,
+};
+
 func add(a, b: int): int {
 	return a + b;
 }

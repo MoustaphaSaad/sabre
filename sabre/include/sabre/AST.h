@@ -11,6 +11,8 @@ namespace sabre
 	struct Expr;
 	struct Decl;
 
+	struct Type_Sign;
+
 	// represents a type signature atom
 	struct Type_Sign_Atom
 	{
@@ -18,6 +20,7 @@ namespace sabre
 		{
 			KIND_NAMED,
 			KIND_ARRAY,
+			KIND_TEMPLATED,
 		};
 
 		KIND kind;
@@ -35,6 +38,14 @@ namespace sabre
 				// optional, if the user specifies the size of the array manually
 				Expr* static_size;
 			} array;
+
+			struct
+			{
+				Tkn type_name;
+				// optional, used in case we reference types from imported packages
+				Tkn package_name;
+				mn::Buf<Type_Sign> args;
+			} templated;
 		};
 	};
 
@@ -56,6 +67,18 @@ namespace sabre
 		Type_Sign_Atom self{};
 		self.kind = Type_Sign_Atom::KIND_ARRAY;
 		self.array.static_size = static_size;
+		return self;
+	}
+
+	// creates a new templated type sign atom with the given name and arguments
+	inline static Type_Sign_Atom
+	type_sign_atom_templated(Tkn type_name, Tkn package_name, mn::Buf<Type_Sign> args)
+	{
+		Type_Sign_Atom self{};
+		self.kind = Type_Sign_Atom::KIND_TEMPLATED;
+		self.templated.type_name = type_name;
+		self.templated.package_name = package_name;
+		self.templated.args = args;
 		return self;
 	}
 
