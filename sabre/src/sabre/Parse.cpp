@@ -140,13 +140,19 @@ namespace sabre
 	}
 
 	inline static bool
-	_parser_should_stop_at_curly_with_optional_comma(Parser& self)
+	_parser_should_stop_at_tkn_with_optional_comma(Parser& self, Tkn::KIND kind)
 	{
 		return (
-			_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) ||
-			(_parser_look_kind(self, Tkn::KIND_COMMA) && _parser_look_ahead_k(self, 1).kind == Tkn::KIND_CLOSE_CURLY) ||
+			_parser_look_kind(self, kind) ||
+			(_parser_look_kind(self, Tkn::KIND_COMMA) && _parser_look_ahead_k(self, 1).kind == kind) ||
 			_parser_look_kind(self, Tkn::KIND_EOF)
 		);
+	}
+
+	inline static bool
+	_parser_should_stop_at_curly_with_optional_comma(Parser& self)
+	{
+		return _parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_CLOSE_CURLY);
 	}
 
 	inline static Expr*
@@ -970,6 +976,24 @@ namespace sabre
 	{
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_STRUCT);
 
+		auto args = mn::buf_with_allocator<Template_Arg>(self.unit->ast_arena);
+		if (_parser_eat_kind(self, Tkn::KIND_LESS))
+		{
+			while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
+			{
+				if (args.count > 0)
+					_parser_eat_must(self, Tkn::KIND_COMMA);
+
+				Template_Arg arg{};
+				arg.name = _parser_eat_must(self, Tkn::KIND_ID);
+				_parser_eat_must(self, Tkn::KIND_COLON);
+				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
+
+				mn::buf_push(args, arg);
+			}
+			_parser_eat_must(self, Tkn::KIND_GREATER);
+		}
+
 		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
 		auto fields = mn::buf_with_allocator<Field>(self.unit->ast_arena);
 
@@ -984,7 +1008,7 @@ namespace sabre
 		_parser_eat_kind(self, Tkn::KIND_COMMA);
 		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
 
-		return decl_struct_new(self.unit->ast_arena, name, fields);
+		return decl_struct_new(self.unit->ast_arena, name, fields, args);
 	}
 
 	inline static Enum_Field

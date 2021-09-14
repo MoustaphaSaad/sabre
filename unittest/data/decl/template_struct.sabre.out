@@ -1,0 +1,9 @@
+(struct-decl
+  (template-arg T)
+  (field
+    (field-name 'x')
+    (field-name 'y')
+    (field-name 'z')
+    (type-sign T)
+  )
+)

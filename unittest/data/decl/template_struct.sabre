@@ -1,0 +1,3 @@
+type Vec struct<T: type> {
+	x, y, z: T,
+}

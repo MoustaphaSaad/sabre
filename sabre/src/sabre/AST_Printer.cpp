@@ -567,6 +567,12 @@ namespace sabre
 			mn::print_to(self.out, "(struct-decl");
 			_ast_printer_enter_scope(self);
 			{
+				for (const auto& arg: decl->struct_decl.args)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(template-arg {})", arg.name.str);
+				}
+
 				for (const auto& field: decl->struct_decl.fields)
 				{
 					_ast_printer_newline(self);

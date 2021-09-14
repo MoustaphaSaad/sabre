@@ -569,6 +569,11 @@ namespace sabre
 		Texture_Sample_Operand sampler;
 	};
 
+	struct Template_Arg
+	{
+		Tkn name;
+	};
+
 	// Decl
 	struct Decl
 	{
@@ -614,6 +619,7 @@ namespace sabre
 
 			struct
 			{
+				mn::Buf<Template_Arg> args;
 				mn::Buf<Field> fields;
 			} struct_decl;
 
@@ -677,12 +683,13 @@ namespace sabre
 
 	// creates a new struct declaration
 	inline static Decl*
-	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields)
+	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields, mn::Buf<Template_Arg> args)
 	{
 		auto self = mn::alloc_zerod_from<Decl>(arena);
 		self->kind = Decl::KIND_STRUCT;
 		self->name = name;
 		self->struct_decl.fields = fields;
+		self->struct_decl.args = args;
 		return self;
 	}
 
