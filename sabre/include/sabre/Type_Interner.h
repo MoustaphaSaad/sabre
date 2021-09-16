@@ -209,6 +209,7 @@ namespace sabre
 			KIND_ARRAY,
 			KIND_ENUM,
 			KIND_SAMPLER,
+			KIND_TYPENAME,
 		};
 
 		KIND kind;
@@ -236,6 +237,7 @@ namespace sabre
 				Symbol* symbol;
 				mn::Buf<Struct_Field_Type> fields;
 				mn::Map<const char*, size_t> fields_by_name;
+				mn::Buf<Type*> template_args;
 			} struct_type;
 
 			struct
@@ -266,6 +268,11 @@ namespace sabre
 				mn::Buf<Enum_Field_Type> fields;
 				mn::Map<const char*, size_t> fields_by_name;
 			} enum_type;
+
+			struct
+			{
+				Symbol* symbol;
+			} typename_type;
 		};
 	};
 
@@ -592,6 +599,15 @@ namespace sabre
 		return false;
 	}
 
+	// returns whether the type is template incomplete
+	inline static bool
+	type_is_template_incomplete(Type* t)
+	{
+		return (
+			t->kind == Type::KIND_TYPENAME
+		);
+	}
+
 	// returns whether the type can be used in a bit operation
 	inline static bool
 	type_has_bit_ops(Type* a)
@@ -780,6 +796,56 @@ namespace sabre
 		}
 	}
 
+	struct Template_Instantiation_Sign
+	{
+		Type* template_type;
+		mn::Buf<Type*> args;
+
+		inline bool
+		operator==(const Template_Instantiation_Sign& other) const
+		{
+			if (template_type != other.template_type)
+				return false;
+
+			if (args.count != other.args.count)
+				return false;
+
+			for (size_t i = 0; i < args.count; ++i)
+				if (args[i] != other.args[i])
+					return false;
+
+			return true;
+		}
+
+		inline bool
+		operator!=(const Template_Instantiation_Sign& other) const
+		{
+			return !operator==(other);
+		}
+	};
+
+	inline static void
+	destruct(Template_Instantiation_Sign& self)
+	{
+		mn::buf_free(self.args);
+	}
+
+	// used to hash a function signature
+	struct Template_Instantiation_Hasher
+	{
+		inline size_t
+		operator()(const Template_Instantiation_Sign& sign) const
+		{
+			mn::Hash<Type*> type_hasher{};
+			auto res = type_hasher(sign.template_type);
+			for (auto t: sign.args)
+			{
+				res = mn::hash_mix(res, type_hasher(t));
+			}
+			return res;
+		}
+	};
+
 	// interns the different types to make comparisons and memory management easier
 	struct Type_Interner
 	{
@@ -787,6 +853,8 @@ namespace sabre
 		mn::Map<Func_Sign, Type*, Func_Sign_Hasher> func_table;
 		mn::Map<Unit_Package*, Type*> package_table;
 		mn::Map<Array_Sign, Type*, Array_Sign_Hasher> array_table;
+		mn::Map<Symbol*, Type*> typename_table;
+		mn::Map<Template_Instantiation_Sign, Type*, Template_Instantiation_Hasher> instantiation_table;
 	};
 
 	// creates a new type interner
@@ -813,7 +881,11 @@ namespace sabre
 
 	// completes the given struct/aggregate types
 	SABRE_EXPORT void
-	type_interner_complete_struct(Type_Interner* self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table);
+	type_interner_complete_struct(Type_Interner* self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table, mn::Buf<Type*> template_args);
+
+	// instantiates a template struct type with the given field types
+	SABRE_EXPORT Type*
+	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& fields_types);
 
 	// completes an enum type
 	SABRE_EXPORT void
@@ -830,6 +902,10 @@ namespace sabre
 	// creates a new array type
 	SABRE_EXPORT Type*
 	type_interner_array(Type_Interner* self, Array_Sign sign);
+
+	// creates a new typename type
+	SABRE_EXPORT Type*
+	type_interner_typename(Type_Interner* self, Symbol* symbol);
 }
 
 namespace fmt
@@ -1006,6 +1082,10 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_SAMPLER)
 			{
 				return format_to(ctx.out(), "Sampler");
+			}
+			else if (t->kind == sabre::Type::KIND_TYPENAME)
+			{
+				return format_to(ctx.out(), "typename");
 			}
 			else
 			{

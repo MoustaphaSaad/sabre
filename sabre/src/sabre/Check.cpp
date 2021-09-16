@@ -535,6 +535,85 @@ namespace sabre
 	}
 
 	inline static Type*
+	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
+
+	inline static Type*
+	_typer_template_instantiate(Typer& self, Type* template_type, const Type_Sign_Atom& template_atom)
+	{
+		// we should do something with template arguments
+		auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+		mn::buf_reserve(args_types, template_atom.templated.args.count);
+		for (const auto& arg_type_sign: template_atom.templated.args)
+		{
+			auto type = _typer_resolve_type_sign(self, arg_type_sign);
+			assert(type_is_template_incomplete(type) == false);
+			mn::buf_push(args_types, type);
+		}
+
+		switch (template_type->kind)
+		{
+		case Type::KIND_STRUCT:
+		{
+			if (template_type->struct_type.template_args.count == 0)
+			{
+				Err err{};
+				err.loc = template_atom.templated.type_name.loc;
+				err.msg = mn::strf(
+					"type '{}' is not a template type",
+					template_type
+				);
+				unit_err(self.unit, err);
+				return template_type;
+			}
+
+			if (args_types.count != template_type->struct_type.template_args.count)
+			{
+				Err err{};
+				err.loc = template_atom.templated.type_name.loc;
+				err.msg = mn::strf(
+					"template type expected #{} arguments, but #{} only was provided",
+					template_type->struct_type.template_args.count,
+					args_types.count
+				);
+				unit_err(self.unit, err);
+				return template_type;
+			}
+
+			auto fields_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+			mn::buf_reserve(fields_types, template_type->struct_type.fields.count);
+
+			for (auto& field: template_type->struct_type.fields)
+			{
+				if (type_is_template_incomplete(field.type) == false)
+				{
+					mn::buf_push(fields_types, field.type);
+				}
+				else
+				{
+					size_t template_args_index = template_type->struct_type.template_args.count;
+					for (size_t i = 0; i < template_type->struct_type.template_args.count; ++i)
+					{
+						if (type_is_equal(field.type, template_type->struct_type.template_args[i]))
+						{
+							template_args_index = i;
+							break;
+						}
+					}
+					// TODO: revisit later, you probably should issue an error here
+					assert(template_args_index < args_types.count);
+					mn::buf_push(fields_types, args_types[template_args_index]);
+				}
+			}
+
+			return type_interner_template_struct_instantiate(self.unit->parent_unit->type_interner, template_type, fields_types);
+		}
+		default:
+			assert(false && "unreachable");
+			return type_void;
+		}
+	}
+
+	inline static Type*
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign)
 	{
 		auto res = type_void;
@@ -593,7 +672,7 @@ namespace sabre
 			case Type_Sign_Atom::KIND_TEMPLATED:
 			{
 				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
-					res = named_type;
+					res = _typer_template_instantiate(self, named_type, atom);
 				break;
 			}
 			default:
@@ -2583,60 +2662,75 @@ namespace sabre
 		if (sym->kind == Symbol::KIND_STRUCT)
 		{
 			auto d = sym->struct_sym.decl;
-			auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner->arena);
-			auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
-			for (auto field: d->struct_decl.fields)
+
+			auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
+			_typer_enter_scope(self, scope);
 			{
-				auto field_type = _typer_resolve_type_sign(self, field.type);
-				if (field_type->kind == Type::KIND_INCOMPLETE || field_type->kind == Type::KIND_COMPLETING)
-					_typer_complete_type(self, field_type->struct_type.symbol, type_sign_location(field.type));
-
-				if (field.default_value)
+				auto template_args = mn::buf_with_allocator<Type*>(self.unit->parent_unit->type_interner->arena);
+				for (auto template_arg: d->struct_decl.args)
 				{
-					_typer_push_expected_expression_type(self, field_type);
-					auto default_value_type = _typer_resolve_expr(self, field.default_value);
-					_typer_pop_expected_expression_type(self);
+					auto v = symbol_typename_new(self.unit->symbols_arena, template_arg.name);
+					v->type = type_interner_typename(self.unit->parent_unit->type_interner, v);
+					_typer_add_symbol(self, v);
+					mn::buf_push(template_args, v->type);
+				}
 
-					if (type_is_equal(default_value_type, field_type) == false)
+				auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner->arena);
+				auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
+				for (auto field: d->struct_decl.fields)
+				{
+					auto field_type = _typer_resolve_type_sign(self, field.type);
+					if (field_type->kind == Type::KIND_INCOMPLETE || field_type->kind == Type::KIND_COMPLETING)
+						_typer_complete_type(self, field_type->struct_type.symbol, type_sign_location(field.type));
+
+					if (field.default_value)
 					{
-						Err err{};
-						err.loc = field.default_value->loc;
-						err.msg = mn::strf("type mismatch in default value which has type '{}' but field type is '{}'", default_value_type, field_type);
-						unit_err(self.unit, err);
+						_typer_push_expected_expression_type(self, field_type);
+						auto default_value_type = _typer_resolve_expr(self, field.default_value);
+						_typer_pop_expected_expression_type(self);
+
+						if (type_is_equal(default_value_type, field_type) == false)
+						{
+							Err err{};
+							err.loc = field.default_value->loc;
+							err.msg = mn::strf("type mismatch in default value which has type '{}' but field type is '{}'", default_value_type, field_type);
+							unit_err(self.unit, err);
+						}
+
+						if (field.default_value->mode != ADDRESS_MODE_CONST)
+						{
+							Err err{};
+							err.loc = field.default_value->loc;
+							err.msg = mn::strf("default value should be a constant");
+							unit_err(self.unit, err);
+						}
 					}
-
-					if (field.default_value->mode != ADDRESS_MODE_CONST)
+					for (auto name: field.names)
 					{
-						Err err{};
-						err.loc = field.default_value->loc;
-						err.msg = mn::strf("default value should be a constant");
-						unit_err(self.unit, err);
+						Struct_Field_Type struct_field{};
+						struct_field.name = name;
+						struct_field.type = field_type;
+						struct_field.default_value = field.default_value;
+						mn::buf_push(struct_fields, struct_field);
+
+						if (auto it = mn::map_lookup(struct_fields_by_name, name.str))
+						{
+							auto old_loc = struct_fields[it->value].name.loc;
+
+							Err err{};
+							err.loc = name.loc;
+							err.msg = mn::strf("'{}' field redefinition, first declared in {}:{}", name.str, old_loc.pos.line, old_loc.pos.col);
+							unit_err(self.unit, err);
+						}
+						else
+						{
+							mn::map_insert(struct_fields_by_name, name.str, struct_fields.count - 1);
+						}
 					}
 				}
-				for (auto name: field.names)
-				{
-					Struct_Field_Type struct_field{};
-					struct_field.name = name;
-					struct_field.type = field_type;
-					struct_field.default_value = field.default_value;
-					mn::buf_push(struct_fields, struct_field);
-
-					if (auto it = mn::map_lookup(struct_fields_by_name, name.str))
-					{
-						auto old_loc = struct_fields[it->value].name.loc;
-
-						Err err{};
-						err.loc = name.loc;
-						err.msg = mn::strf("'{}' field redefinition, first declared in {}:{}", name.str, old_loc.pos.line, old_loc.pos.col);
-						unit_err(self.unit, err);
-					}
-					else
-					{
-						mn::map_insert(struct_fields_by_name, name.str, struct_fields.count - 1);
-					}
-				}
+				type_interner_complete_struct(self.unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name, template_args);
 			}
-			type_interner_complete_struct(self.unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name);
+			_typer_leave_scope(self);
 		}
 		else if (sym->kind == Symbol::KIND_ENUM)
 		{

@@ -29,6 +29,7 @@ namespace sabre
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ENUM,
+			KIND_TYPENAME,
 		};
 
 		KIND kind;
@@ -91,6 +92,11 @@ namespace sabre
 				mn::Buf<Decl*> used_decls;
 				mn::Set<Decl*> unique_used_decls;
 			} func_overload_set_sym;
+
+			struct
+			{
+				Tkn name;
+			} typename_sym;
 		};
 	};
 
@@ -122,6 +128,10 @@ namespace sabre
 	SABRE_EXPORT Symbol*
 	symbol_func_overload_set_new(mn::Allocator arena, Symbol* func);
 
+	// creates a new symbol for a typename, usually this is a template argument to some struct, func, etc...
+	SABRE_EXPORT Symbol*
+	symbol_typename_new(mn::Allocator arena, Tkn name);
+
 	// given a symbols it will return its location in compilation unit
 	inline static Location
 	symbol_location(const Symbol* self)
@@ -140,6 +150,8 @@ namespace sabre
 			return self->package_sym.decl->loc;
 		case Symbol::KIND_ENUM:
 			return self->enum_sym.decl->loc;
+		case Symbol::KIND_TYPENAME:
+			return self->typename_sym.name.loc;
 		default:
 			assert(false && "unreachable");
 			return Location{};

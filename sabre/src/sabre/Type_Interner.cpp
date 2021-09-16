@@ -74,6 +74,25 @@ namespace sabre
 		return num + factor - 1 - (num + factor - 1) % factor;
 	}
 
+	inline static void
+	_calc_struct_size(Type* type)
+	{
+		type->alignment = 1;
+		type->size = 0;
+		for (auto& field: type->struct_type.fields)
+		{
+			if (field.type->alignment > type->alignment)
+				type->alignment = field.type->alignment;
+			if (field.type->alignment > 0)
+				if (type->size % field.type->alignment != 0)
+					type->size = _round_up(type->size, type_vec4->size);
+			field.offset = type->size;
+			type->size += field.type->size;
+		}
+		type->alignment = _round_up(type->alignment, type_vec4->size);
+		type->size = _round_up(type->size, type_vec4->size);
+	}
+
 	// API
 	Type* type_void = &_type_void;
 	Type* type_bool = &_type_bool;
@@ -124,6 +143,8 @@ namespace sabre
 			destruct(self->func_table);
 			mn::map_free(self->package_table);
 			mn::map_free(self->array_table);
+			mn::map_free(self->typename_table);
+			destruct(self->instantiation_table);
 			mn::free(self);
 		}
 	}
@@ -154,27 +175,39 @@ namespace sabre
 	}
 
 	void
-	type_interner_complete_struct(Type_Interner* self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	type_interner_complete_struct(Type_Interner* self, Type* type, mn::Buf<Struct_Field_Type> fields, mn::Map<const char*, size_t> fields_table, mn::Buf<Type*> template_args)
 	{
 		assert(type->kind == Type::KIND_COMPLETING);
 		type->kind = Type::KIND_STRUCT;
 		type->struct_type.fields = fields;
 		type->struct_type.fields_by_name = fields_table;
+		type->struct_type.template_args = template_args;
+		_calc_struct_size(type);
+	}
 
-		type->alignment = 1;
-		type->size = 0;
-		for (auto& field: fields)
-		{
-			if (field.type->alignment > type->alignment)
-				type->alignment = field.type->alignment;
-			if (field.type->alignment > 0)
-				if (type->size % field.type->alignment != 0)
-					type->size = _round_up(type->size, type_vec4->size);
-			field.offset = type->size;
-			type->size += field.type->size;
-		}
-		type->alignment = _round_up(type->alignment, type_vec4->size);
-		type->size = _round_up(type->size, type_vec4->size);
+	Type*
+	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& fields_types)
+	{
+		Template_Instantiation_Sign sign{};
+		sign.template_type = struct_type;
+		sign.args = fields_types;
+		if (auto it = mn::map_lookup(self->instantiation_table, sign))
+			return it->value;
+
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
+		new_type->kind = Type::KIND_STRUCT;
+		new_type->struct_type.symbol = struct_type->struct_type.symbol;
+		new_type->struct_type.fields = mn::buf_memcpy_clone(struct_type->struct_type.fields, self->arena);
+		new_type->struct_type.fields_by_name = mn::map_memcpy_clone(struct_type->struct_type.fields_by_name, self->arena);
+
+		for (size_t i = 0; i < new_type->struct_type.fields.count; ++i)
+			new_type->struct_type.fields[i].type = fields_types[i];
+
+		_calc_struct_size(new_type);
+		sign.args = mn::buf_memcpy_clone(fields_types);
+		mn::map_insert(self->instantiation_table, sign, new_type);
+
+		return new_type;
 	}
 
 	void
@@ -222,6 +255,19 @@ namespace sabre
 		new_type->array.base = sign.base;
 		new_type->array.count = sign.count;
 		mn::map_insert(self->array_table, sign, new_type);
+		return new_type;
+	}
+
+	Type*
+	type_interner_typename(Type_Interner* self, Symbol* symbol)
+	{
+		if (auto type_it = mn::map_lookup(self->typename_table, symbol))
+			return type_it->value;
+
+		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
+		new_type->kind = Type::KIND_TYPENAME;
+		new_type->typename_type.symbol = symbol;
+		mn::map_insert(self->typename_table, symbol, new_type);
 		return new_type;
 	}
 }

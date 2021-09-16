@@ -110,6 +110,18 @@ namespace sabre
 		return self;
 	}
 
+	Symbol*
+	symbol_typename_new(mn::Allocator arena, Tkn name)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_TYPENAME;
+		self->state = STATE_RESOLVED;
+		self->type = type_void;
+		self->name = name.str;
+		self->typename_sym.name = name;
+		return self;
+	}
+
 	Scope*
 	scope_new(Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags)
 	{
