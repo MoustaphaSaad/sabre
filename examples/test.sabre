@@ -1,15 +1,18 @@
 package main
 
-type Vec struct<T: type> {
+type Vec struct<T, R: type> {
 	x, y, z: T,
+	r, g, b: R,
 }
 
-var vf: Vec<float> = {
+var vf: Vec<float, float> = {
 	x = 1.5,
+	r = 2.5,
 };
 
-var vi: Vec<int> = {
+var vi: Vec<int, float> = {
 	x = 1,
+	r = 2.5,
 };
 
 func add(a: Vec<float>): int {

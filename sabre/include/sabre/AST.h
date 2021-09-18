@@ -594,7 +594,7 @@ namespace sabre
 
 	struct Template_Arg
 	{
-		Tkn name;
+		mn::Buf<Tkn> names;
 	};
 
 	// Decl

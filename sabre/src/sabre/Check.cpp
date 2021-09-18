@@ -2666,13 +2666,18 @@ namespace sabre
 			auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
 			_typer_enter_scope(self, scope);
 			{
-				auto template_args = mn::buf_with_allocator<Type*>(self.unit->parent_unit->type_interner->arena);
+				auto type_interner = self.unit->parent_unit->type_interner;
+				auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
 				for (auto template_arg: d->struct_decl.args)
 				{
-					auto v = symbol_typename_new(self.unit->symbols_arena, template_arg.name);
-					v->type = type_interner_typename(self.unit->parent_unit->type_interner, v);
-					_typer_add_symbol(self, v);
-					mn::buf_push(template_args, v->type);
+					for (auto name: template_arg.names)
+					{
+						auto v = symbol_typename_new(self.unit->symbols_arena, name);
+						auto type = type_interner_typename(type_interner, v);
+						v->type = type;
+						_typer_add_symbol(self, v);
+						mn::buf_push(template_args, v->type);
+					}
 				}
 
 				auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner->arena);

@@ -1,9 +1,11 @@
 package main
 
-type Vec struct<T: type> {
+type Vec struct<T, R: type> {
 	x, y, z: T,
+	r, g, b: R,
 }
 
-var v: Vec<float> = {
+var v: Vec<float, vec2> = {
 	x = 1.4,
+	r = {1, 2},
 };

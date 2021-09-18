@@ -1005,7 +1005,15 @@ namespace sabre
 					_parser_eat_must(self, Tkn::KIND_COMMA);
 
 				Template_Arg arg{};
-				arg.name = _parser_eat_must(self, Tkn::KIND_ID);
+				arg.names = mn::buf_with_allocator<Tkn>(self.unit->ast_arena);
+				while (true)
+				{
+					if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))
+						mn::buf_push(arg.names, name);
+
+					if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+						break;
+				}
 				_parser_eat_must(self, Tkn::KIND_COLON);
 				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
 
