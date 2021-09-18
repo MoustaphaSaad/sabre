@@ -1,29 +1,10 @@
 package main
 
-type Vec struct<T, R: type> {
-	x, y, z: T,
-	r, g, b: R,
+type Vertex struct {
+	position: vec4,
+	color: vec4,
 }
 
-var vf: Vec<float, float> = {
-	x = 1.5,
-	r = 2.5,
-};
+type TriangleStream struct<T: type> {}
 
-var vi: Vec<int, float> = {
-	x = 1,
-	r = 2.5,
-};
-
-func add(a: Vec<float>): int {
-	return 0;
-}
-
-func add(a: Vec<int>): int {
-	return 0;
-}
-
-func foo() {
-	add(vf);
-	add(vi);
-}
+var x: TriangleStream<TriangleStream<Vertex>>;

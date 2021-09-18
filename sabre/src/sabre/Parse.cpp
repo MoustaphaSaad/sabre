@@ -409,14 +409,44 @@ namespace sabre
 		return expr;
 	}
 
+	inline static Tkn
+	_parser_parse_mul_tkn(Parser& self)
+	{
+		auto tkn = _parser_look(self);
+		if (tkn.kind == Tkn::KIND_STAR ||
+			tkn.kind == Tkn::KIND_DIVIDE ||
+			tkn.kind == Tkn::KIND_MODULUS ||
+			tkn.kind == Tkn::KIND_BIT_AND ||
+			tkn.kind == Tkn::KIND_BIT_SHIFT_LEFT)
+		{
+			return _parser_eat(self);
+		}
+		else if (tkn.kind == Tkn::KIND_GREATER)
+		{
+			auto second_tkn = _parser_look_ahead_k(self, 1);
+			if (second_tkn.kind == Tkn::KIND_GREATER)
+			{
+				tkn.kind = Tkn::KIND_BIT_SHIFT_RIGHT;
+				tkn.str = unit_intern(self.unit, tkn.loc.rng.begin, second_tkn.loc.rng.end);
+				tkn.loc.rng.end = second_tkn.loc.rng.end;
+
+				_parser_eat(self);
+				_parser_eat(self);
+
+				return tkn;
+			}
+		}
+		return Tkn{};
+	}
+
+
 	inline static Expr*
 	_parser_parse_expr_mul(Parser& self)
 	{
 		auto tkn = _parser_look(self);
 		auto expr = _parser_parse_expr_cast(self);
-		while (tkn_is_mul(_parser_look(self).kind))
+		while (auto op = _parser_parse_mul_tkn(self))
 		{
-			auto op = _parser_eat(self);
 			auto rhs = _parser_parse_expr_cast(self);
 			if (rhs == nullptr)
 			{

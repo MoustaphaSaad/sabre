@@ -372,7 +372,11 @@ namespace sabre
 				}
 				break;
 			case '>':
+			{
 				tkn.kind = Tkn::KIND_GREATER;
+				auto backup_it = self.it;
+				auto backup_pos = self.pos;
+
 				if (self.c == '=')
 				{
 					tkn.kind = Tkn::KIND_GREATER_EQUAL;
@@ -380,16 +384,24 @@ namespace sabre
 				}
 				else if (self.c == '>')
 				{
-					tkn.kind = Tkn::KIND_BIT_SHIFT_RIGHT;
 					_scanner_eat(self);
-
 					if (self.c == '=')
 					{
 						tkn.kind = Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL;
 						_scanner_eat(self);
 					}
+					else
+					{
+						// we don't scan the shift right in scanner, we do it parser, because of template
+						// arguments, this form will confuse the scanner `Foo<Foo<X>>` the two >> will be
+						// scanned as right shift instead of two greater than operators
+						self.it = backup_it;
+						self.c = mn::rune_read(self.it);
+						self.pos = backup_pos;
+					}
 				}
 				break;
+			}
 			case '=':
 				tkn.kind = Tkn::KIND_EQUAL;
 				if (self.c == '=')
