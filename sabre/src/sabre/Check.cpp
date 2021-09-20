@@ -745,7 +745,7 @@ namespace sabre
 					for (const auto& arg_type_sign: atom.templated.args)
 					{
 						auto type = _typer_resolve_type_sign(self, arg_type_sign);
-						assert(type_is_template_incomplete(type) == false);
+						// assert(type_is_template_incomplete(type) == false);
 						mn::buf_push(args_types, type);
 					}
 					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc);
@@ -1181,17 +1181,30 @@ namespace sabre
 					}
 				}
 
-				type = _typer_template_instantiate(self, type, args_types, e->loc);
+				auto instantiated_type = _typer_template_instantiate(self, type, args_types, e->loc);
 				auto d = symbol->func_sym.decl;
 				auto templated_scope = unit_scope_find(self.unit->parent_unit, d);
-				auto instantiated_scope = unit_create_scope_for(self.unit, type, templated_scope, d->name.str, type->as_func.sign.return_type, Scope::FLAG_NONE);
+				auto instantiated_scope = unit_create_scope_for(self.unit, instantiated_type, templated_scope, d->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
 				_typer_enter_scope(self, instantiated_scope);
 				{
-					// push arguments to instantiated scope
+					// push symbols for typenames but after actually resolving them
 					size_t i = 0;
+					for (auto template_arg: d->func_decl.template_args)
+					{
+						for (auto name: template_arg.names)
+						{
+							auto v = symbol_typename_new(self.unit->symbols_arena, name);
+							v->type = args_types[i];
+							_typer_add_symbol(self, v);
+							++i;
+						}
+					}
+
+					// push arguments to instantiated scope
+					i = 0;
 					for (auto arg: d->func_decl.args)
 					{
-						auto arg_type = type->as_func.sign.args.types[i];
+						auto arg_type = instantiated_type->as_func.sign.args.types[i];
 						for (auto name: arg.names)
 						{
 							auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
@@ -1203,7 +1216,8 @@ namespace sabre
 					}
 				}
 				_typer_leave_scope(self);
-				_typer_resolve_func_body_internal(self, d, type, instantiated_scope);
+				_typer_resolve_func_body_internal(self, d, instantiated_type, instantiated_scope);
+				type = instantiated_type;
 			}
 
 			for (size_t i = 0; i < e->call.args.count; ++i)
@@ -1868,8 +1882,8 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_expr(Typer& self, Expr* e)
 	{
-		if (e->type)
-			return e->type;
+		// if (e->type)
+		// 	return e->type;
 
 		switch (e->kind)
 		{

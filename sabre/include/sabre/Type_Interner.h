@@ -1050,7 +1050,19 @@ namespace fmt
 			}
 			else if (t->kind == sabre::Type::KIND_STRUCT)
 			{
-				return format_to(ctx.out(), "struct {}", t->struct_type.symbol->name);
+				format_to(ctx.out(), "struct {}", t->struct_type.symbol->name);
+				if (t->struct_type.template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->struct_type.template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->struct_type.template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				return ctx.out();
 			}
 			else if (t->kind == sabre::Type::KIND_PACKAGE)
 			{
