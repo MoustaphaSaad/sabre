@@ -971,11 +971,44 @@ namespace sabre
 		return arg;
 	}
 
+	inline static mn::Buf<Template_Arg>
+	_parser_parse_template_args(Parser& self)
+	{
+		auto args = mn::buf_with_allocator<Template_Arg>(self.unit->ast_arena);
+		if (_parser_eat_kind(self, Tkn::KIND_LESS))
+		{
+			while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
+			{
+				if (args.count > 0)
+					_parser_eat_must(self, Tkn::KIND_COMMA);
+
+				Template_Arg arg{};
+				arg.names = mn::buf_with_allocator<Tkn>(self.unit->ast_arena);
+				while (true)
+				{
+					if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))
+						mn::buf_push(arg.names, name);
+
+					if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+						break;
+				}
+				_parser_eat_must(self, Tkn::KIND_COLON);
+				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
+
+				mn::buf_push(args, arg);
+			}
+			_parser_eat_must(self, Tkn::KIND_GREATER);
+		}
+		return args;
+	}
+
 	inline static Decl*
 	_parser_parse_decl_func(Parser& self)
 	{
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_FUNC);
 		auto name = _parser_eat_must(self, Tkn::KIND_ID);
+
+		auto template_args = _parser_parse_template_args(self);
 
 		auto args = mn::buf_with_allocator<Arg>(self.unit->ast_arena);
 		_parser_eat_must(self, Tkn::KIND_OPEN_PAREN);
@@ -996,7 +1029,7 @@ namespace sabre
 		Stmt* body = nullptr;
 		if (_parser_look_kind(self, Tkn::KIND_OPEN_CURLY))
 			body = _parser_parse_stmt_block(self);
-		return decl_func_new(self.unit->ast_arena, name, args, ret, body);
+		return decl_func_new(self.unit->ast_arena, name, args, ret, body, template_args);
 	}
 
 	inline static Field
@@ -1026,31 +1059,7 @@ namespace sabre
 	{
 		_parser_eat_must(self, Tkn::KIND_KEYWORD_STRUCT);
 
-		auto args = mn::buf_with_allocator<Template_Arg>(self.unit->ast_arena);
-		if (_parser_eat_kind(self, Tkn::KIND_LESS))
-		{
-			while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
-			{
-				if (args.count > 0)
-					_parser_eat_must(self, Tkn::KIND_COMMA);
-
-				Template_Arg arg{};
-				arg.names = mn::buf_with_allocator<Tkn>(self.unit->ast_arena);
-				while (true)
-				{
-					if (auto name = _parser_eat_kind(self, Tkn::KIND_ID))
-						mn::buf_push(arg.names, name);
-
-					if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
-						break;
-				}
-				_parser_eat_must(self, Tkn::KIND_COLON);
-				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
-
-				mn::buf_push(args, arg);
-			}
-			_parser_eat_must(self, Tkn::KIND_GREATER);
-		}
+		auto template_args = _parser_parse_template_args(self);
 
 		_parser_eat_must(self, Tkn::KIND_OPEN_CURLY);
 		auto fields = mn::buf_with_allocator<Field>(self.unit->ast_arena);
@@ -1066,7 +1075,7 @@ namespace sabre
 		_parser_eat_kind(self, Tkn::KIND_COMMA);
 		_parser_eat_must(self, Tkn::KIND_CLOSE_CURLY);
 
-		return decl_struct_new(self.unit->ast_arena, name, fields, args);
+		return decl_struct_new(self.unit->ast_arena, name, fields, template_args);
 	}
 
 	inline static Enum_Field

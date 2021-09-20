@@ -509,6 +509,23 @@ namespace sabre
 			mn::print_to(self.out, "(func-decl");
 			_ast_printer_enter_scope(self);
 			{
+				for (const auto& arg: decl->func_decl.template_args)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(template");
+					_ast_printer_enter_scope(self);
+					{
+						for (const auto& name: arg.names)
+						{
+							_ast_printer_newline(self);
+							mn::print_to(self.out, "(arg '{}')", name.str);
+						}
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
+
 				for (const auto& arg: decl->func_decl.args)
 				{
 					_ast_printer_newline(self);
@@ -567,7 +584,7 @@ namespace sabre
 			mn::print_to(self.out, "(struct-decl");
 			_ast_printer_enter_scope(self);
 			{
-				for (const auto& arg: decl->struct_decl.args)
+				for (const auto& arg: decl->struct_decl.template_args)
 				{
 					_ast_printer_newline(self);
 					mn::print_to(self.out, "(template");

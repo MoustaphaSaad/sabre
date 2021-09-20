@@ -1445,7 +1445,7 @@ namespace sabre
 		if (is_builtin)
 			return;
 
-		auto return_type = t->func.return_type;
+		auto return_type = t->as_func.sign.return_type;
 		mn::print_to(self.out, "{} {}(", _hlsl_write_field(self, return_type, ""), _hlsl_name(self, name));
 
 		if (d->func_decl.body != nullptr)
@@ -1455,7 +1455,7 @@ namespace sabre
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)
 		{
-			auto arg_type = t->func.args.types[i];
+			auto arg_type = t->as_func.sign.args.types[i];
 			for (auto name: arg.names)
 			{
 				if (i > 0)
@@ -1750,7 +1750,7 @@ namespace sabre
 			for (const auto& name: arg.names)
 			{
 				auto input_name = _hlsl_name(self, name.str);
-				auto arg_type = entry_type->func.args.types[type_index++];
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
@@ -1764,9 +1764,9 @@ namespace sabre
 		}
 
 		size_t out_location = 0;
-		if (entry_type->func.return_type != type_void)
+		if (entry_type->as_func.sign.return_type != type_void)
 		{
-			auto ret_type = entry_type->func.return_type;
+			auto ret_type = entry_type->as_func.sign.return_type;
 
 			switch(ret_type->kind)
 			{
@@ -1797,7 +1797,7 @@ namespace sabre
 			for (const auto& name: arg.names)
 			{
 				auto input_name = _hlsl_name(self, name.str);
-				auto arg_type = entry_type->func.args.types[type_index++];
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
@@ -1811,9 +1811,9 @@ namespace sabre
 		}
 
 		size_t out_location = 0;
-		if (entry_type->func.return_type != type_void)
+		if (entry_type->as_func.sign.return_type != type_void)
 		{
-			auto ret_type = entry_type->func.return_type;
+			auto ret_type = entry_type->as_func.sign.return_type;
 
 			switch(ret_type->kind)
 			{
@@ -1844,7 +1844,7 @@ namespace sabre
 			for (const auto& name: arg.names)
 			{
 				auto input_name = _hlsl_name(self, name.str);
-				auto arg_type = entry_type->func.args.types[type_index++];
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
@@ -1861,9 +1861,9 @@ namespace sabre
 		}
 
 		size_t out_location = 0;
-		if (entry_type->func.return_type != type_void)
+		if (entry_type->as_func.sign.return_type != type_void)
 		{
-			auto ret_type = entry_type->func.return_type;
+			auto ret_type = entry_type->as_func.sign.return_type;
 
 			switch(ret_type->kind)
 			{
@@ -1887,7 +1887,7 @@ namespace sabre
 
 		auto d = entry->func_sym.decl;
 		auto t = entry->type;
-		auto return_type = t->func.return_type;
+		auto return_type = t->as_func.sign.return_type;
 		mn::print_to(self.out, "{} main(", _hlsl_write_field(self, return_type, ""));
 
 		if (d->func_decl.body != nullptr)
@@ -1897,7 +1897,7 @@ namespace sabre
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)
 		{
-			auto arg_type = t->func.args.types[i];
+			auto arg_type = t->as_func.sign.args.types[i];
 			for (auto name: arg.names)
 			{
 				if (i > 0)
@@ -1923,7 +1923,7 @@ namespace sabre
 		i = 0;
 		for (auto arg: d->func_decl.args)
 		{
-			auto arg_type = t->func.args.types[i];
+			auto arg_type = t->as_func.sign.args.types[i];
 			for (auto name: arg.names)
 			{
 				if (i > 0)

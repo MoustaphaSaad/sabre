@@ -153,13 +153,13 @@ namespace sabre
 		{
 			auto name = mn::str_tmp();
 			name = mn::strf(name, "func(");
-			for (size_t i = 0; i < t->func.args.types.count; ++i)
+			for (size_t i = 0; i < t->as_func.sign.args.types.count; ++i)
 			{
 				if (i > 0)
 					name = mn::strf(name, ", ");
-				name = mn::strf(name, ":{}", t->func.args.types[i]);
+				name = mn::strf(name, ":{}", t->as_func.sign.args.types[i]);
 			}
-			name = mn::strf(name, "):{}", t->func.return_type);
+			name = mn::strf(name, "):{}", t->as_func.sign.return_type);
 			return name;
 		}
 		else if (t->kind == Type::KIND_STRUCT)
@@ -182,13 +182,13 @@ namespace sabre
 				if (overload_i > 0)
 					name = mn::strf(name, "\n");
 				name = mn::strf(name, "{}. func(", overload_i++);
-				for (size_t i = 0; i < overload.type->func.args.types.count; ++i)
+				for (size_t i = 0; i < overload.type->as_func.sign.args.types.count; ++i)
 				{
 					if (i > 0)
 						name = mn::strf(name, ", ");
-					name = mn::strf(name, ":{}", overload.type->func.args.types[i]);
+					name = mn::strf(name, ":{}", overload.type->as_func.sign.args.types[i]);
 				}
-				name = mn::strf(name, "):{}", overload.type->func.return_type);
+				name = mn::strf(name, "):{}", overload.type->as_func.sign.return_type);
 			}
 			return name;
 		}

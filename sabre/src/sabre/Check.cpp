@@ -248,7 +248,7 @@ namespace sabre
 		overload_entry.loc = decl->loc;
 		overload_entry.type = _typer_resolve_func_decl(self, decl);
 
-		if (auto it = mn::map_lookup(overload_set->func_overload_set_type.overloads, overload_entry.type->func.args))
+		if (auto it = mn::map_lookup(overload_set->func_overload_set_type.overloads, overload_entry.type->as_func.sign.args))
 		{
 			auto old_loc = it->value.loc;
 			Err err{};
@@ -258,7 +258,7 @@ namespace sabre
 		}
 		else
 		{
-			mn::map_insert(overload_set->func_overload_set_type.overloads, overload_entry.type->func.args, overload_entry);
+			mn::map_insert(overload_set->func_overload_set_type.overloads, overload_entry.type->as_func.sign.args, overload_entry);
 		}
 	}
 
@@ -729,7 +729,7 @@ namespace sabre
 					e->mode = ADDRESS_MODE_CONST;
 				else if (sym->kind == Symbol::KIND_VAR)
 					e->mode = ADDRESS_MODE_VARIABLE;
-				else if (sym->kind == Symbol::KIND_FUNC && sym->type->func.return_type != type_void)
+				else if (sym->kind == Symbol::KIND_FUNC && sym->type->as_func.sign.return_type != type_void)
 					e->mode = ADDRESS_MODE_COMPUTED_VALUE;
 
 				e->symbol = sym;
@@ -1078,9 +1078,9 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = e->loc;
-						err.msg = mn::strf("function expected {} arguments, but {} were provided", type->func.args.types.count, e->call.args.count);
+						err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
 						unit_err(self.unit, err);
-						return type->func.return_type;
+						return type->as_func.sign.return_type;
 					}
 
 					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
@@ -1095,27 +1095,27 @@ namespace sabre
 							unit_err(self.unit, err);
 						}
 					}
-					return type->func.return_type;
+					return type->as_func.sign.return_type;
 				}
 			}
 
-			if (e->call.args.count != type->func.args.types.count)
+			if (e->call.args.count != type->as_func.sign.args.types.count)
 			{
 				Err err{};
 				err.loc = e->loc;
-				err.msg = mn::strf("function expected {} arguments, but {} were provided", type->func.args.types.count, e->call.args.count);
+				err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
 				unit_err(self.unit, err);
-				return type->func.return_type;
+				return type->as_func.sign.return_type;
 			}
 
 			for (size_t i = 0; i < e->call.args.count; ++i)
 			{
 				auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-				if (_typer_can_assign(type->func.args.types[i], e->call.args[i]) == false)
+				if (_typer_can_assign(type->as_func.sign.args.types[i], e->call.args[i]) == false)
 				{
 					Err err{};
 					err.loc = e->call.args[i]->loc;
-					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, type->func.args.types[i], arg_type);
+					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, type->as_func.sign.args.types[i], arg_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -1124,7 +1124,7 @@ namespace sabre
 			{
 				e->call.func = e->call.base->atom.sym->func_sym.decl;
 			}
-			return type->func.return_type;
+			return type->as_func.sign.return_type;
 		}
 		else if (type->kind == Type::KIND_FUNC_OVERLOAD_SET)
 		{
@@ -1132,14 +1132,14 @@ namespace sabre
 			Type* res = nullptr;
 			for (auto& [overload_decl, overload_type]: overload_set_symbol->func_overload_set_sym.decls)
 			{
-				if (e->call.args.count != overload_type->func.args.types.count)
+				if (e->call.args.count != overload_type->as_func.sign.args.types.count)
 					continue;
 
 				bool args_match = true;
 				for (size_t i = 0; i < e->call.args.count; ++i)
 				{
 					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-					if (_typer_can_assign(overload_type->func.args.types[i], e->call.args[i]) == false)
+					if (_typer_can_assign(overload_type->as_func.sign.args.types[i], e->call.args[i]) == false)
 					{
 						args_match = false;
 						break;
@@ -1150,7 +1150,7 @@ namespace sabre
 					if (e->call.base->kind == Expr::KIND_ATOM)
 						e->call.base->atom.decl = overload_decl;
 					e->call.func = overload_decl;
-					res = overload_type->func.return_type;
+					res = overload_type->as_func.sign.return_type;
 					if (mn::set_lookup(overload_set_symbol->func_overload_set_sym.unique_used_decls, overload_decl) == nullptr)
 					{
 						mn::buf_push(overload_set_symbol->func_overload_set_sym.used_decls, overload_decl);
@@ -2116,26 +2116,67 @@ namespace sabre
 		return res;
 	}
 
-	// TODO(Moustapha): you should cache the type of the declaration instead of calculating it everytime
 	inline static Type*
 	_typer_resolve_func_decl(Typer& self, Decl* d)
 	{
-		auto sign = func_sign_new();
-		for (auto arg: d->func_decl.args)
+		// if we have calculated the type of the function then just return it
+		if (d->type)
+			return d->type;
+
+		// TODO: find a nice way to handle the return type of function return type here, for now
+		// we set it to void then overwrite it later at the end of this function
+		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
+		_typer_enter_scope(self, scope);
 		{
-			auto arg_type = _typer_resolve_type_sign(self, arg.type);
-			if (arg.names.count > 0)
+			auto type_interner = self.unit->parent_unit->type_interner;
+			for (auto template_arg: d->func_decl.template_args)
 			{
-				for (size_t i = 0; i < arg.names.count; ++i)
-					mn::buf_push(sign.args.types, arg_type);
+				for (auto name: template_arg.names)
+				{
+					auto v = symbol_typename_new(self.unit->symbols_arena, name);
+					auto type = type_interner_typename(type_interner, v);
+					v->type = type;
+					_typer_add_symbol(self, v);
+				}
 			}
-			else
+
+			auto sign = func_sign_new();
+			for (auto arg: d->func_decl.args)
 			{
-				mn::buf_push(sign.args.types, arg_type);
+				auto arg_type = _typer_resolve_type_sign(self, arg.type);
+				if (arg.names.count > 0)
+				{
+					for (size_t i = 0; i < arg.names.count; ++i)
+						mn::buf_push(sign.args.types, arg_type);
+				}
+				else
+				{
+					mn::buf_push(sign.args.types, arg_type);
+				}
+			}
+			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
+			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign);
+
+			scope->expected_type = d->type->as_func.sign.return_type;
+
+			// push function arguments into scope
+			size_t i = 0;
+			for (auto arg: d->func_decl.args)
+			{
+				auto arg_type = d->type->as_func.sign.args.types[i];
+				for (auto name: arg.names)
+				{
+					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+					v->type = arg_type;
+					v->state = STATE_RESOLVED;
+					_typer_add_symbol(self, v);
+					++i;
+				}
 			}
 		}
-		sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
-		return type_interner_func(self.unit->parent_unit->type_interner, sign);
+		_typer_leave_scope(self);
+
+		return d->type;
 	}
 
 	inline static Type*
@@ -2586,31 +2627,16 @@ namespace sabre
 	inline static void
 	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t)
 	{
-		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->func.return_type, Scope::FLAG_NONE);
+		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->as_func.sign.return_type, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
-			// push function arguments into scope
-			size_t i = 0;
-			for (auto arg: d->func_decl.args)
-			{
-				auto arg_type = t->func.args.types[i];
-				for (auto name: arg.names)
-				{
-					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
-					v->type = arg_type;
-					v->state = STATE_RESOLVED;
-					_typer_add_symbol(self, v);
-					++i;
-				}
-			}
-
 			// typecheck function body if it exists
 			if (d->func_decl.body != nullptr)
 			{
 				for (auto stmt: d->func_decl.body->block_stmt)
 					_typer_resolve_stmt(self, stmt);
 
-				if (type_is_equal(t->func.return_type, type_void) == false)
+				if (type_is_equal(t->as_func.sign.return_type, type_void) == false)
 				{
 					auto return_info = _typer_stmt_will_terminate(self, d->func_decl.body);
 					if (return_info.will_return == false)
@@ -2668,7 +2694,7 @@ namespace sabre
 			{
 				auto type_interner = self.unit->parent_unit->type_interner;
 				auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
-				for (auto template_arg: d->struct_decl.args)
+				for (auto template_arg: d->struct_decl.template_args)
 				{
 					for (auto name: template_arg.names)
 					{
@@ -3089,7 +3115,7 @@ namespace sabre
 		size_t type_index = 0;
 		for (auto arg: decl->func_decl.args)
 		{
-			auto arg_type = type->func.args.types[type_index];
+			auto arg_type = type->as_func.sign.args.types[type_index];
 			if (arg_type->kind == Type::KIND_STRUCT)
 			{
 				_typer_check_entry_struct_input(self, arg_type);
@@ -3124,7 +3150,7 @@ namespace sabre
 		}
 
 		// handle return type
-		auto return_type = type->func.return_type;
+		auto return_type = type->as_func.sign.return_type;
 		// special case geometry shaders
 		if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
 		{

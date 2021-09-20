@@ -20,7 +20,7 @@ namespace sabre
 
 			for (const auto& name: arg.names)
 			{
-				auto arg_type = entry_type->func.args.types[type_index++];
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch (arg_type->kind)
 				{
 				case Type::KIND_STRUCT:

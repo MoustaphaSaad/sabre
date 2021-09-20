@@ -615,6 +615,7 @@ namespace sabre
 		Location loc;
 		Tkn name;
 		Tag_Table tags;
+		Type* type;
 		union
 		{
 			struct
@@ -633,6 +634,7 @@ namespace sabre
 
 			struct
 			{
+				mn::Buf<Template_Arg> template_args;
 				mn::Buf<Arg> args;
 				Type_Sign return_type;
 				Stmt* body;
@@ -642,7 +644,7 @@ namespace sabre
 
 			struct
 			{
-				mn::Buf<Template_Arg> args;
+				mn::Buf<Template_Arg> template_args;
 				mn::Buf<Field> fields;
 			} struct_decl;
 
@@ -692,11 +694,12 @@ namespace sabre
 
 	// creates a new function declaration
 	inline static Decl*
-	decl_func_new(mn::Allocator arena, Tkn name, mn::Buf<Arg> args, Type_Sign ret, Stmt* body)
+	decl_func_new(mn::Allocator arena, Tkn name, mn::Buf<Arg> args, Type_Sign ret, Stmt* body, mn::Buf<Template_Arg> template_args)
 	{
 		auto self = mn::alloc_zerod_from<Decl>(arena);
 		self->kind = Decl::KIND_FUNC;
 		self->name = name;
+		self->func_decl.template_args = template_args;
 		self->func_decl.args = args;
 		self->func_decl.return_type = ret;
 		self->func_decl.body = body;
@@ -706,13 +709,13 @@ namespace sabre
 
 	// creates a new struct declaration
 	inline static Decl*
-	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields, mn::Buf<Template_Arg> args)
+	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields, mn::Buf<Template_Arg> template_args)
 	{
 		auto self = mn::alloc_zerod_from<Decl>(arena);
 		self->kind = Decl::KIND_STRUCT;
 		self->name = name;
 		self->struct_decl.fields = fields;
-		self->struct_decl.args = args;
+		self->struct_decl.template_args = template_args;
 		return self;
 	}
 

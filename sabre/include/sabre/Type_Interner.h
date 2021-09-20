@@ -217,7 +217,10 @@ namespace sabre
 		size_t alignment;
 		union
 		{
-			Func_Sign func;
+			struct
+			{
+				Func_Sign sign;
+			} as_func;
 
 			struct
 			{
@@ -1016,13 +1019,13 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_FUNC)
 			{
 				format_to(ctx.out(), "func(");
-				for (size_t i = 0; i < t->func.args.types.count; ++i)
+				for (size_t i = 0; i < t->as_func.sign.args.types.count; ++i)
 				{
 					if (i > 0)
 						format_to(ctx.out(), ", ");
-					format_to(ctx.out(), ":{}", t->func.args.types[i]);
+					format_to(ctx.out(), ":{}", t->as_func.sign.args.types[i]);
 				}
-				format_to(ctx.out(), "):{}", t->func.return_type);
+				format_to(ctx.out(), "):{}", t->as_func.sign.return_type);
 				return ctx.out();
 			}
 			else if (t->kind == sabre::Type::KIND_STRUCT)
@@ -1041,13 +1044,13 @@ namespace fmt
 					if (overload_i > 0)
 						format_to(ctx.out(), "\n");
 					format_to(ctx.out(), "{}. func(", overload_i++);
-					for (size_t i = 0; i < overload.type->func.args.types.count; ++i)
+					for (size_t i = 0; i < overload.type->as_func.sign.args.types.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), ":{}", overload.type->func.args.types[i]);
+						format_to(ctx.out(), ":{}", overload.type->as_func.sign.args.types[i]);
 					}
-					format_to(ctx.out(), "):{}", overload.type->func.return_type);
+					format_to(ctx.out(), "):{}", overload.type->as_func.sign.return_type);
 				}
 				return ctx.out();
 			}

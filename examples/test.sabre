@@ -1,10 +1,12 @@
 package main
 
-type Vertex struct {
-	position: vec4,
-	color: vec4,
+func add<T: type>(a, b: T): T {
+	if a < 2 {
+		return a;
+	}
+	return a + b;
 }
 
-type TriangleStream struct<T: type> {}
-
-var x: TriangleStream<TriangleStream<Vertex>>;
+func foo() {
+	var x = add(1, 1.5);
+}

@@ -979,7 +979,7 @@ namespace sabre
 		if (is_builtin)
 			return;
 
-		auto return_type = t->func.return_type;
+		auto return_type = t->as_func.sign.return_type;
 		mn::print_to(self.out, "{} {}(", _glsl_write_field(self, return_type, ""), _glsl_name(self, name));
 
 		if (d->func_decl.body != nullptr)
@@ -989,7 +989,7 @@ namespace sabre
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)
 		{
-			auto arg_type = t->func.args.types[i];
+			auto arg_type = t->as_func.sign.args.types[i];
 			for (auto name: arg.names)
 			{
 				if (i > 0)
@@ -1540,7 +1540,7 @@ namespace sabre
 			for (const auto& name: arg.names)
 			{
 				auto input_name = _glsl_name(self, name.str);
-				auto arg_type = entry_type->func.args.types[type_index++];
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
@@ -1563,9 +1563,9 @@ namespace sabre
 			_glsl_newline(self);
 
 		size_t out_location = 0;
-		if (entry_type->func.return_type != type_void)
+		if (entry_type->as_func.sign.return_type != type_void)
 		{
-			auto ret_type = entry_type->func.return_type;
+			auto ret_type = entry_type->as_func.sign.return_type;
 			auto output_name = _glsl_name(self, "_entry_point_output");
 
 			switch(ret_type->kind)
@@ -1616,7 +1616,7 @@ namespace sabre
 			for (const auto& name: arg.names)
 			{
 				auto input_name = _glsl_name(self, name.str);
-				auto arg_type = entry_type->func.args.types[type_index++];
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
@@ -1651,9 +1651,9 @@ namespace sabre
 			_glsl_newline(self);
 
 		size_t out_location = 0;
-		if (entry_type->func.return_type != type_void)
+		if (entry_type->as_func.sign.return_type != type_void)
 		{
-			auto ret_type = entry_type->func.return_type;
+			auto ret_type = entry_type->as_func.sign.return_type;
 			auto output_name = _glsl_name(self, "_entry_point_output");
 
 			switch(ret_type->kind)
@@ -1694,7 +1694,7 @@ namespace sabre
 				if (type_index > 0)
 					_glsl_newline(self);
 
-				auto arg_type = type->func.args.types[type_index];
+				auto arg_type = type->as_func.sign.args.types[type_index];
 				for (size_t i = 0; i < arg.names.count; ++i)
 				{
 					if (i > 0)
@@ -1720,7 +1720,7 @@ namespace sabre
 			}
 
 			// handle function return
-			auto return_type = type->func.return_type;
+			auto return_type = type->as_func.sign.return_type;
 			if (return_type != type_void)
 			{
 				_glsl_newline(self);

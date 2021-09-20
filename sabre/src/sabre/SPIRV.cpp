@@ -106,9 +106,9 @@ namespace sabre
 			break;
 		case Type::KIND_FUNC:
 		{
-			auto return_type = _spirv_type_gen(self, type->func.return_type);
+			auto return_type = _spirv_type_gen(self, type->as_func.sign.return_type);
 			res = spirv::module_type_func_new(self.out, return_type);
-			for (auto arg_type: type->func.args.types)
+			for (auto arg_type: type->as_func.sign.args.types)
 				spirv::module_type_func_arg(res, _spirv_type_gen(self, arg_type));
 			break;
 		}

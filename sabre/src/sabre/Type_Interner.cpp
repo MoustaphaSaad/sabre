@@ -160,7 +160,7 @@ namespace sabre
 
 		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_FUNC;
-		new_type->func = sign;
+		new_type->as_func.sign = sign;
 		mn::map_insert(self->func_table, sign, new_type);
 		return new_type;
 	}
