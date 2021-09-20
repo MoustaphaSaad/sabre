@@ -745,7 +745,7 @@ namespace sabre
 					for (const auto& arg_type_sign: atom.templated.args)
 					{
 						auto type = _typer_resolve_type_sign(self, arg_type_sign);
-						// assert(type_is_template_incomplete(type) == false);
+						assert(type_is_template_incomplete(type) == false);
 						mn::buf_push(args_types, type);
 					}
 					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc);
