@@ -140,6 +140,7 @@ namespace sabre
 		if (self)
 		{
 			mn::allocator_free(self->arena);
+			destruct(self->template_func_sign_list);
 			destruct(self->func_table);
 			mn::map_free(self->package_table);
 			mn::map_free(self->array_table);
@@ -150,8 +151,20 @@ namespace sabre
 	}
 
 	Type*
-	type_interner_func(Type_Interner* self, Func_Sign sign)
+	type_interner_func(Type_Interner* self, Func_Sign sign, mn::Buf<Type*> template_args)
 	{
+		// template functions doesn't get to be interned yet, they do when you instantiate them
+		if (template_args.count > 0)
+		{
+			auto new_type = mn::alloc_zerod_from<Type>(self->arena);
+			new_type->kind = Type::KIND_FUNC;
+			new_type->as_func.sign = sign;
+			new_type->as_func.template_args = template_args;
+			mn::buf_push(self->template_func_sign_list, sign);
+			return new_type;
+		}
+
+		// this is the code path for normal functions (without template arguments)
 		if(auto it = mn::map_lookup(self->func_table, sign))
 		{
 			func_sign_free(sign);

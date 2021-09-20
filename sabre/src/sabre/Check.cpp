@@ -2129,6 +2129,7 @@ namespace sabre
 		_typer_enter_scope(self, scope);
 		{
 			auto type_interner = self.unit->parent_unit->type_interner;
+			auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
 			for (auto template_arg: d->func_decl.template_args)
 			{
 				for (auto name: template_arg.names)
@@ -2137,6 +2138,7 @@ namespace sabre
 					auto type = type_interner_typename(type_interner, v);
 					v->type = type;
 					_typer_add_symbol(self, v);
+					mn::buf_push(template_args, v->type);
 				}
 			}
 
@@ -2155,7 +2157,7 @@ namespace sabre
 				}
 			}
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
-			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign);
+			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, template_args);
 
 			scope->expected_type = d->type->as_func.sign.return_type;
 
@@ -2627,6 +2629,9 @@ namespace sabre
 	inline static void
 	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t)
 	{
+		if (type_is_templated(t))
+			return;
+
 		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->as_func.sign.return_type, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{

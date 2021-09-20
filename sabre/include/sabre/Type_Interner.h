@@ -220,6 +220,7 @@ namespace sabre
 			struct
 			{
 				Func_Sign sign;
+				mn::Buf<Type*> template_args;
 			} as_func;
 
 			struct
@@ -611,6 +612,16 @@ namespace sabre
 		);
 	}
 
+	// returns whether the type is a templated type or not
+	inline static bool
+	type_is_templated(Type* t)
+	{
+		return (
+			(t->kind == Type::KIND_STRUCT && t->struct_type.template_args.count > 0) ||
+			(t->kind == Type::KIND_FUNC && t->as_func.template_args.count > 0)
+		);
+	}
+
 	// returns whether the type can be used in a bit operation
 	inline static bool
 	type_has_bit_ops(Type* a)
@@ -853,6 +864,8 @@ namespace sabre
 	struct Type_Interner
 	{
 		mn::memory::Arena* arena;
+		// TODO: we add func sign here just to be able to free them later, we need a to handle these in a cleaner way later
+		mn::Buf<Func_Sign> template_func_sign_list;
 		mn::Map<Func_Sign, Type*, Func_Sign_Hasher> func_table;
 		mn::Map<Unit_Package*, Type*> package_table;
 		mn::Map<Array_Sign, Type*, Array_Sign_Hasher> array_table;
@@ -875,8 +888,10 @@ namespace sabre
 	}
 
 	// interns a function signature into a type, it will consume the given function signature
+	// if the function has template arguments then it's not interned, when you instantiate it
+	// then we do the interning
 	SABRE_EXPORT Type*
-	type_interner_func(Type_Interner* self, Func_Sign sign);
+	type_interner_func(Type_Interner* self, Func_Sign sign, mn::Buf<Type*> template_args);
 
 	// creates a new incomplete type for the given symbol
 	SABRE_EXPORT Type*
