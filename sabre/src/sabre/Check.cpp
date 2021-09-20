@@ -236,7 +236,7 @@ namespace sabre
 	_typer_resolve_expr(Typer& self, Expr* e);
 
 	inline static void
-	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t);
+	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t, Scope* scope);
 
 	inline static void
 	_typer_shallow_walk(Typer& self);
@@ -297,7 +297,8 @@ namespace sabre
 		{
 			assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
 			_typer_add_func_overload(self, sym->type, decl);
-			_typer_resolve_func_body_internal(self, decl, decl_type);
+			auto scope = unit_create_scope_for(self.unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
+			_typer_resolve_func_body_internal(self, decl, decl_type, scope);
 		}
 		return sym;
 	}
@@ -538,18 +539,8 @@ namespace sabre
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
 
 	inline static Type*
-	_typer_template_instantiate(Typer& self, Type* template_type, const Type_Sign_Atom& template_atom)
+	_typer_template_instantiate(Typer& self, Type* template_type, const mn::Buf<Type*>& template_args_types, Location instantiation_loc)
 	{
-		// we should do something with template arguments
-		auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-		mn::buf_reserve(args_types, template_atom.templated.args.count);
-		for (const auto& arg_type_sign: template_atom.templated.args)
-		{
-			auto type = _typer_resolve_type_sign(self, arg_type_sign);
-			assert(type_is_template_incomplete(type) == false);
-			mn::buf_push(args_types, type);
-		}
-
 		switch (template_type->kind)
 		{
 		case Type::KIND_STRUCT:
@@ -557,7 +548,7 @@ namespace sabre
 			if (template_type->struct_type.template_args.count == 0)
 			{
 				Err err{};
-				err.loc = template_atom.templated.type_name.loc;
+				err.loc = instantiation_loc;
 				err.msg = mn::strf(
 					"type '{}' is not a template type",
 					template_type
@@ -566,14 +557,14 @@ namespace sabre
 				return template_type;
 			}
 
-			if (args_types.count != template_type->struct_type.template_args.count)
+			if (template_args_types.count != template_type->struct_type.template_args.count)
 			{
 				Err err{};
-				err.loc = template_atom.templated.type_name.loc;
+				err.loc = instantiation_loc;
 				err.msg = mn::strf(
 					"template type expected #{} arguments, but #{} only was provided",
 					template_type->struct_type.template_args.count,
-					args_types.count
+					template_args_types.count
 				);
 				unit_err(self.unit, err);
 				return template_type;
@@ -600,12 +591,87 @@ namespace sabre
 						}
 					}
 					// TODO: revisit later, you probably should issue an error here
-					assert(template_args_index < args_types.count);
-					mn::buf_push(fields_types, args_types[template_args_index]);
+					assert(template_args_index < template_args_types.count);
+					mn::buf_push(fields_types, template_args_types[template_args_index]);
 				}
 			}
 
-			return type_interner_template_struct_instantiate(self.unit->parent_unit->type_interner, template_type, fields_types);
+			return type_interner_template_struct_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, fields_types);
+		}
+		case Type::KIND_FUNC:
+		{
+			if (template_type->as_func.template_args.count == 0)
+			{
+				Err err{};
+				err.loc = instantiation_loc;
+				err.msg = mn::strf(
+					"type '{}' is not a template type",
+					template_type
+				);
+				unit_err(self.unit, err);
+				return template_type;
+			}
+
+			if (template_args_types.count != template_type->as_func.template_args.count)
+			{
+				Err err{};
+				err.loc = instantiation_loc;
+				err.msg = mn::strf(
+					"template type expected #{} arguments, but #{} only was provided",
+					template_type->as_func.template_args.count,
+					template_args_types.count
+				);
+				unit_err(self.unit, err);
+				return template_type;
+			}
+
+			auto scope = unit_scope_find(self.unit->parent_unit, template_type->as_func.template_func_decl);
+
+			auto func_args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+			for (auto symbol: scope->symbols)
+			{
+				if (symbol->kind == Symbol::KIND_VAR)
+				{
+					if (type_is_template_incomplete(symbol->type) == false)
+					{
+						mn::buf_push(func_args_types, symbol->type);
+					}
+					else
+					{
+						size_t template_args_index = template_type->as_func.template_args.count;
+						for (size_t i = 0; i < template_type->as_func.template_args.count; ++i)
+						{
+							if (type_is_equal(symbol->type, template_type->as_func.template_args[i]))
+							{
+								template_args_index = i;
+								break;
+							}
+						}
+						// TODO: revisit later, you probably should issue an error here
+						assert(template_args_index < template_args_types.count);
+						mn::buf_push(func_args_types, template_args_types[template_args_index]);
+					}
+				}
+			}
+
+			auto return_type = template_type->as_func.sign.return_type;
+			if (type_is_template_incomplete(return_type))
+			{
+				size_t template_args_index = template_type->struct_type.template_args.count;
+				for (size_t i = 0; i < template_type->struct_type.template_args.count; ++i)
+				{
+					if (type_is_equal(return_type, template_type->struct_type.template_args[i]))
+					{
+						template_args_index = i;
+						break;
+					}
+				}
+				// TODO: revisit later, you probably should issue an error here
+				assert(template_args_index < template_args_types.count);
+				return_type = template_args_types[template_args_index];
+			}
+
+			return type_interner_template_func_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, func_args_types, return_type);
 		}
 		default:
 			assert(false && "unreachable");
@@ -672,7 +738,18 @@ namespace sabre
 			case Type_Sign_Atom::KIND_TEMPLATED:
 			{
 				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
-					res = _typer_template_instantiate(self, named_type, atom);
+				{
+					// we should do something with template arguments
+					auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+					mn::buf_reserve(args_types, atom.templated.args.count);
+					for (const auto& arg_type_sign: atom.templated.args)
+					{
+						auto type = _typer_resolve_type_sign(self, arg_type_sign);
+						assert(type_is_template_incomplete(type) == false);
+						mn::buf_push(args_types, type);
+					}
+					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc);
+				}
 				break;
 			}
 			default:
@@ -1069,36 +1146,6 @@ namespace sabre
 		if (type->kind == Type::KIND_FUNC)
 		{
 			auto symbol = e->call.base->symbol;
-			// special case emit function
-			if (auto decl = symbol_decl(symbol))
-			{
-				if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY_EMIT_FUNC) != nullptr)
-				{
-					if (e->call.args.count != 1)
-					{
-						Err err{};
-						err.loc = e->loc;
-						err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
-						unit_err(self.unit, err);
-						return type->as_func.sign.return_type;
-					}
-
-					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
-					if (auto out_sym = self.unit->parent_unit->geometry_shader_output)
-					{
-						_typer_resolve_symbol(self, out_sym);
-						if (type_is_equal(out_sym->type, arg_type) == false)
-						{
-							Err err{};
-							err.loc = e->call.args[0]->loc;
-							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 0, out_sym->type, arg_type);
-							unit_err(self.unit, err);
-						}
-					}
-					return type->as_func.sign.return_type;
-				}
-			}
-
 			if (e->call.args.count != type->as_func.sign.args.types.count)
 			{
 				Err err{};
@@ -1106,6 +1153,57 @@ namespace sabre
 				err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
 				unit_err(self.unit, err);
 				return type->as_func.sign.return_type;
+			}
+
+			if (type_is_templated(type))
+			{
+				// instantiate the function before actually calling it
+				auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+				mn::buf_resize_fill(args_types, type->as_func.template_args.count, type_void);
+				for (size_t i = 0; i < e->call.args.count; ++i)
+				{
+					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+					auto expected_type = type->as_func.sign.args.types[i];
+					if (type_is_template_incomplete(expected_type))
+					{
+						size_t template_type_index = type->as_func.template_args.count;
+						for (size_t j = 0; j < type->as_func.template_args.count; ++j)
+						{
+							if (type->as_func.template_args[j] == expected_type)
+							{
+								template_type_index = j;
+								break;
+							}
+						}
+						// TODO: you need to issue an error here later or something
+						assert(template_type_index < type->as_func.template_args.count);
+						args_types[template_type_index] = arg_type;
+					}
+				}
+
+				type = _typer_template_instantiate(self, type, args_types, e->loc);
+				auto d = symbol->func_sym.decl;
+				auto templated_scope = unit_scope_find(self.unit->parent_unit, d);
+				auto instantiated_scope = unit_create_scope_for(self.unit, type, templated_scope, d->name.str, type->as_func.sign.return_type, Scope::FLAG_NONE);
+				_typer_enter_scope(self, instantiated_scope);
+				{
+					// push arguments to instantiated scope
+					size_t i = 0;
+					for (auto arg: d->func_decl.args)
+					{
+						auto arg_type = type->as_func.sign.args.types[i];
+						for (auto name: arg.names)
+						{
+							auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+							v->type = arg_type;
+							v->state = STATE_RESOLVED;
+							_typer_add_symbol(self, v);
+							++i;
+						}
+					}
+				}
+				_typer_leave_scope(self);
+				_typer_resolve_func_body_internal(self, d, type, instantiated_scope);
 			}
 
 			for (size_t i = 0; i < e->call.args.count; ++i)
@@ -2157,7 +2255,7 @@ namespace sabre
 				}
 			}
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
-			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, template_args);
+			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, d, template_args);
 
 			scope->expected_type = d->type->as_func.sign.return_type;
 
@@ -2627,12 +2725,11 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t)
+	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t, Scope* scope)
 	{
 		if (type_is_templated(t))
 			return;
 
-		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->as_func.sign.return_type, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
 			// typecheck function body if it exists
@@ -2660,7 +2757,10 @@ namespace sabre
 	inline static void
 	_typer_resolve_func_body(Typer& self, Symbol* sym)
 	{
-		_typer_resolve_func_body_internal(self, sym->func_sym.decl, sym->type);
+		auto d = symbol_decl(sym);
+		auto t = sym->type;
+		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->as_func.sign.return_type, Scope::FLAG_NONE);
+		_typer_resolve_func_body_internal(self, sym->func_sym.decl, sym->type, scope);
 	}
 
 	inline static void
@@ -2668,7 +2768,8 @@ namespace sabre
 	{
 		for (auto [decl, decl_type]: sym->func_overload_set_sym.decls)
 		{
-			_typer_resolve_func_body_internal(self, decl, decl_type);
+			auto scope = unit_create_scope_for(self.unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
+			_typer_resolve_func_body_internal(self, decl, decl_type, scope);
 		}
 	}
 

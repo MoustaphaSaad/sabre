@@ -1,6 +1,6 @@
 package main
 
-func add<T: type>(a, b: T): T {
+func add<T, R: type>(a: R, b: T): T {
 	if a < 2 {
 		return a;
 	}
@@ -8,5 +8,5 @@ func add<T: type>(a, b: T): T {
 }
 
 func foo() {
-	var x = add(1, 1.5);
+	var x = add(1.5, 1);
 }

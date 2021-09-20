@@ -151,7 +151,7 @@ namespace sabre
 	}
 
 	Type*
-	type_interner_func(Type_Interner* self, Func_Sign sign, mn::Buf<Type*> template_args)
+	type_interner_func(Type_Interner* self, Func_Sign sign, Decl* decl, mn::Buf<Type*> template_args)
 	{
 		// template functions doesn't get to be interned yet, they do when you instantiate them
 		if (template_args.count > 0)
@@ -159,6 +159,7 @@ namespace sabre
 			auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 			new_type->kind = Type::KIND_FUNC;
 			new_type->as_func.sign = sign;
+			new_type->as_func.template_func_decl = decl;
 			new_type->as_func.template_args = template_args;
 			mn::buf_push(self->template_func_sign_list, sign);
 			return new_type;
@@ -175,6 +176,26 @@ namespace sabre
 		new_type->kind = Type::KIND_FUNC;
 		new_type->as_func.sign = sign;
 		mn::map_insert(self->func_table, sign, new_type);
+		return new_type;
+	}
+
+	Type*
+	type_interner_template_func_instantiate(Type_Interner* self, Type* func_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& args_types, Type* return_type)
+	{
+		Template_Instantiation_Sign sign{};
+		sign.template_type = func_type;
+		sign.args = template_args_types;
+		if (auto it = mn::map_lookup(self->instantiation_table, sign))
+			return it->value;
+
+		auto func_sign = func_sign_new();
+		mn::buf_concat(func_sign.args.types, args_types);
+		func_sign.return_type = return_type;
+		auto new_type = type_interner_func(self, func_sign, nullptr, {});
+
+		sign.args = mn::buf_memcpy_clone(template_args_types);
+		mn::map_insert(self->instantiation_table, sign, new_type);
+
 		return new_type;
 	}
 
@@ -199,11 +220,11 @@ namespace sabre
 	}
 
 	Type*
-	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& fields_types)
+	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& fields_types)
 	{
 		Template_Instantiation_Sign sign{};
 		sign.template_type = struct_type;
-		sign.args = fields_types;
+		sign.args = template_args_types;
 		if (auto it = mn::map_lookup(self->instantiation_table, sign))
 			return it->value;
 
@@ -217,7 +238,7 @@ namespace sabre
 			new_type->struct_type.fields[i].type = fields_types[i];
 
 		_calc_struct_size(new_type);
-		sign.args = mn::buf_memcpy_clone(fields_types);
+		sign.args = mn::buf_memcpy_clone(template_args_types);
 		mn::map_insert(self->instantiation_table, sign, new_type);
 
 		return new_type;
