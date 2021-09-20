@@ -179,8 +179,6 @@ namespace sabre
 			struct
 			{
 				Tkn tkn;
-				// the symbol to which this atom points
-				Symbol* sym;
 				// the exact declaration which this atom uses
 				Decl* decl;
 			} atom;
@@ -640,6 +638,8 @@ namespace sabre
 				Stmt* body;
 				// texture sample operations within this function
 				mn::Buf<Texture_Sample_Op> sample_ops;
+				// geometry shader emit functions
+				bool has_emits;
 			} func_decl;
 
 			struct

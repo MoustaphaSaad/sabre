@@ -16,6 +16,7 @@ namespace sabre
 		Unit_Package* unit;
 		Scope* global_scope;
 		mn::Buf<Scope*> scope_stack;
+		mn::Buf<Decl*> func_stack;
 		mn::Buf<Type*> expected_expr_type;
 		int uniform_binding_generator;
 		int texture_binding_generator;

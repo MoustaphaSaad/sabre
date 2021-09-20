@@ -638,9 +638,9 @@ namespace sabre
 	{
 		if (e->atom.tkn.kind == Tkn::KIND_ID)
 		{
-			if (e->atom.sym)
+			if (e->symbol)
 			{
-				auto package_name = mn::str_lit(_glsl_symbol_name(e->atom.sym, e->atom.decl));
+				auto package_name = mn::str_lit(_glsl_symbol_name(e->symbol, e->atom.decl));
 				if (package_name.count > 0)
 				{
 					mn::print_to(self.out, "{}", _glsl_name(self, package_name.ptr));
@@ -708,7 +708,7 @@ namespace sabre
 		bool is_lhs_enum = type_is_enum(e->type);
 
 		if (lhs && lhs->kind == Expr::KIND_ATOM)
-			is_lhs_package = lhs->atom.sym->kind == Symbol::KIND_PACKAGE;
+			is_lhs_package = lhs->symbol->kind == Symbol::KIND_PACKAGE;
 
 		if (is_lhs_package)
 		{

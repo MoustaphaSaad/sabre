@@ -30,6 +30,9 @@ namespace sabre
 		// set of io structs
 		mn::Map<Symbol*, ENTRY_IO_FLAG> io_structs;
 		size_t tmp_id;
+		// geometry shader specific data
+		// holds the name of geometry shader stream variable name
+		mn::Str geometry_stream_name;
 	};
 
 	// creates a new HLSL generator instance
