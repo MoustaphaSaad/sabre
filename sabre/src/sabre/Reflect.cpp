@@ -49,6 +49,7 @@ namespace sabre
 			break;
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
+		case COMPILATION_MODE_GEOMETRY:
 			_generate_entry_shader_io(unit, compilation_unit->entry_symbol);
 			break;
 		default:
