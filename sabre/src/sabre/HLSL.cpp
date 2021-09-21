@@ -673,6 +673,30 @@ namespace sabre
 	}
 
 	inline static void
+	_hlsl_write_geometry_stream_arg(HLSL& self)
+	{
+		auto geometry_output_type = self.unit->parent_unit->geometry_output;
+		auto geometry_out = self.unit->parent_unit->geometry_out;
+
+		if (geometry_out.str == KEYWORD_TRIANGLE)
+		{
+			mn::print_to(self.out, "inout TriangleStream<{}> {}", _hlsl_write_field(self, geometry_output_type, ""), self.geometry_stream_name);
+		}
+		else if (geometry_out.str == KEYWORD_LINE)
+		{
+			mn::print_to(self.out, "inout LineStream<{}> {}", _hlsl_write_field(self, geometry_output_type, ""), self.geometry_stream_name);
+		}
+		else if (geometry_out.str == KEYWORD_POINT)
+		{
+			mn::print_to(self.out, "inout PointStream<{}> {}", _hlsl_write_field(self, geometry_output_type, ""), self.geometry_stream_name);
+		}
+		else
+		{
+			assert(false && "unreachable");
+		}
+	}
+
+	inline static void
 	_hlsl_zero_value(HLSL& self, Type* t)
 	{
 		switch (t->kind)
@@ -750,9 +774,9 @@ namespace sabre
 	{
 		if (e->atom.tkn.kind == Tkn::KIND_ID)
 		{
-			if (e->atom.sym)
+			if (e->symbol)
 			{
-				auto package_name = mn::str_lit(_hlsl_symbol_name(e->atom.sym, e->atom.decl));
+				auto package_name = mn::str_lit(_hlsl_symbol_name(e->symbol, e->atom.decl));
 				if (package_name.count > 0)
 				{
 					mn::print_to(self.out, "{}", _hlsl_name(self, package_name.ptr));
@@ -807,7 +831,7 @@ namespace sabre
 		bool is_lhs_enum = type_is_enum(e->type);
 
 		if (lhs && lhs->kind == Expr::KIND_ATOM)
-			is_lhs_package = lhs->atom.sym->kind == Symbol::KIND_PACKAGE;
+			is_lhs_package = lhs->symbol->kind == Symbol::KIND_PACKAGE;
 
 		if (is_lhs_package)
 		{
@@ -846,9 +870,15 @@ namespace sabre
 	_hlsl_gen_call_expr(HLSL& self, Expr* e)
 	{
 		bool is_method = false;
+		bool is_emit = false;
+		bool is_end_primitive = false;
+		bool has_emits = false;
 		if (auto d = e->call.func)
 		{
 			is_method = mn::map_lookup(d->tags.table, KEYWORD_HLSL_METHOD) != nullptr;
+			is_emit = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY_EMIT_FUNC) != nullptr;
+			is_end_primitive = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY_END_PRIMITIVE_FUNC) != nullptr;
+			has_emits = d->func_decl.has_emits;
 		}
 
 		if (is_method && e->call.args.count > 0)
@@ -863,6 +893,34 @@ namespace sabre
 					mn::print_to(self.out, ", ");
 				hlsl_expr_gen(self, e->call.args[i]);
 			}
+			if (has_emits)
+			{
+				if (e->call.args.count > 1)
+					mn::print_to(self.out, ", ");
+				mn::print_to(self.out, "{}", self.geometry_stream_name);
+			}
+			mn::print_to(self.out, ")");
+		}
+		else if (is_emit)
+		{
+			mn::print_to(self.out, "{}.Append(", self.geometry_stream_name);
+			for (size_t i = 0; i < e->call.args.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, e->call.args[i]);
+			}
+			mn::print_to(self.out, ")");
+		}
+		else if (is_end_primitive)
+		{
+			mn::print_to(self.out, "{}.RestartStrip(", self.geometry_stream_name);
+			for (size_t i = 0; i < e->call.args.count; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, e->call.args[i]);
+			}
 			mn::print_to(self.out, ")");
 		}
 		else
@@ -874,6 +932,12 @@ namespace sabre
 				if (i > 0)
 					mn::print_to(self.out, ", ");
 				hlsl_expr_gen(self, e->call.args[i]);
+			}
+			if (has_emits)
+			{
+				if (e->call.args.count > 0)
+					mn::print_to(self.out, ", ");
+				mn::print_to(self.out, "{}", self.geometry_stream_name);
 			}
 			mn::print_to(self.out, ")");
 		}
@@ -1445,8 +1509,16 @@ namespace sabre
 		if (is_builtin)
 			return;
 
-		auto return_type = t->as_func.sign.return_type;
-		mn::print_to(self.out, "{} {}(", _hlsl_write_field(self, return_type, ""), _hlsl_name(self, name));
+		bool is_geometry = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY) != nullptr;
+		if (is_geometry)
+		{
+			mn::print_to(self.out, "void {}(", _hlsl_name(self, name));
+		}
+		else
+		{
+			auto return_type = t->as_func.sign.return_type;
+			mn::print_to(self.out, "{} {}(", _hlsl_write_field(self, return_type, ""), _hlsl_name(self, name));
+		}
 
 		if (d->func_decl.body != nullptr)
 			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
@@ -1463,6 +1535,14 @@ namespace sabre
 				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
 				++i;
 			}
+		}
+
+		// handle if function has emits
+		if (d->func_decl.has_emits)
+		{
+			if (i > 0)
+				mn::print_to(self.out, ", ");
+			_hlsl_write_geometry_stream_arg(self);
 		}
 
 		mn::print_to(self.out, ")");
@@ -1835,6 +1915,11 @@ namespace sabre
 	{
 		auto decl = entry->func_sym.decl;
 		auto entry_type = entry->type;
+
+		// extract geometry shader data
+		// generate name for geometry shader output stream
+		self.geometry_stream_name = mn::str_from_c(_hlsl_tmp_name(self));
+
 		size_t type_index = 0;
 		// generate input
 		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
@@ -1888,51 +1973,107 @@ namespace sabre
 		auto d = entry->func_sym.decl;
 		auto t = entry->type;
 		auto return_type = t->as_func.sign.return_type;
-		mn::print_to(self.out, "{} main(", _hlsl_write_field(self, return_type, ""));
+		auto is_geometry = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY);
 
-		if (d->func_decl.body != nullptr)
-			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
-		mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
-
-		size_t i = 0;
-		for (auto arg: d->func_decl.args)
+		if (is_geometry)
 		{
-			auto arg_type = t->as_func.sign.args.types[i];
-			for (auto name: arg.names)
-			{
-				if (i > 0)
-					mn::print_to(self.out, ", ");
-				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
-				++i;
-			}
-		}
+			auto geometry_max_vertex_count = self.unit->parent_unit->geometry_max_vertex_count;
+			auto geometry_in = self.unit->parent_unit->geometry_in;
+			mn::print_to(self.out, "[maxvertexcount({})] void main(", geometry_max_vertex_count.str);
 
-		mn::print_to(self.out, ")");
+			if (d->func_decl.body != nullptr)
+				_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
+			mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
+
+			size_t i = 0;
+			for (auto arg: d->func_decl.args)
+			{
+				auto arg_type = t->as_func.sign.args.types[i];
+				for (auto name: arg.names)
+				{
+					if (i > 0)
+						mn::print_to(self.out, ", ");
+					mn::print_to(self.out, "{} {}", geometry_in.str, _hlsl_write_field(self, arg_type, name.str));
+					++i;
+				}
+			}
+
+			if (i > 0)
+				mn::print_to(self.out, ", ");
+			_hlsl_write_geometry_stream_arg(self);
+			mn::print_to(self.out, ")");
+		}
+		else
+		{
+			mn::print_to(self.out, "{} main(", _hlsl_write_field(self, return_type, ""));
+
+			if (d->func_decl.body != nullptr)
+				_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
+			mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
+
+			size_t i = 0;
+			for (auto arg: d->func_decl.args)
+			{
+				auto arg_type = t->as_func.sign.args.types[i];
+				for (auto name: arg.names)
+				{
+					if (i > 0)
+						mn::print_to(self.out, ", ");
+					mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+					++i;
+				}
+			}
+			mn::print_to(self.out, ")");
+		}
 
 		_hlsl_newline(self);
 		mn::print_to(self.out, "{{");
 		++self.indent;
 
-		_hlsl_newline(self);
-		if (return_type && return_type != type_void)
+		if (is_geometry)
 		{
-			mn::print_to(self.out, "return ");
-		}
-
-		mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(entry)));
-		i = 0;
-		for (auto arg: d->func_decl.args)
-		{
-			auto arg_type = t->as_func.sign.args.types[i];
-			for (auto name: arg.names)
+			_hlsl_newline(self);
+			mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(entry)));
+			size_t i = 0;
+			for (auto arg: d->func_decl.args)
 			{
-				if (i > 0)
-					mn::print_to(self.out, ", ");
-				mn::print_to(self.out, "{}", name.str);
-				++i;
+				auto arg_type = t->as_func.sign.args.types[i];
+				for (auto name: arg.names)
+				{
+					if (i > 0)
+						mn::print_to(self.out, ", ");
+					mn::print_to(self.out, "{}", name.str);
+					++i;
+				}
 			}
+			if (i > 0)
+				mn::print_to(self.out, ", ");
+			mn::print_to(self.out, "{}", self.geometry_stream_name);
+			mn::print_to(self.out, ");");
 		}
-		mn::print_to(self.out, ");");
+		else
+		{
+			_hlsl_newline(self);
+			if (return_type && return_type != type_void)
+			{
+				mn::print_to(self.out, "return ");
+			}
+
+			mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(entry)));
+			size_t i = 0;
+			for (auto arg: d->func_decl.args)
+			{
+				auto arg_type = t->as_func.sign.args.types[i];
+				for (auto name: arg.names)
+				{
+					if (i > 0)
+						mn::print_to(self.out, ", ");
+					mn::print_to(self.out, "{}", name.str);
+					++i;
+				}
+			}
+			mn::print_to(self.out, ");");
+		}
 
 		--self.indent;
 		_hlsl_newline(self);
@@ -1970,6 +2111,7 @@ namespace sabre
 		mn::map_free(self.reserved_to_alternative);
 		mn::map_free(self.symbol_to_names);
 		mn::set_free(self.io_structs);
+		mn::str_free(self.geometry_stream_name);
 	}
 
 	void

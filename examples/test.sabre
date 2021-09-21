@@ -1,12 +1,10 @@
 package main
 
-func add<T, R: type>(a: R, b: T): T {
-	if a < 2 {
-		return a;
-	}
-	return a + b;
+type Triangle_Stream struct<T: type> {}
+
+func emit<T: type>(stream: Triangle_Stream<T>, v: T) {
 }
 
-func foo() {
-	var x = add(1.5, 1);
+func koko(stream: Triangle_Stream<int>) {
+	emit(stream, :vec2{});
 }

@@ -1,6 +1,14 @@
 package points
 
-import "std"
+// add builtin tag just to not generate the function
+@builtin
+@geometry_emit_func
+func emit()
+
+// add builtin tag just to not generate the function
+@builtin
+@geometry_end_primitive_func
+func end_primitive()
 
 type GS_Input struct {
 	center: vec3,
@@ -25,9 +33,9 @@ type Camera struct {
 @uniform{binding = 0} var camera: Camera;
 
 func foo(a, b, c: PS_Input) {
-	std.emit(a);
-	std.emit(b);
-	std.emit(c);
+	emit(a);
+	emit(b);
+	emit(c);
 }
 
 @geometry {
@@ -68,15 +76,15 @@ func main(input: [1]GS_Input): PS_Input {
 	v2.pos_viewport = 0.5 * (v2.position.xy + :vec2{1, 1}) * camera.viewport;
 	v3.pos_viewport = 0.5 * (v3.position.xy + :vec2{1, 1}) * camera.viewport;
 
-	std.emit(v0);
-	std.emit(v3);
-	std.emit(v1);
+	emit(v0);
+	emit(v3);
+	emit(v1);
 
-	std.emit(v0);
-	std.emit(v2);
-	std.emit(v3);
+	emit(v0);
+	emit(v2);
+	emit(v3);
 
 	foo(v0, v3, v1);
 
-	std.end_primitive();
+	end_primitive();
 }

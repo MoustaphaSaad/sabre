@@ -45,7 +45,12 @@ namespace sabre
 	inline constexpr const char* KEYWORD_GEOMETRY = "geometry";
 	inline constexpr const char* KEYWORD_GEOMETRY_EMIT_FUNC = "geometry_emit_func";
 	inline constexpr const char* KEYWORD_GEOMETRY_END_PRIMITIVE_FUNC = "geometry_end_primitive_func";
-	inline constexpr const char* KEYWORD_VERTEX_TYPE = "vertex_type";
+	inline constexpr const char* KEYWORD_MAX_VERTEX_COUNT = "max_vertex_count";
+	inline constexpr const char* KEYWORD_IN = "in";
+	inline constexpr const char* KEYWORD_OUT = "out";
+	inline constexpr const char* KEYWORD_POINT = "point";
+	inline constexpr const char* KEYWORD_LINE = "line";
+	inline constexpr const char* KEYWORD_TRIANGLE = "triangle";
 
 	enum COMPILATION_STAGE
 	{
@@ -273,7 +278,10 @@ namespace sabre
 		// option to the command line
 		Symbol* entry_symbol;
 		// geometry shader output type
-		Symbol* geometry_shader_output;
+		Type* geometry_output;
+		Tkn geometry_max_vertex_count;
+		Tkn geometry_in;
+		Tkn geometry_out;
 		// reflection information
 		// input layout of above entry point
 		mn::Map<const char*, Type*> input_layout;
