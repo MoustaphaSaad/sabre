@@ -1939,8 +1939,8 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_expr(Typer& self, Expr* e)
 	{
-		// if (e->type)
-		// 	return e->type;
+		if (e->type)
+			return e->type;
 
 		switch (e->kind)
 		{
