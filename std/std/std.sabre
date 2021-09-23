@@ -47,7 +47,28 @@ func normalize(:vec2): vec2
 func normalize(:float): float
 
 @builtin
+func min(a, b: float): float
+
+@builtin
+func min(a, b: vec2): vec2
+
+@builtin
+func min(a, b: vec3): vec3
+
+@builtin
+func min(a, b: vec4): vec4
+
+@builtin
 func max(a, b: float): float
+
+@builtin
+func max(a, b: vec2): vec2
+
+@builtin
+func max(a, b: vec3): vec3
+
+@builtin
+func max(a, b: vec4): vec4
 
 @builtin
 func dot(a, b: vec4): float
@@ -363,6 +384,69 @@ func fract(a: vec3): vec3
 	hlsl = "frac"
 }
 func fract(a: vec4): vec4
+
+@builtin
+func smoothstep(x, y, a: float): float
+
+@builtin
+func smoothstep(x, y, a: vec2): vec2
+
+@builtin
+func smoothstep(x, y, a: vec3): vec3
+
+@builtin
+func smoothstep(x, y, a: vec4): vec4
+
+@builtin
+func smoothstep(x, y: float, a: vec2): vec2
+
+@builtin
+func smoothstep(x, y: float, a: vec3): vec3
+
+@builtin
+func smoothstep(x, y: float, a: vec4): vec4
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: float): float
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: vec2): vec2
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: vec3): vec3
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: vec4): vec4
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y: vec2, a: float): vec2
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y: vec3, a: float): vec3
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y: vec4, a: float): vec4
 
 const MAX_COLOR_ATTACHMENT = 4;
 
