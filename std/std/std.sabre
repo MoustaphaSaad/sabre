@@ -388,11 +388,47 @@ func fract(a: vec4): vec4
 @builtin
 func smoothstep(x, y, a: float): float
 
+@builtin
+func smoothstep(x, y, a: vec2): vec2
+
+@builtin
+func smoothstep(x, y, a: vec3): vec3
+
+@builtin
+func smoothstep(x, y, a: vec4): vec4
+
+@builtin
+func smoothstep(x, y: float, a: vec2): vec2
+
+@builtin
+func smoothstep(x, y: float, a: vec3): vec3
+
+@builtin
+func smoothstep(x, y: float, a: vec4): vec4
+
 @builtin {
 	glsl = "mix"
 	hlsl = "lerp"
 }
 func lerp(x, y, a: float): float
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: vec2): vec2
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: vec3): vec3
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(x, y, a: vec4): vec4
 
 @builtin {
 	glsl = "mix"
