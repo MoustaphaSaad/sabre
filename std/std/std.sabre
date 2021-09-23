@@ -47,6 +47,9 @@ func normalize(:vec2): vec2
 func normalize(:float): float
 
 @builtin
+func min(:float, :float): float
+
+@builtin
 func max(a, b: float): float
 
 @builtin
@@ -363,6 +366,15 @@ func fract(a: vec3): vec3
 	hlsl = "frac"
 }
 func fract(a: vec4): vec4
+
+@builtin
+func smoothstep(:float, :float, :float): float
+
+@builtin {
+	glsl = "mix"
+	hlsl = "lerp"
+}
+func lerp(:vec4, :vec4, :float): vec4
 
 const MAX_COLOR_ATTACHMENT = 4;
 
