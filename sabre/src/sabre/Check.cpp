@@ -3440,10 +3440,34 @@ namespace sabre
 	}
 
 	void
-	typer_check(Typer& self)
+	typer_shallow_walk(Typer& self)
 	{
 		_typer_shallow_walk(self);
 
+		for (auto symbol: self.global_scope->symbols)
+		{
+			if (symbol->kind == Symbol::KIND_FUNC)
+			{
+				auto decl = symbol_decl(symbol);
+				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
+				{
+					mn::log_debug("vertex shader: {}", decl->name.str);
+				}
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
+				{
+					mn::log_debug("pixel shader: {}", decl->name.str);
+				}
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY) != nullptr)
+				{
+					mn::log_debug("geometry shader: {}", decl->name.str);
+				}
+			}
+		}
+	}
+
+	void
+	typer_check(Typer& self)
+	{
 		auto compilation_unit = self.unit->parent_unit;
 		Symbol* entry = nullptr;
 

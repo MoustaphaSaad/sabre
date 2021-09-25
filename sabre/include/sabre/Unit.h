@@ -256,6 +256,21 @@ namespace sabre
 		COMPILATION_MODE_GEOMETRY,
 	};
 
+	// represents a single entry point, along with its kind and reachable symbols
+	struct Entry_Point
+	{
+		COMPILATION_MODE mode;
+		Symbol* entry;
+		mn::Buf<Symbol*> reachable_symbols;
+	};
+
+	// frees the given entry point instance
+	inline static void
+	entry_point_free(Entry_Point& self)
+	{
+		mn::buf_free(self.reachable_symbols);
+	}
+
 	struct Unit
 	{
 		// used to intern strings, usually token strings

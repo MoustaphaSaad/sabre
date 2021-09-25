@@ -37,6 +37,10 @@ namespace sabre
 		typer_free(self);
 	}
 
+	// performs shallow walk over all the symbols
+	SABRE_EXPORT void
+	typer_shallow_walk(Typer& self);
+
 	// performs type checking on the initialized typer
 	SABRE_EXPORT void
 	typer_check(Typer& self);

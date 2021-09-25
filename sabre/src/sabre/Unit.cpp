@@ -623,6 +623,7 @@ namespace sabre
 			bool has_errors = false;
 			auto typer = typer_new(self);
 			mn_defer(typer_free(typer));
+			typer_shallow_walk(typer);
 			typer_check(typer);
 			if (unit_package_has_errors(self))
 			{
