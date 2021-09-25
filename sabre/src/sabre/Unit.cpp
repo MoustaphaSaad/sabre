@@ -616,35 +616,50 @@ namespace sabre
 	}
 
 	bool
-	unit_package_check(Unit_Package* self)
+	unit_package_check(Unit_Package* self, Entry_Point* entry)
 	{
-		if (self->stage == COMPILATION_STAGE_CHECK)
+		if (entry)
 		{
-			auto start = _capture_timepoint();
-			bool has_errors = false;
-			self->typer = typer_new(self);
-			typer_shallow_walk(self->typer);
-
-			auto parent = self->parent_unit;
-			if (parent->entry != nullptr && self == parent->root_package)
+			if (entry->stage == COMPILATION_STAGE_CHECK)
 			{
-				// search for the entry point and type check it instead
-				auto entry = unit_entry_find(parent, parent->entry);
-				if (entry)
+				auto start = _capture_timepoint();
+				bool has_errors = false;
+				if (self->typer == nullptr)
 				{
-					typer_check_entry(self->typer, entry);
+					self->typer = typer_new(self);
+					typer_shallow_walk(self->typer);
+				}
+
+				typer_check_entry(self->typer, entry);
+
+				if (unit_package_has_errors(self))
+				{
+					has_errors = true;
+					entry->stage = COMPILATION_STAGE_FAILED;
 				}
 				else
 				{
-					Err err{};
-					err.msg = mn::strf("cannot find entry point '{}'", parent->entry);
-					unit_err(self, err);
+					entry->stage = COMPILATION_STAGE_CODEGEN;
 				}
+				auto end = _capture_timepoint();
+				#if SABRE_LOG_METRICS
+				mn::log_info("Package '{}' checking time {}", self->absolute_path, end - start);
+				#endif
+				return has_errors == false;
 			}
-			else
+		}
+		else
+		{
+			auto start = _capture_timepoint();
+			bool has_errors = false;
+			if (self->typer == nullptr)
 			{
-				typer_check_library(self->typer);
+				self->typer = typer_new(self);
+				typer_shallow_walk(self->typer);
 			}
+
+			typer_check_library(self->typer);
+
 			if (unit_package_has_errors(self))
 			{
 				has_errors = true;
@@ -660,10 +675,8 @@ namespace sabre
 			#endif
 			return has_errors == false;
 		}
-		else
-		{
-			return unit_package_has_errors(self) == false;
-		}
+
+		return unit_package_has_errors(self) == false;
 	}
 
 	void
@@ -820,18 +833,33 @@ namespace sabre
 		for (size_t i = 0; i < self->packages.count; ++i)
 		{
 			auto package = self->packages[i];
-			if (unit_package_check(package) == false)
+			if (unit_package_check(package, nullptr) == false)
 				has_errors = true;
-
-			// if we have a unit which is not in library mode
-			// then it's enough to check the first/main package only
-			// we don't need to go through other packages because we
-			// check only their used symbols
-			if (self->entry != nullptr)
-			{
-				break;
-			}
 		}
+		auto end = _capture_timepoint();
+		#if SABRE_LOG_METRICS
+		mn::log_info("Total checking time {}", end - start);
+		#endif
+		return has_errors == false;
+	}
+
+	void
+	unit_scan_entry_points(Unit* self)
+	{
+		// we only do it the first time
+		if (self->root_package->typer == nullptr)
+		{
+			self->root_package->typer = typer_new(self->root_package);
+			typer_shallow_walk(self->root_package->typer);
+		}
+	}
+
+	bool
+	unit_check_entry(Unit* self, Entry_Point* entry)
+	{
+		bool has_errors = false;
+		auto start = _capture_timepoint();
+		unit_package_check(entry->symbol->package, entry);
 		auto end = _capture_timepoint();
 		#if SABRE_LOG_METRICS
 		mn::log_info("Total checking time {}", end - start);

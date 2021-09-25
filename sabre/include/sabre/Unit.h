@@ -25,6 +25,7 @@ namespace sabre
 	struct Type;
 	struct Scope;
 	struct Typer;
+	struct Entry_Point;
 
 	// this is a list of constant strings that's used across stages
 	// it's placed here so that when we use them as map keyes we don't
@@ -221,8 +222,9 @@ namespace sabre
 	unit_package_parse(Unit_Package* self);
 
 	// checks the given package unit, and returns true on success
+	// if an entry is provided it will typecheck it, otherwise it will typecheck all (library mode)
 	SABRE_EXPORT bool
-	unit_package_check(Unit_Package* self);
+	unit_package_check(Unit_Package* self, Entry_Point* entry);
 
 	// dumps the tokens in this package unit
 	SABRE_EXPORT void
@@ -262,6 +264,7 @@ namespace sabre
 	struct Entry_Point
 	{
 		COMPILATION_MODE mode;
+		COMPILATION_STAGE stage;
 		Symbol* symbol;
 		mn::Buf<Symbol*> reachable_symbols;
 	};
@@ -272,6 +275,8 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod<Entry_Point>();
 		self->mode = mode;
+		// all entry points starts at type checking because they are first scanned there
+		self->stage = COMPILATION_STAGE_CHECK;
 		self->symbol = symbol;
 		return self;
 	}
@@ -396,9 +401,17 @@ namespace sabre
 	SABRE_EXPORT bool
 	unit_parse(Unit* self);
 
-	// typecheckes the given unit and returns whether it finishes correctly
+	// typechecks the given unit and returns whether it finishes correctly
 	SABRE_EXPORT bool
 	unit_check(Unit* self);
+
+	// scans for entry points in the given compilation unit and populates the entry points
+	SABRE_EXPORT void
+	unit_scan_entry_points(Unit* self);
+
+	// typechecks the given entry point in this compilation unit
+	SABRE_EXPORT bool
+	unit_check_entry(Unit* self, Entry_Point* entry);
 
 	// generates reflection information for the given unit
 	// it should have an entry point specifed

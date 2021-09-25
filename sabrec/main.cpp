@@ -2,6 +2,7 @@
 #include <mn/Defer.h>
 #include <mn/Path.h>
 
+#include <sabre/Unit.h>
 #include <sabre/Utils.h>
 
 const char* HELP = R"""(sabrec the sabre compiler
@@ -19,7 +20,9 @@ COMMANDS:
   spirv-gen: generated SPIRV code from the given files
 
 OPTIONS:
-  -entry: specifies the entry point function of the given program)""";
+  -entry: (function name: string) specifies the entry point function of the given program
+  -collection: (collection_name:/path/to/collection) specifies a group of libraries on disk with an associated name
+  -all-entries: (void) compiles all the entries in given file)""";
 
 inline static void
 print_help()
@@ -31,6 +34,7 @@ struct Args
 {
 	mn::Str cmd;
 	mn::Str entry;
+	bool all_entries;
 	mn::Buf<mn::Str> input;
 	mn::Map<mn::Str, mn::Str> collections;
 };
@@ -58,6 +62,10 @@ args_parse(Args& self, int argc, char** argv)
 		{
 			self.entry = mn::str_lit(argv[i + 1]);
 			++i;
+		}
+		else if (str == "-all-entries")
+		{
+			self.all_entries = true;
 		}
 		else if (str == "-collection" && i + 1 < argc)
 		{
@@ -104,6 +112,32 @@ args_parse(Args& self, int argc, char** argv)
 		}
 	}
 	return true;
+}
+
+inline static mn::Result<mn::Str, mn::Err>
+_check_file_all_entries(const mn::Str& filepath, const Args& args)
+{
+	if (mn::path_is_file(filepath) == false)
+		return mn::Err{ "file '{}' not found", filepath };
+
+	auto unit = sabre::unit_from_file(filepath, args.entry);
+	mn_defer(sabre::unit_free(unit));
+
+	for (const auto& [name, path]: args.collections)
+		if (auto err = sabre::unit_add_library_collection(unit, name, path))
+			return err;
+
+	if (sabre::unit_scan(unit) == false)
+		return sabre::unit_dump_errors(unit);
+
+	if (sabre::unit_parse(unit) == false)
+		return sabre::unit_dump_errors(unit);
+
+	sabre::unit_scan_entry_points(unit);
+
+	for (auto entry: unit->entry_points)
+		sabre::unit_check_entry(unit, entry);
+	return sabre::unit_dump_errors(unit);
 }
 
 int main(int argc, char** argv)
@@ -222,14 +256,28 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::check_file(path, mn::str_lit(""), args.entry, args.collections);
-		if (err)
+		if (args.all_entries == false)
 		{
-			mn::printerr("{}\n", err);
-			return EXIT_FAILURE;
+			auto [answer, err] = sabre::check_file(path, mn::str_lit(""), args.entry, args.collections);
+			if (err)
+			{
+				mn::printerr("{}\n", err);
+				return EXIT_FAILURE;
+			}
+			mn_defer(mn::str_free(answer));
+			mn::print("{}\n", answer);
 		}
-		mn_defer(mn::str_free(answer));
-		mn::print("{}\n", answer);
+		else
+		{
+			auto [answer, err] = _check_file_all_entries(path, args);
+			if (err)
+			{
+				mn::printerr("{}\n", err);
+				return EXIT_FAILURE;
+			}
+			mn_defer(mn::str_free(answer));
+			mn::print("{}\n", answer);
+		}
 		return EXIT_SUCCESS;
 	}
 	else if (args.cmd == "glsl-gen")
