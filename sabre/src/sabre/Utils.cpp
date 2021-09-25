@@ -188,7 +188,7 @@ namespace sabre
 		if (unit_check(unit) == false)
 			return unit_dump_errors(unit);
 
-		return unit_glsl(unit);
+		return unit_glsl(unit, unit_entry_find(unit, entry));
 	}
 
 	mn::Result<mn::Str, mn::Err>
@@ -215,7 +215,7 @@ namespace sabre
 		if (unit_check(unit) == false)
 			return unit_dump_errors(unit);
 
-		return unit_hlsl(unit);
+		return unit_hlsl(unit, unit_entry_find(unit, entry));
 	}
 
 	mn::Result<mn::Str, mn::Err>
@@ -267,9 +267,13 @@ namespace sabre
 		if (unit_check(unit) == false)
 			return unit_dump_errors(unit);
 
-		if (unit_reflect(unit) == false)
+		auto entry_point = unit_entry_find(unit, entry);
+		if (entry_point == nullptr)
+			return mn::Err{"cannot find entry point '{}'", entry};
+
+		if (unit_reflect(unit, entry_point) == false)
 			return unit_dump_errors(unit);
 
-		return unit_reflection_info_as_json(unit);
+		return unit_reflection_info_as_json(unit, entry_point);
 	}
 }

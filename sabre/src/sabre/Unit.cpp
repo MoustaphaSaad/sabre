@@ -632,8 +632,6 @@ namespace sabre
 				auto entry = unit_entry_find(parent, parent->entry);
 				if (entry)
 				{
-					parent->mode = entry->mode;
-					parent->entry_symbol = entry->symbol;
 					typer_check_entry(typer, entry);
 				}
 				else
@@ -709,7 +707,6 @@ namespace sabre
 
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
-		self->mode = COMPILATION_MODE_LIBRARY;
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
@@ -830,7 +827,7 @@ namespace sabre
 			// then it's enough to check the first/main package only
 			// we don't need to go through other packages because we
 			// check only their used symbols
-			if (self->mode != COMPILATION_MODE_LIBRARY)
+			if (self->entry != nullptr)
 			{
 				break;
 			}
@@ -843,39 +840,33 @@ namespace sabre
 	}
 
 	bool
-	unit_reflect(Unit* self)
+	unit_reflect(Unit* self, Entry_Point* entry)
 	{
 		bool has_errors = false;
-		if (self->entry_symbol)
-		{
-			auto package = self->entry_symbol->package;
-			reflect_package(package);
-		}
+		auto package = entry->symbol->package;
+		reflect_package(package, entry);
 		return has_errors == false;
 	}
 
 	mn::Str
-	unit_reflection_info_as_json(Unit* self, mn::Allocator allocator)
+	unit_reflection_info_as_json(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
 		auto types = mn::set_with_allocator<Type*>(mn::memory::tmp());
 
 		auto json_entry = mn::json::value_object_new();
-		if (self->entry_symbol)
+		mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(entry->symbol->name));
+
+		auto json_layout = mn::json::value_array_new();
+		for (const auto& [attribute_name, attribute_type]: self->input_layout)
 		{
-			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(self->entry_symbol->name));
+			auto json_attribute = mn::json::value_object_new();
+			mn::json::value_object_insert(json_attribute, "name", mn::json::value_string_new(attribute_name));
+			mn::json::value_object_insert(json_attribute, "type", mn::json::value_string_new(_type_to_reflect_json(attribute_type, false)));
+			mn::json::value_array_push(json_layout, json_attribute);
 
-			auto json_layout = mn::json::value_array_new();
-			for (const auto& [attribute_name, attribute_type]: self->input_layout)
-			{
-				auto json_attribute = mn::json::value_object_new();
-				mn::json::value_object_insert(json_attribute, "name", mn::json::value_string_new(attribute_name));
-				mn::json::value_object_insert(json_attribute, "type", mn::json::value_string_new(_type_to_reflect_json(attribute_type, false)));
-				mn::json::value_array_push(json_layout, json_attribute);
-
-				_push_type(types, attribute_type);
-			}
-			mn::json::value_object_insert(json_entry, "input_layout", json_layout);
+			_push_type(types, attribute_type);
 		}
+		mn::json::value_object_insert(json_entry, "input_layout", json_layout);
 
 		auto json_uniforms = mn::json::value_array_new();
 		for (const auto& [binding, symbol]: self->reachable_uniforms)
@@ -1001,7 +992,7 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	unit_glsl(Unit* self, mn::Allocator allocator)
+	unit_glsl(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
@@ -1013,7 +1004,10 @@ namespace sabre
 		auto glsl = glsl_new(self->root_package, stream);
 		mn_defer(glsl_free(glsl));
 
-		glsl_gen(glsl);
+		if (entry)
+			glsl_gen_entry(glsl, entry);
+		else
+			glsl_gen_library(glsl);
 		auto end = _capture_timepoint();
 
 		#if SABRE_LOG_METRICS
@@ -1024,7 +1018,7 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	unit_hlsl(Unit* self, mn::Allocator allocator)
+	unit_hlsl(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
@@ -1036,7 +1030,10 @@ namespace sabre
 		auto hlsl = hlsl_new(self->root_package, stream);
 		mn_defer(hlsl_free(hlsl));
 
-		hlsl_gen(hlsl);
+		if (entry)
+			hlsl_gen_entry(hlsl, entry);
+		else
+			hlsl_gen_library(hlsl);
 		auto end = _capture_timepoint();
 		#if SABRE_LOG_METRICS
 		mn::log_info("Total HLSL gen time {}", end - start);

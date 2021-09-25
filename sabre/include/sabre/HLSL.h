@@ -51,7 +51,11 @@ namespace sabre
 	SABRE_EXPORT void
 	hlsl_stmt_gen(HLSL& self, Stmt* s);
 
+	// generates a single entry point's reachable symbols
+	SABRE_EXPORT void
+	hlsl_gen_entry(HLSL& self, Entry_Point* entry);
+
 	// generates all of the reachable symbols in the given unit
 	SABRE_EXPORT void
-	hlsl_gen(HLSL& self);
+	hlsl_gen_library(HLSL& self);
 }

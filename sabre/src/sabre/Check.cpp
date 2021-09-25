@@ -2328,9 +2328,9 @@ namespace sabre
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
 			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, d, template_args);
 
-			if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
+			if (self.entry && self.entry->mode == COMPILATION_MODE_GEOMETRY)
 			{
-				if (d == symbol_decl(self.unit->parent_unit->entry_symbol))
+				if (d == symbol_decl(self.entry->symbol))
 				{
 					if (mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY))
 					{
@@ -3357,7 +3357,7 @@ namespace sabre
 		// handle return type
 		auto return_type = type->as_func.sign.return_type;
 		// special case geometry shaders
-		if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
+		if (self.entry && self.entry->mode == COMPILATION_MODE_GEOMETRY)
 		{
 			if (type_is_struct(return_type) == false)
 			{
@@ -3471,6 +3471,7 @@ namespace sabre
 	void
 	typer_check_entry(Typer& self, Entry_Point* entry)
 	{
+		self.entry = entry;
 		auto compilation_unit = self.unit->parent_unit;
 
 		auto decl = symbol_decl(entry->symbol);
@@ -3557,6 +3558,8 @@ namespace sabre
 	void
 	typer_check_library(Typer& self)
 	{
+		self.entry = nullptr;
+
 		// library mode we check all the available global symbols
 		for (auto sym: self.global_scope->symbols)
 			_typer_resolve_symbol(self, sym);

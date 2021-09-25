@@ -1887,26 +1887,20 @@ namespace sabre
 	}
 
 	void
-	glsl_gen(GLSL& self)
+	glsl_gen_entry(GLSL& self, Entry_Point* entry)
 	{
 		auto compilation_unit = self.unit->parent_unit;
 
-		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
-		{
-			mn::print_to(self.out, "#version 450");
-			_glsl_newline(self);
-		}
+		mn::print_to(self.out, "#version 450");
+		_glsl_newline(self);
 
-		switch (compilation_unit->mode)
+		switch (entry->mode)
 		{
-		case COMPILATION_MODE_LIBRARY:
-			// do nothing
-			break;
 		case COMPILATION_MODE_VERTEX:
-			_glsl_generate_vertex_shader_io(self, compilation_unit->entry_symbol);
+			_glsl_generate_vertex_shader_io(self, entry->symbol);
 			break;
 		case COMPILATION_MODE_PIXEL:
-			_glsl_generate_pixel_shader_io(self, compilation_unit->entry_symbol);
+			_glsl_generate_pixel_shader_io(self, entry->symbol);
 			break;
 		default:
 			assert(false && "unreachable");
@@ -1925,11 +1919,25 @@ namespace sabre
 		}
 
 		// generate real entry function
-		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
+		_glsl_newline(self);
+		_glsl_newline(self);
+		_glsl_generate_main_func(self, entry->symbol);
+	}
+
+	void
+	glsl_gen_library(GLSL& self)
+	{
+		auto compilation_unit = self.unit->parent_unit;
+
+		bool last_symbol_was_generated = false;
+		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
 		{
-			_glsl_newline(self);
-			_glsl_newline(self);
-			_glsl_generate_main_func(self, compilation_unit->entry_symbol);
+			if (last_symbol_was_generated)
+				_glsl_newline(self);
+
+			auto pos = _glsl_buffer_position(self);
+			_glsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
+			last_symbol_was_generated = _glsl_code_generated_after(self, pos);
 		}
 	}
 }

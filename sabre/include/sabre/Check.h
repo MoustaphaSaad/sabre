@@ -14,6 +14,7 @@ namespace sabre
 	struct Typer
 	{
 		Unit_Package* unit;
+		Entry_Point* entry;
 		Scope* global_scope;
 		mn::Buf<Scope*> scope_stack;
 		mn::Buf<Decl*> func_stack;

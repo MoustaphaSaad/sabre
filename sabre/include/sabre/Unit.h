@@ -312,13 +312,8 @@ namespace sabre
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
 		// list of all the found entry points
 		mn::Buf<Entry_Point*> entry_points;
-		// mode of this compilation unit
-		COMPILATION_MODE mode;
 		// entry point name
 		const char* entry;
-		// entry point symbol which is resolved by the type checker if we provide an entry
-		// option to the command line
-		Symbol* entry_symbol;
 		// geometry shader output type
 		Type* geometry_output;
 		Tkn geometry_max_vertex_count;
@@ -406,21 +401,23 @@ namespace sabre
 	// generates reflection information for the given unit
 	// it should have an entry point specifed
 	SABRE_EXPORT bool
-	unit_reflect(Unit* self);
+	unit_reflect(Unit* self, Entry_Point* entry);
 
 	// generates reflection information for the given unit and writes them as json
 	SABRE_EXPORT mn::Str
-	unit_reflection_info_as_json(Unit* self, mn::Allocator allocator = mn::allocator_top());
+	unit_reflection_info_as_json(Unit* self, Entry_Point* entry, mn::Allocator allocator = mn::allocator_top());
 
-	// generates glsl code for the given unit, if it has errors
-	// it will return the an error
+	// generates glsl code for the given unit, if it has errors it will return the an error
+	// if an entry point is provided it will generate the code for this entry point
+	// if nullptr is provided as entry it will generate all the code of the package (library mode)
 	SABRE_EXPORT mn::Result<mn::Str>
-	unit_glsl(Unit* self, mn::Allocator allocator = mn::allocator_top());
+	unit_glsl(Unit* self, Entry_Point* entry, mn::Allocator allocator = mn::allocator_top());
 
-	// generates hlsl code for the given unit, if it has errors
-	// it will return the an error
+	// generates hlsl code for the given unit, if it has errors it will return the an error
+	// if an entry point is provided it will generate the code for this entry point
+	// if nullptr is provided as entry it will generate all the code of the package (library mode)
 	SABRE_EXPORT mn::Result<mn::Str>
-	unit_hlsl(Unit* self, mn::Allocator allocator = mn::allocator_top());
+	unit_hlsl(Unit* self, Entry_Point* entry, mn::Allocator allocator = mn::allocator_top());
 
 	// generates spirv code for the given unit, if it has errors
 	// it will return the an error

@@ -45,7 +45,11 @@ namespace sabre
 	SABRE_EXPORT void
 	glsl_stmt_gen(GLSL& self, Stmt* s);
 
+	// generates a single entry point's reachable symbols
+	SABRE_EXPORT void
+	glsl_gen_entry(GLSL& self, Entry_Point* entry);
+
 	// it will generate all of the reachable symbols in the given unit
 	SABRE_EXPORT void
-	glsl_gen(GLSL& self);
+	glsl_gen_library(GLSL& self);
 }
