@@ -57,7 +57,7 @@ namespace sabre
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit->packages[0]->files[0]);
+		auto parser = parser_new(unit->root_file);
 		mn_defer(parser_free(parser));
 
 		auto expr = parser_parse_expr(parser);
@@ -89,7 +89,7 @@ namespace sabre
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit->packages[0]->files[0]);
+		auto parser = parser_new(unit->root_file);
 		mn_defer(parser_free(parser));
 
 		auto stmt = parser_parse_stmt(parser);
@@ -121,7 +121,7 @@ namespace sabre
 		if (unit_scan(unit) == false)
 			return unit_dump_errors(unit);
 
-		auto parser = parser_new(unit->packages[0]->files[0]);
+		auto parser = parser_new(unit->root_file);
 		mn_defer(parser_free(parser));
 
 		auto decl = parser_parse_decl(parser);

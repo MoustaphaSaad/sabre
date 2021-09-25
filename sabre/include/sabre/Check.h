@@ -41,7 +41,11 @@ namespace sabre
 	SABRE_EXPORT void
 	typer_shallow_walk(Typer& self);
 
-	// performs type checking on the initialized typer
+	// checks a single entry point
 	SABRE_EXPORT void
-	typer_check(Typer& self);
+	typer_check_entry(Typer& self, Entry_Point* entry);
+
+	// performs type checking on the entire code (library mode)
+	SABRE_EXPORT void
+	typer_check_library(Typer& self);
 }

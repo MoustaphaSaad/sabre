@@ -3469,131 +3469,97 @@ namespace sabre
 	}
 
 	void
-	typer_check(Typer& self)
+	typer_check_entry(Typer& self, Entry_Point* entry)
 	{
 		auto compilation_unit = self.unit->parent_unit;
-		Symbol* entry = nullptr;
 
-		// check the entry function name if it does exist then we figure out
-		// our compilation mode from the function tags
-		if (compilation_unit->entry != nullptr)
+		auto decl = symbol_decl(entry->symbol);
+		// verify some mandatory tags in case of geometry shader
+		if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 		{
-			entry = scope_find(self.unit->global_scope, compilation_unit->entry);
-			if (entry == nullptr || entry->kind != Symbol::KIND_FUNC)
+			if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
 			{
-				Location err_loc{};
-				if (entry)
-					if (auto decl = symbol_decl(entry))
-						err_loc = decl->loc;
-
-				Err err{};
-				err.loc = err_loc;
-				err.msg = mn::strf("entry point '{}' is not a function, or its name is not unique (it may be overloaded)", compilation_unit->entry);
-				unit_err(self.unit, err);
+				compilation_unit->geometry_max_vertex_count = max_vertex_count->value.value;
 			}
 			else
 			{
-				auto decl = symbol_decl(entry);
-				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
-				{
-					compilation_unit->mode = COMPILATION_MODE_VERTEX;
-					compilation_unit->entry_symbol = entry;
-				}
-				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
-				{
-					compilation_unit->mode = COMPILATION_MODE_PIXEL;
-					compilation_unit->entry_symbol = entry;
-				}
-				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
-				{
-					compilation_unit->mode = COMPILATION_MODE_GEOMETRY;
-					compilation_unit->entry_symbol = entry;
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
+				unit_err(self.unit, err);
+			}
 
-					if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
-					{
-						compilation_unit->geometry_max_vertex_count = max_vertex_count->value.value;
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
-						unit_err(self.unit, err);
-					}
+			if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
+			{
+				compilation_unit->geometry_in = geometry_in->value.value;
 
-					if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
-					{
-						compilation_unit->geometry_in = geometry_in->value.value;
-
-						if (compilation_unit->geometry_in.str != KEYWORD_POINT &&
-							compilation_unit->geometry_in.str != KEYWORD_LINE &&
-							compilation_unit->geometry_in.str != KEYWORD_TRIANGLE)
-						{
-							Err err{};
-							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
-						unit_err(self.unit, err);
-					}
-
-					if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
-					{
-						compilation_unit->geometry_out = geometry_out->value.value;
-
-						if (compilation_unit->geometry_out.str != KEYWORD_POINT &&
-							compilation_unit->geometry_out.str != KEYWORD_LINE &&
-							compilation_unit->geometry_out.str != KEYWORD_TRIANGLE)
-						{
-							Err err{};
-							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
-						unit_err(self.unit, err);
-					}
-				}
-				else
+				if (compilation_unit->geometry_in.str != KEYWORD_POINT &&
+					compilation_unit->geometry_in.str != KEYWORD_LINE &&
+					compilation_unit->geometry_in.str != KEYWORD_TRIANGLE)
 				{
 					Err err{};
 					err.loc = decl->loc;
-					err.msg = mn::strf("entry point is not tagged with @vertex or @pixel");
+					err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
 					unit_err(self.unit, err);
 				}
 			}
+			else
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
+				unit_err(self.unit, err);
+			}
+
+			if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
+			{
+				compilation_unit->geometry_out = geometry_out->value.value;
+
+				if (compilation_unit->geometry_out.str != KEYWORD_POINT &&
+					compilation_unit->geometry_out.str != KEYWORD_LINE &&
+					compilation_unit->geometry_out.str != KEYWORD_TRIANGLE)
+				{
+					Err err{};
+					err.loc = decl->loc;
+					err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
+					unit_err(self.unit, err);
+				}
+			}
+			else
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
+				unit_err(self.unit, err);
+			}
 		}
 
-
-		switch (compilation_unit->mode)
+		switch (entry->mode)
 		{
-		// library mode we check all the available global symbols
-		case COMPILATION_MODE_LIBRARY:
-			for (auto sym: self.global_scope->symbols)
-				_typer_resolve_symbol(self, sym);
-			break;
 		// in case of vertex and pixel we start from the entry point
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
 		case COMPILATION_MODE_GEOMETRY:
-			_typer_resolve_symbol(self, entry);
-			_typer_check_entry_input(self, entry);
+			_typer_resolve_symbol(self, entry->symbol);
+			_typer_check_entry_input(self, entry->symbol);
 			break;
+		case COMPILATION_MODE_LIBRARY:
+			// library mode is not allowed here
 		default:
 			assert(false && "unreachable");
 			break;
 		}
+
+		for (auto s: self.unit->parent_unit->reflected_symbols)
+			_typer_resolve_symbol(self, s);
+	}
+
+	void
+	typer_check_library(Typer& self)
+	{
+		// library mode we check all the available global symbols
+		for (auto sym: self.global_scope->symbols)
+			_typer_resolve_symbol(self, sym);
 
 		for (auto s: self.unit->parent_unit->reflected_symbols)
 			_typer_resolve_symbol(self, s);

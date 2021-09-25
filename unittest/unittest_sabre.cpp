@@ -55,13 +55,12 @@ TEST_CASE("[sabre]: lex")
 		CHECK(err == false);
 		mn_defer(mn::str_free(answer));
 
-		CHECK(answer == out_data);
 		if (answer != out_data)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
-			CHECK(false);
 		}
+		REQUIRE(answer == out_data);
 	}
 }
 
@@ -90,12 +89,12 @@ TEST_CASE("[sabre]: parse-expr")
 		mn_defer(mn::str_free(answer));
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -124,12 +123,12 @@ TEST_CASE("[sabre]: parse-stmt")
 		mn_defer(mn::str_free(answer));
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -158,12 +157,12 @@ TEST_CASE("[sabre]: parse-decl")
 		mn_defer(mn::str_free(answer));
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -194,12 +193,12 @@ TEST_CASE("[sabre]: typecheck")
 		mn::str_trim(answer);
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -238,12 +237,12 @@ TEST_CASE("[sabre]: glsl")
 		mn::str_trim(answer);
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -281,12 +280,12 @@ TEST_CASE("[sabre]: hlsl")
 		mn::str_trim(answer);
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -324,12 +323,12 @@ TEST_CASE("[sabre]: glsl-shader")
 		mn::str_trim(answer);
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -367,12 +366,12 @@ TEST_CASE("[sabre]: hlsl-shader")
 		mn::str_trim(answer);
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }
 
@@ -403,11 +402,11 @@ TEST_CASE("[sabre]: reflect")
 		mn::str_trim(answer);
 
 		auto match = answer == out_data;
-		CHECK(match == true);
 		if (match == false)
 		{
 			mn::print("expected:\n{}\n", out_data);
 			mn::print("answer:\n{}\n", answer);
 		}
+		REQUIRE(match == true);
 	}
 }

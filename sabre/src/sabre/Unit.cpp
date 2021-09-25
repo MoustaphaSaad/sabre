@@ -624,7 +624,29 @@ namespace sabre
 			auto typer = typer_new(self);
 			mn_defer(typer_free(typer));
 			typer_shallow_walk(typer);
-			typer_check(typer);
+
+			auto parent = self->parent_unit;
+			if (parent->entry != nullptr && self == parent->root_package)
+			{
+				// search for the entry point and type check it instead
+				auto entry = unit_entry_find(parent, parent->entry);
+				if (entry)
+				{
+					parent->mode = entry->mode;
+					parent->entry_symbol = entry->symbol;
+					typer_check_entry(typer, entry);
+				}
+				else
+				{
+					Err err{};
+					err.msg = mn::strf("cannot find entry point '{}'", parent->entry);
+					unit_err(self, err);
+				}
+			}
+			else
+			{
+				typer_check_library(typer);
+			}
 			if (unit_package_has_errors(self))
 			{
 				has_errors = true;
@@ -679,11 +701,11 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
-		auto root_file = unit_file_from_path(filepath);
-		auto root_package = unit_package_new();
+		self->root_file = unit_file_from_path(filepath);
+		self->root_package = unit_package_new();
 		// single file packages has their paths be the file path
-		root_package->absolute_path = clone(root_file->absolute_path);
-		unit_package_add_file(root_package, root_file);
+		self->root_package->absolute_path = clone(self->root_file->absolute_path);
+		unit_package_add_file(self->root_package, self->root_file);
 
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
@@ -715,7 +737,7 @@ namespace sabre
 		if (entry.count > 0)
 			self->entry = mn::str_intern(self->str_interner, entry.ptr);
 
-		unit_add_package(self, root_package);
+		unit_add_package(self, self->root_package);
 
 		return self;
 	}
@@ -855,16 +877,11 @@ namespace sabre
 			mn::json::value_object_insert(json_entry, "input_layout", json_layout);
 		}
 
-		// root package
-		Unit_Package* root = nullptr;
-		if (self->packages.count > 0)
-			root = self->packages[0];
-
 		auto json_uniforms = mn::json::value_array_new();
 		for (const auto& [binding, symbol]: self->reachable_uniforms)
 		{
 			auto json_uniform = mn::json::value_object_new();
-			if (symbol->package == root)
+			if (symbol->package == self->root_package)
 			{
 				mn::json::value_object_insert(json_uniform, "name", mn::json::value_string_new(symbol->name));
 			}
@@ -886,7 +903,7 @@ namespace sabre
 		for (const auto& [binding, symbol]: self->reachable_textures)
 		{
 			auto json_texture = mn::json::value_object_new();
-			if (symbol->package == root)
+			if (symbol->package == self->root_package)
 			{
 				mn::json::value_object_insert(json_texture, "name", mn::json::value_string_new(symbol->name));
 			}
@@ -955,7 +972,7 @@ namespace sabre
 		auto json_result = mn::json::value_object_new();
 		mn_defer(mn::json::value_free(json_result));
 
-		mn::json::value_object_insert(json_result, "package", mn::json::value_string_new(self->packages[0]->name.str));
+		mn::json::value_object_insert(json_result, "package", mn::json::value_string_new(self->root_package->name.str));
 		mn::json::value_object_insert(json_result, "entry", json_entry);
 		mn::json::value_object_insert(json_result, "uniforms", json_uniforms);
 		mn::json::value_object_insert(json_result, "textures", json_textures);
@@ -969,7 +986,7 @@ namespace sabre
 			else
 				json_sym = expr_value_to_json(expr_value_zero(mn::memory::tmp(), s->type));
 
-			if (s->package != root)
+			if (s->package != self->root_package)
 			{
 				auto sym_name = mn::str_tmpf("{}.{}", s->package->name.str, s->name);
 				mn::json::value_object_insert(json_result, sym_name, json_sym);
@@ -993,7 +1010,7 @@ namespace sabre
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto glsl = glsl_new(self->packages[0], stream);
+		auto glsl = glsl_new(self->root_package, stream);
 		mn_defer(glsl_free(glsl));
 
 		glsl_gen(glsl);
@@ -1016,7 +1033,7 @@ namespace sabre
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto hlsl = hlsl_new(self->packages[0], stream);
+		auto hlsl = hlsl_new(self->root_package, stream);
 		mn_defer(hlsl_free(hlsl));
 
 		hlsl_gen(hlsl);
@@ -1038,7 +1055,7 @@ namespace sabre
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto bc = spirv_new(self->packages[0]);
+		auto bc = spirv_new(self->root_package);
 		mn_defer(spirv_free(bc));
 
 		spirv_gen(bc);
@@ -1150,5 +1167,14 @@ namespace sabre
 	unit_entry_add(Unit* self, Entry_Point* entry)
 	{
 		mn::buf_push(self->entry_points, entry);
+	}
+
+	Entry_Point*
+	unit_entry_find(Unit* self, const mn::Str& name)
+	{
+		for (auto entry: self->entry_points)
+			if (entry->symbol->name == name)
+				return entry;
+		return nullptr;
 	}
 }

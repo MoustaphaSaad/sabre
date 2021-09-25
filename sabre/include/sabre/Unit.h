@@ -260,17 +260,17 @@ namespace sabre
 	struct Entry_Point
 	{
 		COMPILATION_MODE mode;
-		Symbol* entry;
+		Symbol* symbol;
 		mn::Buf<Symbol*> reachable_symbols;
 	};
 
 	// creates a new entry point instance with the given symbol and mode
 	inline static Entry_Point*
-	entry_point_new(Symbol* entry, COMPILATION_MODE mode)
+	entry_point_new(Symbol* symbol, COMPILATION_MODE mode)
 	{
 		auto self = mn::alloc_zerod<Entry_Point>();
 		self->mode = mode;
-		self->entry = entry;
+		self->symbol = symbol;
 		return self;
 	}
 
@@ -304,6 +304,10 @@ namespace sabre
 		mn::Map<void*, Scope*> scope_table;
 		// list of imported packages in this compilation unit
 		mn::Buf<Unit_Package*> packages;
+		// pointer to the root package of this compilation unit
+		Unit_Package* root_package;
+		// pointer to the root file of this compilation unit
+		Unit_File* root_file;
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
 		// list of all the found entry points
@@ -496,4 +500,15 @@ namespace sabre
 	// adds a new entry point to the given compilation unit
 	SABRE_EXPORT void
 	unit_entry_add(Unit* self, Entry_Point* entry);
+
+	// finds entry point by name
+	SABRE_EXPORT Entry_Point*
+	unit_entry_find(Unit* self, const mn::Str& name);
+
+	// finds entry point by name
+	inline static Entry_Point*
+	unit_entry_find(Unit* self, const char* name)
+	{
+		return unit_entry_find(self, mn::str_lit(name));
+	}
 }
