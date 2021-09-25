@@ -264,11 +264,32 @@ namespace sabre
 		mn::Buf<Symbol*> reachable_symbols;
 	};
 
+	// creates a new entry point instance with the given symbol and mode
+	inline static Entry_Point*
+	entry_point_new(Symbol* entry, COMPILATION_MODE mode)
+	{
+		auto self = mn::alloc_zerod<Entry_Point>();
+		self->mode = mode;
+		self->entry = entry;
+		return self;
+	}
+
 	// frees the given entry point instance
 	inline static void
-	entry_point_free(Entry_Point& self)
+	entry_point_free(Entry_Point* self)
 	{
-		mn::buf_free(self.reachable_symbols);
+		if (self)
+		{
+			mn::buf_free(self->reachable_symbols);
+			mn::free(self);
+		}
+	}
+
+	// destruct overload for entry point
+	inline static void
+	destruct(Entry_Point* self)
+	{
+		entry_point_free(self);
 	}
 
 	struct Unit
@@ -285,6 +306,8 @@ namespace sabre
 		mn::Buf<Unit_Package*> packages;
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
+		// list of all the found entry points
+		mn::Buf<Entry_Point*> entry_points;
 		// mode of this compilation unit
 		COMPILATION_MODE mode;
 		// entry point name
@@ -469,4 +492,8 @@ namespace sabre
 	// processes the package given its path and either returns an error or the package name
 	SABRE_EXPORT mn::Result<Unit_Package*>
 	unit_resolve_package(Unit* self, const mn::Str& absolute_path);
+
+	// adds a new entry point to the given compilation unit
+	SABRE_EXPORT void
+	unit_entry_add(Unit* self, Entry_Point* entry);
 }

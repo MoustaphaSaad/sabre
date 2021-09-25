@@ -3451,14 +3451,17 @@ namespace sabre
 				auto decl = symbol_decl(symbol);
 				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
 				{
+					unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_VERTEX));
 					mn::log_debug("vertex shader: {}", decl->name.str);
 				}
 				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
 				{
+					unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_PIXEL));
 					mn::log_debug("pixel shader: {}", decl->name.str);
 				}
 				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY) != nullptr)
 				{
+					unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_GEOMETRY));
 					mn::log_debug("geometry shader: {}", decl->name.str);
 				}
 			}

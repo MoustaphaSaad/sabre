@@ -734,6 +734,7 @@ namespace sabre
 		type_interner_free(self->type_interner);
 		destruct(self->scope_table);
 		destruct(self->packages);
+		destruct(self->entry_points);
 		mn::map_free(self->absolute_path_to_package);
 		mn::map_free(self->input_layout);
 		mn::map_free(self->reachable_uniforms);
@@ -1143,5 +1144,11 @@ namespace sabre
 			unit_add_package(self, package);
 			return package;
 		}
+	}
+
+	void
+	unit_entry_add(Unit* self, Entry_Point* entry)
+	{
+		mn::buf_push(self->entry_points, entry);
 	}
 }
