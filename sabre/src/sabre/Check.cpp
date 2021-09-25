@@ -33,48 +33,48 @@ namespace sabre
 	}
 
 	inline static Scope*
-	_typer_current_scope(const Typer& self)
+	_typer_current_scope(const Typer* self)
 	{
-		return mn::buf_top(self.scope_stack);
+		return mn::buf_top(self->scope_stack);
 	}
 
 	inline static void
-	_typer_enter_scope(Typer& self, Scope* scope)
+	_typer_enter_scope(Typer* self, Scope* scope)
 	{
 		assert(scope != nullptr);
-		mn::buf_push(self.scope_stack, scope);
+		mn::buf_push(self->scope_stack, scope);
 	}
 
 	inline static void
-	_typer_leave_scope(Typer& self)
+	_typer_leave_scope(Typer* self)
 	{
-		assert(self.scope_stack.count > 1);
-		mn::buf_pop(self.scope_stack);
+		assert(self->scope_stack.count > 1);
+		mn::buf_pop(self->scope_stack);
 	}
 
 	inline static Decl*
-	_typer_current_func(Typer& self)
+	_typer_current_func(Typer* self)
 	{
-		if (self.func_stack.count > 0)
-			return mn::buf_top(self.func_stack);
+		if (self->func_stack.count > 0)
+			return mn::buf_top(self->func_stack);
 		return nullptr;
 	}
 
 	inline static void
-	_typer_enter_func(Typer& self, Decl* decl)
+	_typer_enter_func(Typer* self, Decl* decl)
 	{
-		mn::buf_push(self.func_stack, decl);
+		mn::buf_push(self->func_stack, decl);
 	}
 
 	inline static void
-	_typer_leave_func(Typer& self)
+	_typer_leave_func(Typer* self)
 	{
-		assert(self.func_stack.count > 0);
-		mn::buf_pop(self.func_stack);
+		assert(self->func_stack.count > 0);
+		mn::buf_pop(self->func_stack);
 	}
 
 	inline static Type*
-	_typer_expected_return_type(const Typer& self)
+	_typer_expected_return_type(const Typer* self)
 	{
 		for (auto it = _typer_current_scope(self); it != nullptr; it = it->parent)
 		{
@@ -85,7 +85,7 @@ namespace sabre
 	}
 
 	inline static Symbol*
-	_typer_add_symbol(Typer& self, Symbol* sym)
+	_typer_add_symbol(Typer* self, Symbol* sym)
 	{
 		auto current_scope = _typer_current_scope(self);
 		if (auto old_sym = scope_shallow_find(current_scope, sym->name))
@@ -100,7 +100,7 @@ namespace sabre
 				err.msg = mn::strf("'{}' {} redefinition, first declared in {}:{}", sym->name, name, old_loc.pos.line, old_loc.pos.col);
 			else
 				err.msg = mn::strf("'{}' {} redefinition", sym->name, name);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 
 			// just copy these values from the old symbol
 			sym->package = old_sym->package;
@@ -109,13 +109,13 @@ namespace sabre
 			return old_sym;
 		}
 		scope_add(current_scope, sym);
-		sym->package = self.unit;
+		sym->package = self->unit;
 		sym->scope = current_scope;
 		return sym;
 	}
 
 	inline static Symbol*
-	_typer_find_symbol(const Typer& self, const char* name)
+	_typer_find_symbol(const Typer* self, const char* name)
 	{
 		return scope_find(_typer_current_scope(self), name);
 	}
@@ -248,22 +248,22 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_resolve_symbol(Typer& self, Symbol* sym);
+	_typer_resolve_symbol(Typer* self, Symbol* sym);
 
 	inline static Type*
-	_typer_resolve_func_decl(Typer& self, Decl* d);
+	_typer_resolve_func_decl(Typer* self, Decl* d);
 
 	inline static Type*
-	_typer_resolve_expr(Typer& self, Expr* e);
+	_typer_resolve_expr(Typer* self, Expr* e);
 
 	inline static void
-	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t, Scope* scope);
+	_typer_resolve_func_body_internal(Typer* self, Decl* d, Type* t, Scope* scope);
 
 	inline static void
-	_typer_shallow_walk(Typer& self);
+	_typer_shallow_walk(Typer* self);
 
 	inline static void
-	_typer_add_func_overload(Typer& self, Type* overload_set, Decl* decl)
+	_typer_add_func_overload(Typer* self, Type* overload_set, Decl* decl)
 	{
 		Type_Overload_Entry overload_entry{};
 		overload_entry.loc = decl->loc;
@@ -275,7 +275,7 @@ namespace sabre
 			Err err{};
 			err.loc = decl->loc;
 			err.msg = mn::strf("function overload already defined {}:{}:{}", old_loc.file->filepath, old_loc.pos.line, old_loc.pos.col);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 		else
 		{
@@ -284,7 +284,7 @@ namespace sabre
 	}
 
 	inline static Symbol*
-	_typer_add_func_symbol(Typer& self, Decl* decl)
+	_typer_add_func_symbol(Typer* self, Decl* decl)
 	{
 		assert(decl->kind == Decl::KIND_FUNC);
 
@@ -294,7 +294,7 @@ namespace sabre
 		if (sym == nullptr || (sym->kind != Symbol::KIND_FUNC && sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET))
 		{
 			// add symbol twice, once in file scope an another one in package scope
-			auto sym = symbol_func_new(self.unit->symbols_arena, decl->name, decl);
+			auto sym = symbol_func_new(self->unit->symbols_arena, decl->name, decl);
 			auto res = _typer_add_symbol(self, sym);
 			return res;
 		}
@@ -303,7 +303,7 @@ namespace sabre
 		{
 			// convert the function symbol to overload set
 			if (sym->func_sym.decl != decl)
-				sym = symbol_func_overload_set_new(self.unit->symbols_arena, sym);
+				sym = symbol_func_overload_set_new(self->unit->symbols_arena, sym);
 			else
 				return sym;
 		}
@@ -318,14 +318,14 @@ namespace sabre
 		{
 			assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
 			_typer_add_func_overload(self, sym->type, decl);
-			auto scope = unit_create_scope_for(self.unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
+			auto scope = unit_create_scope_for(self->unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
 			_typer_resolve_func_body_internal(self, decl, decl_type, scope);
 		}
 		return sym;
 	}
 
 	inline static void
-	_typer_shallow_process_decl(Typer& self, Unit_File* file, Decl* decl)
+	_typer_shallow_process_decl(Typer* self, Unit_File* file, Decl* decl)
 	{
 		switch (decl->kind)
 		{
@@ -339,11 +339,11 @@ namespace sabre
 				if (i < decl->const_decl.values.count)
 					value = decl->const_decl.values[i];
 				// add symbol twice, once in file scope an another one in package scope
-				auto sym = symbol_const_new(self.unit->symbols_arena, name, decl, sign, value);
+				auto sym = symbol_const_new(self->unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
 				// search for the pipeline of that shader
 				if (mn::map_lookup(decl->tags.table, KEYWORD_REFLECT))
-					mn::buf_push(self.unit->parent_unit->reflected_symbols, sym);
+					mn::buf_push(self->unit->parent_unit->reflected_symbols, sym);
 			}
 			break;
 		case Decl::KIND_VAR:
@@ -357,7 +357,7 @@ namespace sabre
 					value = decl->var_decl.values[i];
 
 				// add symbol twice, once in file scope an another one in package scope
-				auto sym = symbol_var_new(self.unit->symbols_arena, name, decl, sign, value);
+				auto sym = symbol_var_new(self->unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
 			}
 			break;
@@ -366,7 +366,7 @@ namespace sabre
 			break;
 		case Decl::KIND_STRUCT:
 		{
-			auto sym = symbol_struct_new(self.unit->symbols_arena, decl->name, decl);
+			auto sym = symbol_struct_new(self->unit->symbols_arena, decl->name, decl);
 			_typer_add_symbol(self, sym);
 			break;
 		}
@@ -384,7 +384,7 @@ namespace sabre
 					name = decl->import_decl.name;
 				else
 					name = package->name;
-				auto sym = symbol_package_new(self.unit->symbols_arena, name, decl, package);
+				auto sym = symbol_package_new(self->unit->symbols_arena, name, decl, package);
 				// we put the import declarations into the file scope to enable users
 				// to include the same library with the same name in different files of
 				// the same folder package
@@ -400,13 +400,13 @@ namespace sabre
 						err.msg = mn::strf("package '{}' was first imported here", added_sym->name);
 					else
 						err.msg = mn::strf("symbol '{}' was first imported here", added_sym->name);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					break;
 				}
 
 				// add symbol in global scope only once to avoid symbol redefinition and get symbol redefinition
 				// detection between namespaces and other declaration
-				if (auto old_sym = scope_shallow_find(self.global_scope, sym->name))
+				if (auto old_sym = scope_shallow_find(self->global_scope, sym->name))
 				{
 					if (old_sym->kind != Symbol::KIND_PACKAGE || old_sym->package_sym.package != sym->package_sym.package)
 					{
@@ -422,7 +422,7 @@ namespace sabre
 		}
 		case Decl::KIND_ENUM:
 		{
-			auto sym = symbol_enum_new(self.unit->symbols_arena, decl->name, decl);
+			auto sym = symbol_enum_new(self->unit->symbols_arena, decl->name, decl);
 			_typer_add_symbol(self, sym);
 			break;
 		}
@@ -433,22 +433,22 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_push_expected_expression_type(Typer& self, Type* t)
+	_typer_push_expected_expression_type(Typer* self, Type* t)
 	{
-		mn::buf_push(self.expected_expr_type, t);
+		mn::buf_push(self->expected_expr_type, t);
 	}
 
 	inline static void
-	_typer_pop_expected_expression_type(Typer& self)
+	_typer_pop_expected_expression_type(Typer* self)
 	{
-		mn:buf_pop(self.expected_expr_type);
+		mn:buf_pop(self->expected_expr_type);
 	}
 
 	inline static Type*
-	_typer_expected_expression_type(Typer& self)
+	_typer_expected_expression_type(Typer* self)
 	{
-		if (self.expected_expr_type.count > 0)
-			return mn::buf_top(self.expected_expr_type);
+		if (self->expected_expr_type.count > 0)
+			return mn::buf_top(self->expected_expr_type);
 		else
 			return nullptr;
 	}
@@ -482,7 +482,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_named_type_atom(Typer& self, const Type_Sign_Atom& atom)
+	_typer_resolve_named_type_atom(Typer* self, const Type_Sign_Atom& atom)
 	{
 		Type* res = nullptr;
 
@@ -503,7 +503,7 @@ namespace sabre
 				Err err{};
 				err.loc = atom.named.package_name.loc;
 				err.msg = mn::strf("'{}' undefined symbol", atom.named.package_name.str);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return res;
 			}
 
@@ -512,7 +512,7 @@ namespace sabre
 				Err err{};
 				err.loc = atom.named.package_name.loc;
 				err.msg = mn::strf("'{}' is not an imported package", atom.named.package_name.str);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return res;
 			}
 
@@ -526,7 +526,7 @@ namespace sabre
 				Err err{};
 				err.loc = atom.named.type_name.loc;
 				err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return res;
 			}
 
@@ -549,7 +549,7 @@ namespace sabre
 					Err err{};
 					err.loc = atom.named.type_name.loc;
 					err.msg = mn::strf("'{}' undefined symbol", atom.named.type_name.str);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 		}
@@ -557,10 +557,10 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
+	_typer_resolve_type_sign(Typer* self, const Type_Sign& sign);
 
 	inline static Type*
-	_typer_template_instantiate(Typer& self, Type* template_type, const mn::Buf<Type*>& template_args_types, Location instantiation_loc)
+	_typer_template_instantiate(Typer* self, Type* template_type, const mn::Buf<Type*>& template_args_types, Location instantiation_loc)
 	{
 		switch (template_type->kind)
 		{
@@ -574,7 +574,7 @@ namespace sabre
 					"type '{}' is not a template type",
 					template_type
 				);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return template_type;
 			}
 
@@ -587,7 +587,7 @@ namespace sabre
 					template_type->struct_type.template_args.count,
 					template_args_types.count
 				);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return template_type;
 			}
 
@@ -617,7 +617,7 @@ namespace sabre
 				}
 			}
 
-			return type_interner_template_struct_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, fields_types);
+			return type_interner_template_struct_instantiate(self->unit->parent_unit->type_interner, template_type, template_args_types, fields_types);
 		}
 		case Type::KIND_FUNC:
 		{
@@ -629,7 +629,7 @@ namespace sabre
 					"type '{}' is not a template type",
 					template_type
 				);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return template_type;
 			}
 
@@ -642,11 +642,11 @@ namespace sabre
 					template_type->as_func.template_args.count,
 					template_args_types.count
 				);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return template_type;
 			}
 
-			auto scope = unit_scope_find(self.unit->parent_unit, template_type->as_func.template_func_decl);
+			auto scope = unit_scope_find(self->unit->parent_unit, template_type->as_func.template_func_decl);
 
 			auto func_args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
 			for (auto symbol: scope->symbols)
@@ -692,7 +692,7 @@ namespace sabre
 				return_type = template_args_types[template_args_index];
 			}
 
-			return type_interner_template_func_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, func_args_types, return_type);
+			return type_interner_template_func_instantiate(self->unit->parent_unit->type_interner, template_type, template_args_types, func_args_types, return_type);
 		}
 		default:
 			assert(false && "unreachable");
@@ -701,7 +701,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign)
+	_typer_resolve_type_sign(Typer* self, const Type_Sign& sign)
 	{
 		auto res = type_void;
 		for (size_t i = 0; i < sign.atoms.count; ++i)
@@ -726,7 +726,7 @@ namespace sabre
 						Err err{};
 						err.loc = atom.array.static_size->loc;
 						err.msg = mn::strf("array count should be integer but found '{}'", array_count_type);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 					}
 
 					if (atom.array.static_size->const_value.type == type_int)
@@ -737,12 +737,12 @@ namespace sabre
 							Err err{};
 							err.loc = atom.array.static_size->loc;
 							err.msg = mn::strf("array count should be >= but found '{}'", array_count);
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 						Array_Sign sign{};
 						sign.base = res;
 						sign.count = array_count;
-						res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+						res = type_interner_array(self->unit->parent_unit->type_interner, sign);
 					}
 				}
 				else
@@ -752,7 +752,7 @@ namespace sabre
 					Array_Sign sign{};
 					sign.base = res;
 					sign.count = -1;
-					res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+					res = type_interner_array(self->unit->parent_unit->type_interner, sign);
 				}
 				break;
 			}
@@ -782,7 +782,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_atom_expr(Typer& self, Expr* e)
+	_typer_resolve_atom_expr(Typer* self, Expr* e)
 	{
 		switch (e->atom.tkn.kind)
 		{
@@ -838,7 +838,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->loc;
 				err.msg = mn::strf("'{}' undefined symbol", e->atom.tkn.str);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 		}
@@ -849,7 +849,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_binary_expr(Typer& self, Expr* e)
+	_typer_resolve_binary_expr(Typer* self, Expr* e)
 	{
 		auto lhs_type = _typer_resolve_expr(self, e->binary.left);
 
@@ -877,7 +877,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->loc;
 					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					failed = true;
 				}
 			}
@@ -892,7 +892,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->loc;
 					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					failed = true;
 				}
 			}
@@ -916,7 +916,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->loc;
 					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					failed = true;
 				}
 			}
@@ -931,7 +931,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->loc;
 					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					failed = true;
 				}
 			}
@@ -946,7 +946,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.left->loc;
 				err.msg = mn::strf("type '{}' doesn't support bitwise operations", lhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (type_has_bit_ops(rhs_type) == false)
@@ -954,7 +954,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.right->loc;
 				err.msg = mn::strf("type '{}' doesn't support bitwise operations", rhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		else if (e->binary.op.kind == Tkn::KIND_BIT_SHIFT_LEFT ||
@@ -965,7 +965,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.left->loc;
 				err.msg = mn::strf("type '{}' doesn't support bitwise operations", lhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (type_has_bit_ops(rhs_type) == false)
@@ -973,7 +973,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.right->loc;
 				err.msg = mn::strf("type '{}' doesn't support bitwise operations", rhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -993,14 +993,14 @@ namespace sabre
 					Err err{};
 					err.loc = e->binary.right->loc;
 					err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 				else if (type_width(lhs_type) != type_width(rhs_type))
 				{
 					Err err{};
 					err.loc = e->binary.right->loc;
 					err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 			else
@@ -1008,7 +1008,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->loc;
 				err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -1020,7 +1020,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.left->loc;
 				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", lhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (type_is_bool_like(rhs_type) == false)
@@ -1028,7 +1028,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.right->loc;
 				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", rhs_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -1040,7 +1040,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->binary.op.loc;
 				err.msg = mn::strf("boolean types doesn't support such operator");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -1081,7 +1081,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_unary_expr(Typer& self, Expr* e)
+	_typer_resolve_unary_expr(Typer* self, Expr* e)
 	{
 		auto type = _typer_resolve_expr(self, e->unary.base);
 
@@ -1094,7 +1094,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->unary.base->loc;
 				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		if (e->unary.op.kind == Tkn::KIND_INC ||
@@ -1105,7 +1105,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->unary.base->loc;
 				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		else if (e->unary.op.kind == Tkn::KIND_LOGICAL_NOT)
@@ -1115,7 +1115,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->unary.base->loc;
 				err.msg = mn::strf("logical not operator is only allowed for boolean types, but expression type is '{}'", e->unary.op.str, type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		else if (e->unary.op.kind == Tkn::KIND_BIT_NOT)
@@ -1125,7 +1125,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->unary.base->loc;
 				err.msg = mn::strf("type '{}' cannot be used in a bit not operation", type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -1134,7 +1134,7 @@ namespace sabre
 			Err err{};
 			err.loc = e->loc;
 			err.msg = mn::strf("cannot evaluate expression in compile time");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 
 		if (e->unary.base->const_value.type != nullptr)
@@ -1149,7 +1149,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_call_expr(Typer& self, Expr* e)
+	_typer_resolve_call_expr(Typer* self, Expr* e)
 	{
 		auto type = _typer_resolve_expr(self, e->call.base);
 
@@ -1158,7 +1158,7 @@ namespace sabre
 			Err err{};
 			err.loc = e->call.base->loc;
 			err.msg = mn::strf("invalid call, expression is not a function");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return type_void;
 		}
 
@@ -1183,19 +1183,19 @@ namespace sabre
 						Err err{};
 						err.loc = e->loc;
 						err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						return type->as_func.sign.return_type;
 					}
 
 					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
-					if (auto geometry_output = self.unit->parent_unit->geometry_output)
+					if (auto geometry_output = self->unit->parent_unit->geometry_output)
 					{
 						if (type_is_equal(geometry_output, arg_type) == false)
 						{
 							Err err{};
 							err.loc = e->call.args[0]->loc;
 							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 1, geometry_output, arg_type);
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 					}
 					return type->as_func.sign.return_type;
@@ -1212,7 +1212,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->loc;
 				err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type->as_func.sign.return_type;
 			}
 
@@ -1244,8 +1244,8 @@ namespace sabre
 
 				auto instantiated_type = _typer_template_instantiate(self, type, args_types, e->loc);
 				auto d = symbol->func_sym.decl;
-				auto templated_scope = unit_scope_find(self.unit->parent_unit, d);
-				auto instantiated_scope = unit_create_scope_for(self.unit, instantiated_type, templated_scope, d->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
+				auto templated_scope = unit_scope_find(self->unit->parent_unit, d);
+				auto instantiated_scope = unit_create_scope_for(self->unit, instantiated_type, templated_scope, d->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
 				_typer_enter_scope(self, instantiated_scope);
 				{
 					// push symbols for typenames but after actually resolving them
@@ -1254,7 +1254,7 @@ namespace sabre
 					{
 						for (auto name: template_arg.names)
 						{
-							auto v = symbol_typename_new(self.unit->symbols_arena, name);
+							auto v = symbol_typename_new(self->unit->symbols_arena, name);
 							v->type = args_types[i];
 							_typer_add_symbol(self, v);
 							++i;
@@ -1268,7 +1268,7 @@ namespace sabre
 						auto arg_type = instantiated_type->as_func.sign.args.types[i];
 						for (auto name: arg.names)
 						{
-							auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+							auto v = symbol_var_new(self->unit->symbols_arena, name, nullptr, arg.type, nullptr);
 							v->type = arg_type;
 							v->state = STATE_RESOLVED;
 							_typer_add_symbol(self, v);
@@ -1289,7 +1289,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->call.args[i]->loc;
 					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, type->as_func.sign.args.types[i], arg_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 
@@ -1360,7 +1360,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->loc;
 				err.msg = msg;
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 			else
@@ -1372,7 +1372,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_cast_expr(Typer& self, Expr* e)
+	_typer_resolve_cast_expr(Typer* self, Expr* e)
 	{
 		auto from_type = _typer_resolve_expr(self, e->cast.base);
 		auto to_type = _typer_resolve_type_sign(self, e->cast.type);
@@ -1403,7 +1403,7 @@ namespace sabre
 			Err err{};
 			err.loc = e->loc;
 			err.msg = mn::strf("cannot cast '{}' to '{}'", from_type, to_type);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 
 		if (e->cast.base->mode == ADDRESS_MODE_CONST)
@@ -1420,7 +1420,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_dot_expr(Typer& self, Expr* e)
+	_typer_resolve_dot_expr(Typer* self, Expr* e)
 	{
 		Type* type = type_void;
 		if (e->dot.lhs)
@@ -1438,7 +1438,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("unknown structure field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1451,7 +1451,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("illegal swizzle pattern");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1469,7 +1469,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("illegal vector field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 			else if (outside_range || len > 4)
@@ -1477,7 +1477,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("vector field out of range");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1491,7 +1491,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("unknown structure field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1501,7 +1501,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("unknown structure field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1516,7 +1516,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("unknown structure field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1527,7 +1527,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("undefined symbol");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1536,7 +1536,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("you can't import a package from inside another package");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			e->dot.rhs->symbol = symbol;
@@ -1552,7 +1552,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("unknown structure field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1562,7 +1562,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->dot.rhs->loc;
 				err.msg = mn::strf("unknown enum field");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				return type_void;
 			}
 
@@ -1577,7 +1577,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->loc;
 				err.msg = mn::strf("enum field has no value yet");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 			e->symbol = type->enum_type.symbol;
 			return type;
@@ -1587,13 +1587,13 @@ namespace sabre
 			Err err{};
 			err.loc = e->dot.rhs->loc;
 			err.msg = mn::strf("unknown structure field");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return type_void;
 		}
 	}
 
 	inline static Type*
-	_typer_resolve_indexed_expr(Typer& self, Expr* e)
+	_typer_resolve_indexed_expr(Typer* self, Expr* e)
 	{
 		auto base_type = _typer_resolve_expr(self, e->indexed.base);
 		if (type_is_array(base_type) == false)
@@ -1601,7 +1601,7 @@ namespace sabre
 			Err err{};
 			err.loc = e->loc;
 			err.msg = mn::strf("type '{}' is not array", base_type);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return base_type;
 		}
 
@@ -1612,7 +1612,7 @@ namespace sabre
 			Err err{};
 			err.loc = e->indexed.index->loc;
 			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", index_type);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return base_type->array.base;
 		}
 
@@ -1627,7 +1627,7 @@ namespace sabre
 				base_type->array.count,
 				e->indexed.index->const_value.as_int
 			);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 
 		// arrays have variable mode by default, unless they are constants
@@ -1650,7 +1650,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_complit_expr(Typer& self, Expr* e)
+	_typer_resolve_complit_expr(Typer* self, Expr* e)
 	{
 		Type* type = type_void;
 		if (e->complit.type.atoms.count > 0)
@@ -1668,7 +1668,7 @@ namespace sabre
 				Err err{};
 				err.loc = e->loc;
 				err.msg = mn::strf("could not infer composite literal type");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -1710,7 +1710,7 @@ namespace sabre
 						Err err{};
 						err.loc = field.selector_name->loc;
 						err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, field.selector_name->atom.tkn.str);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						failed = true;
 						break;
 					}
@@ -1723,7 +1723,7 @@ namespace sabre
 						Err err{};
 						err.loc = field.selector_name->loc;
 						err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, field.selector_name->atom.tkn.str);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						failed = true;
 						break;
 					}
@@ -1735,7 +1735,7 @@ namespace sabre
 					Err err{};
 					err.loc = field.selector_name->loc;
 					err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, field.selector_name->atom.tkn.str);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					failed = true;
 					break;
 				}
@@ -1755,7 +1755,7 @@ namespace sabre
 						Err err{};
 						err.loc = field.value->loc;
 						err.msg = mn::strf("type '{}' contains only {} fields", type_it, type_it->vec.width);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						failed = true;
 					}
 				}
@@ -1772,7 +1772,7 @@ namespace sabre
 						Err err{};
 						err.loc = field.value->loc;
 						err.msg = mn::strf("type '{}' contains only {} fields", type_it, type_it->struct_type.fields.count);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						failed = true;
 					}
 				}
@@ -1790,7 +1790,7 @@ namespace sabre
 						Err err{};
 						err.loc = field.value->loc;
 						err.msg = mn::strf("array '{}' contains only {} elements", type_it, type_it->array.count);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						failed = true;
 					}
 				}
@@ -1799,7 +1799,7 @@ namespace sabre
 					Err err{};
 					err.loc = field.value->loc;
 					err.msg = mn::strf("type '{}' doesn't have fields", type_it);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					failed = true;
 				}
 			}
@@ -1814,7 +1814,7 @@ namespace sabre
 						"duplicate field name '{}' in composite literal",
 						field.selector_name->atom.tkn.str
 					);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 				else
 				{
@@ -1851,7 +1851,7 @@ namespace sabre
 						Err err{};
 						err.loc = field.value->loc;
 						err.msg = mn::strf("type mismatch in compound literal value, type '{}' cannot be constructed from '{}'", type, value_type);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						break;
 					}
 				}
@@ -1869,7 +1869,7 @@ namespace sabre
 					Err err{};
 					err.loc = field.value->loc;
 					err.msg = mn::strf("type mismatch in compound literal value, selector type '{}' but expression type is '{}'", type_it, value_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 					break;
 				}
 			}
@@ -1881,7 +1881,7 @@ namespace sabre
 			Array_Sign sign{};
 			sign.base = type->array.base;
 			sign.count = type_field_index;
-			type = type_interner_array(self.unit->parent_unit->type_interner, sign);
+			type = type_interner_array(self->unit->parent_unit->type_interner, sign);
 		}
 
 		// if all the field values are constant we'll consider the entire complit to be constant
@@ -1937,7 +1937,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_expr(Typer& self, Expr* e)
+	_typer_resolve_expr(Typer* self, Expr* e)
 	{
 		if (e->type)
 			return e->type;
@@ -1978,7 +1978,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_const(Typer& self, Symbol* sym)
+	_typer_resolve_const(Typer* self, Symbol* sym)
 	{
 		// we should infer if the declaration has no type signature
 		auto infer = sym->const_sym.sign.atoms.count == 0;
@@ -2003,7 +2003,7 @@ namespace sabre
 				Err err{};
 				err.loc = symbol_location(sym);
 				err.msg = mn::strf("no expression to infer the type of the constant from");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		else
@@ -2031,7 +2031,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->loc;
 					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", res, expr_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 		}
@@ -2041,7 +2041,7 @@ namespace sabre
 			Err err{};
 			err.loc = e->loc;
 			err.msg = mn::strf("expression cannot be evaluated in compile time");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 
 		sym->type = res;
@@ -2049,7 +2049,7 @@ namespace sabre
 	}
 
 	inline static bool
-	_typer_check_type_suitable_for_uniform(Typer& self, Type* type, size_t depth)
+	_typer_check_type_suitable_for_uniform(Typer* self, Type* type, size_t depth)
 	{
 		if (type_is_sampler(type))
 		{
@@ -2072,7 +2072,7 @@ namespace sabre
 					Err err{};
 					err.loc = field.name.loc;
 					err.msg = mn::strf("field type '{}' cannot be used for uniform", field.type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 			return res;
@@ -2081,7 +2081,7 @@ namespace sabre
 		{
 			Err err{};
 			err.msg = mn::strf("'{}' unbounded arrays cannot be used in uniforms", type);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return false;
 		}
 		else if (type_is_bounded_array(type))
@@ -2095,7 +2095,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_var(Typer& self, Symbol* sym)
+	_typer_resolve_var(Typer* self, Symbol* sym)
 	{
 		// we should infer if the declaration has no type signature
 		auto infer = sym->var_sym.sign.atoms.count == 0;
@@ -2120,7 +2120,7 @@ namespace sabre
 				Err err{};
 				err.loc = symbol_location(sym);
 				err.msg = mn::strf("no expression to infer the type of the constant from");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		else
@@ -2148,7 +2148,7 @@ namespace sabre
 					Err err{};
 					err.loc = e->loc;
 					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", res, expr_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 		}
@@ -2163,7 +2163,7 @@ namespace sabre
 				Err err{};
 				err.loc = symbol_location(sym);
 				err.msg = mn::strf("uniform variable type '{}' contains types which cannot be used in a uniform", res);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
@@ -2175,16 +2175,16 @@ namespace sabre
 					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
 					{
 						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-						if (sym->var_sym.uniform_binding > self.texture_binding_generator)
-							self.texture_binding_generator = sym->var_sym.uniform_binding + 1;
+						if (sym->var_sym.uniform_binding > self->texture_binding_generator)
+							self->texture_binding_generator = sym->var_sym.uniform_binding + 1;
 					}
 				}
 				else
 				{
-					sym->var_sym.uniform_binding = self.texture_binding_generator++;
+					sym->var_sym.uniform_binding = self->texture_binding_generator++;
 				}
 
-				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding))
+				if (auto it = mn::map_lookup(self->unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding))
 				{
 					auto old_sym = it->value;
 					auto old_loc = symbol_location(old_sym);
@@ -2197,11 +2197,11 @@ namespace sabre
 						old_loc.file->filepath,
 						old_loc.pos.line
 					);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 				else
 				{
-					mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
+					mn::map_insert(self->unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
 				}
 			}
 			else if (type_is_sampler(sym->type))
@@ -2213,16 +2213,16 @@ namespace sabre
 					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
 					{
 						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-						if (sym->var_sym.uniform_binding > self.sampler_binding_generator)
-							self.sampler_binding_generator = sym->var_sym.uniform_binding + 1;
+						if (sym->var_sym.uniform_binding > self->sampler_binding_generator)
+							self->sampler_binding_generator = sym->var_sym.uniform_binding + 1;
 					}
 				}
 				else
 				{
-					sym->var_sym.uniform_binding = self.sampler_binding_generator++;
+					sym->var_sym.uniform_binding = self->sampler_binding_generator++;
 				}
 
-				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding))
+				if (auto it = mn::map_lookup(self->unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding))
 				{
 					auto old_sym = it->value;
 					auto old_loc = symbol_location(old_sym);
@@ -2235,11 +2235,11 @@ namespace sabre
 						old_loc.file->filepath,
 						old_loc.pos.line
 					);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 				else
 				{
-					mn::map_insert(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding, sym);
+					mn::map_insert(self->unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding, sym);
 				}
 			}
 			else
@@ -2251,16 +2251,16 @@ namespace sabre
 					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
 					{
 						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-						if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
-							self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
+						if (sym->var_sym.uniform_binding > self->uniform_binding_generator)
+							self->uniform_binding_generator = sym->var_sym.uniform_binding + 1;
 					}
 				}
 				else
 				{
-					sym->var_sym.uniform_binding = self.uniform_binding_generator++;
+					sym->var_sym.uniform_binding = self->uniform_binding_generator++;
 				}
 
-				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
+				if (auto it = mn::map_lookup(self->unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
 				{
 					auto old_sym = it->value;
 					auto old_loc = symbol_location(old_sym);
@@ -2273,11 +2273,11 @@ namespace sabre
 						old_loc.file->filepath,
 						old_loc.pos.line
 					);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 				else
 				{
-					mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
+					mn::map_insert(self->unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
 				}
 			}
 		}
@@ -2286,7 +2286,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_func_decl(Typer& self, Decl* d)
+	_typer_resolve_func_decl(Typer* self, Decl* d)
 	{
 		// if we have calculated the type of the function then just return it
 		if (d->type)
@@ -2294,16 +2294,16 @@ namespace sabre
 
 		// TODO: find a nice way to handle the return type of function return type here, for now
 		// we set it to void then overwrite it later at the end of this function
-		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
+		auto scope = unit_create_scope_for(self->unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
-			auto type_interner = self.unit->parent_unit->type_interner;
+			auto type_interner = self->unit->parent_unit->type_interner;
 			auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
 			for (auto template_arg: d->func_decl.template_args)
 			{
 				for (auto name: template_arg.names)
 				{
-					auto v = symbol_typename_new(self.unit->symbols_arena, name);
+					auto v = symbol_typename_new(self->unit->symbols_arena, name);
 					auto type = type_interner_typename(type_interner, v);
 					v->type = type;
 					_typer_add_symbol(self, v);
@@ -2326,15 +2326,15 @@ namespace sabre
 				}
 			}
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
-			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, d, template_args);
+			d->type = type_interner_func(self->unit->parent_unit->type_interner, sign, d, template_args);
 
-			if (self.entry && self.entry->mode == COMPILATION_MODE_GEOMETRY)
+			if (self->entry && self->entry->mode == COMPILATION_MODE_GEOMETRY)
 			{
-				if (d == symbol_decl(self.entry->symbol))
+				if (d == symbol_decl(self->entry->symbol))
 				{
 					if (mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY))
 					{
-						self.unit->parent_unit->geometry_output = d->type->as_func.sign.return_type;
+						self->unit->parent_unit->geometry_output = d->type->as_func.sign.return_type;
 					}
 				}
 			}
@@ -2348,7 +2348,7 @@ namespace sabre
 				auto arg_type = d->type->as_func.sign.args.types[i];
 				for (auto name: arg.names)
 				{
-					auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+					auto v = symbol_var_new(self->unit->symbols_arena, name, nullptr, arg.type, nullptr);
 					v->type = arg_type;
 					v->state = STATE_RESOLVED;
 					_typer_add_symbol(self, v);
@@ -2362,17 +2362,17 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_func_decl(Typer& self, Symbol* sym)
+	_typer_resolve_func_decl(Typer* self, Symbol* sym)
 	{
 		return _typer_resolve_func_decl(self, sym->func_sym.decl);
 	}
 
 	inline static Type*
-	_typer_resolve_func_overload_set(Typer& self, Symbol* sym)
+	_typer_resolve_func_overload_set(Typer* self, Symbol* sym)
 	{
 		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 
-		auto type = type_interner_overload_set(self.unit->parent_unit->type_interner, sym);
+		auto type = type_interner_overload_set(self->unit->parent_unit->type_interner, sym);
 		for (auto& [decl, decl_type]: sym->func_overload_set_sym.decls)
 		{
 			// enter file scope to make import symbols visible
@@ -2388,10 +2388,10 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_stmt(Typer& self, Stmt* s);
+	_typer_resolve_stmt(Typer* self, Stmt* s);
 
 	inline static Type*
-	_typer_resolve_break_stmt(Typer& self, Stmt* s)
+	_typer_resolve_break_stmt(Typer* self, Stmt* s)
 	{
 		auto scope = _typer_current_scope(self);
 		if (scope_find_flag(scope, Scope::FLAG_INSIDE_LOOP) == false)
@@ -2399,13 +2399,13 @@ namespace sabre
 			Err err{};
 			err.loc = s->loc;
 			err.msg = mn::strf("unexpected break statement, they can only appear in for loops");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 		return type_void;
 	}
 
 	inline static Type*
-	_typer_resolve_continue_stmt(Typer& self, Stmt* s)
+	_typer_resolve_continue_stmt(Typer* self, Stmt* s)
 	{
 		auto scope = _typer_current_scope(self);
 		if (scope_find_flag(scope, Scope::FLAG_INSIDE_LOOP) == false)
@@ -2413,19 +2413,19 @@ namespace sabre
 			Err err{};
 			err.loc = s->loc;
 			err.msg = mn::strf("unexpected continue statement, they can only appear in for loops");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 		return type_void;
 	}
 
 	inline static Type*
-	_typer_resolve_discard_stmt(Typer& self, Stmt* s)
+	_typer_resolve_discard_stmt(Typer* self, Stmt* s)
 	{
 		return type_void;
 	}
 
 	inline static Type*
-	_typer_resolve_return_stmt(Typer& self, Stmt* s)
+	_typer_resolve_return_stmt(Typer* self, Stmt* s)
 	{
 		auto expected = _typer_expected_return_type(self);
 
@@ -2438,7 +2438,7 @@ namespace sabre
 			Err err{};
 			err.loc = s->loc;
 			err.msg = mn::strf("unexpected return statement");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return ret;
 		}
 
@@ -2447,21 +2447,21 @@ namespace sabre
 			Err err{};
 			err.loc = s->return_stmt->loc;
 			err.msg = mn::strf("incorrect return type '{}' expected '{}'", ret, expected);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 		}
 
 		return ret;
 	}
 
 	inline static Type*
-	_typer_resolve_if_stmt(Typer& self, Stmt* s)
+	_typer_resolve_if_stmt(Typer* self, Stmt* s)
 	{
 		if (s->if_stmt.cond.count != s->if_stmt.body.count)
 		{
 			Err err{};
 			err.loc = s->loc;
 			err.msg = mn::strf("missing if condition");
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return type_void;
 		}
 
@@ -2473,7 +2473,7 @@ namespace sabre
 				Err err{};
 				err.loc = s->if_stmt.cond[i]->loc;
 				err.msg = mn::strf("if condition type '{}' is not a boolean", cond_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 			_typer_resolve_stmt(self, s->if_stmt.body[i]);
 		}
@@ -2484,9 +2484,9 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_for_stmt(Typer& self, Stmt* s)
+	_typer_resolve_for_stmt(Typer* self, Stmt* s)
 	{
-		auto scope = unit_create_scope_for(self.unit, s, _typer_current_scope(self), "for loop", nullptr, Scope::FLAG_INSIDE_LOOP);
+		auto scope = unit_create_scope_for(self->unit, s, _typer_current_scope(self), "for loop", nullptr, Scope::FLAG_INSIDE_LOOP);
 		_typer_enter_scope(self, scope);
 		{
 			if (s->for_stmt.init != nullptr)
@@ -2500,7 +2500,7 @@ namespace sabre
 					Err err{};
 					err.loc = s->for_stmt.cond->loc;
 					err.msg = mn::strf("for loop condition type '{}' is not a boolean", cond_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 
@@ -2515,7 +2515,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_assign_stmt(Typer& self, Stmt* s)
+	_typer_resolve_assign_stmt(Typer* self, Stmt* s)
 	{
 		for (size_t i = 0; i < s->assign_stmt.lhs.count; ++i)
 		{
@@ -2525,7 +2525,7 @@ namespace sabre
 				Err err{};
 				err.loc = s->assign_stmt.lhs[i]->loc;
 				err.msg = mn::strf("cannot assign into a void type");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			auto rhs_type = _typer_resolve_expr(self, s->assign_stmt.rhs[i]);
@@ -2534,7 +2534,7 @@ namespace sabre
 				Err err{};
 				err.loc = s->assign_stmt.rhs[i]->loc;
 				err.msg = mn::strf("cannot assign a void type");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (s->assign_stmt.op.kind == Tkn::KIND_STAR_EQUAL && lhs_type->kind == Type::KIND_VEC && rhs_type->kind == Type::KIND_MAT)
@@ -2549,7 +2549,7 @@ namespace sabre
 					Err err{};
 					err.loc = s->loc;
 					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 
@@ -2564,14 +2564,14 @@ namespace sabre
 						Err err{};
 						err.loc = s->assign_stmt.rhs[i]->loc;
 						err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", rhs_type);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 					}
 					else if (type_width(lhs_type) != type_width(rhs_type))
 					{
 						Err err{};
 						err.loc = s->assign_stmt.rhs[i]->loc;
 						err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", lhs_type, rhs_type);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 					}
 				}
 				else
@@ -2579,7 +2579,7 @@ namespace sabre
 					Err err{};
 					err.loc = s->assign_stmt.rhs[i]->loc;
 					err.msg = mn::strf("type mismatch in assignment statement, expected '{}' but found '{}'", lhs_type, rhs_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 
@@ -2593,7 +2593,7 @@ namespace sabre
 				Err err{};
 				err.loc = s->assign_stmt.lhs[i]->loc;
 				err.msg = mn::strf("cannot assign into a constant value");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				break;
 			}
 			case ADDRESS_MODE_COMPUTED_VALUE:
@@ -2601,7 +2601,7 @@ namespace sabre
 				Err err{};
 				err.loc = s->assign_stmt.lhs[i]->loc;
 				err.msg = mn::strf("cannot assign into a computed value");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				break;
 			}
 			case ADDRESS_MODE_NONE:
@@ -2610,7 +2610,7 @@ namespace sabre
 				Err err{};
 				err.loc = s->assign_stmt.lhs[i]->loc;
 				err.msg = mn::strf("you can only assign into variables");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 				break;
 			}
 			}
@@ -2619,7 +2619,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_decl_stmt(Typer& self, Stmt* s)
+	_typer_resolve_decl_stmt(Typer* self, Stmt* s)
 	{
 		auto d = s->decl_stmt;
 		switch (d->kind)
@@ -2631,7 +2631,7 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < d->const_decl.values.count)
 					value = d->const_decl.values[i];
-				auto sym = symbol_const_new(self.unit->symbols_arena, name, d, d->const_decl.type, value);
+				auto sym = symbol_const_new(self->unit->symbols_arena, name, d, d->const_decl.type, value);
 				_typer_add_symbol(self, sym);
 				_typer_resolve_symbol(self, sym);
 			}
@@ -2643,7 +2643,7 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < d->var_decl.values.count)
 					value = d->var_decl.values[i];
-				auto sym = symbol_var_new(self.unit->symbols_arena, name, d, d->var_decl.type, value);
+				auto sym = symbol_var_new(self->unit->symbols_arena, name, d, d->var_decl.type, value);
 				_typer_add_symbol(self, sym);
 				_typer_resolve_symbol(self, sym);
 			}
@@ -2663,9 +2663,9 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_block_stmt_with_scope(Typer& self, Stmt* s)
+	_typer_resolve_block_stmt_with_scope(Typer* self, Stmt* s)
 	{
-		auto scope = unit_create_scope_for(self.unit, s, _typer_current_scope(self), "block", nullptr, Scope::FLAG_NONE);
+		auto scope = unit_create_scope_for(self->unit, s, _typer_current_scope(self), "block", nullptr, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
 		{
 			for (auto stmt: s->block_stmt)
@@ -2676,7 +2676,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_stmt(Typer& self, Stmt* s)
+	_typer_resolve_stmt(Typer* self, Stmt* s)
 	{
 		switch (s->kind)
 		{
@@ -2714,7 +2714,7 @@ namespace sabre
 	};
 
 	inline static Termination_Info
-	_typer_stmt_will_terminate(Typer& self, Stmt* s)
+	_typer_stmt_will_terminate(Typer* self, Stmt* s)
 	{
 		switch (s->kind)
 		{
@@ -2807,7 +2807,7 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_resolve_func_body_internal(Typer& self, Decl* d, Type* t, Scope* scope)
+	_typer_resolve_func_body_internal(Typer* self, Decl* d, Type* t, Scope* scope)
 	{
 		if (type_is_templated(t))
 			return;
@@ -2833,7 +2833,7 @@ namespace sabre
 							Err err{};
 							err.loc = return_info.loc;
 							err.msg = mn::strf("you cannot return from a geometry shader, use std.emit function");
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 					}
 					else
@@ -2843,7 +2843,7 @@ namespace sabre
 							Err err{};
 							err.loc = return_info.loc;
 							err.msg = mn::strf("missing return at the end of the function because {}", return_info.msg);
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 					}
 				}
@@ -2854,26 +2854,26 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_resolve_func_body(Typer& self, Symbol* sym)
+	_typer_resolve_func_body(Typer* self, Symbol* sym)
 	{
 		auto d = symbol_decl(sym);
 		auto t = sym->type;
-		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, t->as_func.sign.return_type, Scope::FLAG_NONE);
+		auto scope = unit_create_scope_for(self->unit, d, _typer_current_scope(self), d->name.str, t->as_func.sign.return_type, Scope::FLAG_NONE);
 		_typer_resolve_func_body_internal(self, sym->func_sym.decl, sym->type, scope);
 	}
 
 	inline static void
-	_typer_resolve_func_overload_set_body(Typer& self, Symbol* sym)
+	_typer_resolve_func_overload_set_body(Typer* self, Symbol* sym)
 	{
 		for (auto [decl, decl_type]: sym->func_overload_set_sym.decls)
 		{
-			auto scope = unit_create_scope_for(self.unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
+			auto scope = unit_create_scope_for(self->unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
 			_typer_resolve_func_body_internal(self, decl, decl_type, scope);
 		}
 	}
 
 	inline static void
-	_typer_complete_type(Typer& self, Symbol* sym, Location used_from)
+	_typer_complete_type(Typer* self, Symbol* sym, Location used_from)
 	{
 		auto type = sym->type;
 		if (type->kind == Type::KIND_COMPLETING)
@@ -2881,7 +2881,7 @@ namespace sabre
 			Err err{};
 			err.loc = used_from;
 			err.msg = mn::strf("'{}' is a recursive type", sym->name);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return;
 		}
 		else if (type->kind != Type::KIND_INCOMPLETE)
@@ -2894,16 +2894,16 @@ namespace sabre
 		{
 			auto d = sym->struct_sym.decl;
 
-			auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
+			auto scope = unit_create_scope_for(self->unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
 			_typer_enter_scope(self, scope);
 			{
-				auto type_interner = self.unit->parent_unit->type_interner;
+				auto type_interner = self->unit->parent_unit->type_interner;
 				auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
 				for (auto template_arg: d->struct_decl.template_args)
 				{
 					for (auto name: template_arg.names)
 					{
-						auto v = symbol_typename_new(self.unit->symbols_arena, name);
+						auto v = symbol_typename_new(self->unit->symbols_arena, name);
 						auto type = type_interner_typename(type_interner, v);
 						v->type = type;
 						_typer_add_symbol(self, v);
@@ -2911,8 +2911,8 @@ namespace sabre
 					}
 				}
 
-				auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner->arena);
-				auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
+				auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self->unit->parent_unit->type_interner->arena);
+				auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self->unit->parent_unit->type_interner->arena);
 				for (auto field: d->struct_decl.fields)
 				{
 					auto field_type = _typer_resolve_type_sign(self, field.type);
@@ -2930,7 +2930,7 @@ namespace sabre
 							Err err{};
 							err.loc = field.default_value->loc;
 							err.msg = mn::strf("type mismatch in default value which has type '{}' but field type is '{}'", default_value_type, field_type);
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 
 						if (field.default_value->mode != ADDRESS_MODE_CONST)
@@ -2938,7 +2938,7 @@ namespace sabre
 							Err err{};
 							err.loc = field.default_value->loc;
 							err.msg = mn::strf("default value should be a constant");
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 					}
 					for (auto name: field.names)
@@ -2956,7 +2956,7 @@ namespace sabre
 							Err err{};
 							err.loc = name.loc;
 							err.msg = mn::strf("'{}' field redefinition, first declared in {}:{}", name.str, old_loc.pos.line, old_loc.pos.col);
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 						else
 						{
@@ -2964,7 +2964,7 @@ namespace sabre
 						}
 					}
 				}
-				type_interner_complete_struct(self.unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name, template_args);
+				type_interner_complete_struct(self->unit->parent_unit->type_interner, type, struct_fields, struct_fields_by_name, template_args);
 			}
 			_typer_leave_scope(self);
 		}
@@ -2972,8 +2972,8 @@ namespace sabre
 		{
 			auto d = sym->enum_sym.decl;
 			// first complete the type
-			auto enum_fields = mn::buf_with_allocator<Enum_Field_Type>(self.unit->parent_unit->type_interner->arena);
-			auto enum_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
+			auto enum_fields = mn::buf_with_allocator<Enum_Field_Type>(self->unit->parent_unit->type_interner->arena);
+			auto enum_fields_by_name = mn::map_with_allocator<const char*, size_t>(self->unit->parent_unit->type_interner->arena);
 			for (auto field: d->enum_decl.fields)
 			{
 				Enum_Field_Type enum_field{};
@@ -2987,14 +2987,14 @@ namespace sabre
 					Err err{};
 					err.loc = field.name.loc;
 					err.msg = mn::strf("'{}' field redefinition, first declared in {}:{}", field.name.str, old_loc.pos.line, old_loc.pos.col);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 				else
 				{
 					mn::map_insert(enum_fields_by_name, field.name.str, enum_fields.count - 1);
 				}
 			}
-			type_interner_complete_enum(self.unit->parent_unit->type_interner, type, enum_fields, enum_fields_by_name);
+			type_interner_complete_enum(self->unit->parent_unit->type_interner, type, enum_fields, enum_fields_by_name);
 
 			// then fill the values
 			auto enum_value = expr_value_int(0);
@@ -3012,7 +3012,7 @@ namespace sabre
 						Err err{};
 						err.loc = decl_field.value->loc;
 						err.msg = mn::strf("enum type should be integer, but instead we found '{}'", value_type);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 						continue;
 					}
 
@@ -3021,7 +3021,7 @@ namespace sabre
 						Err err{};
 						err.loc = decl_field.value->loc;
 						err.msg = mn::strf("enum values should be constant");
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 					}
 
 					enum_value = decl_field.value->const_value;
@@ -3035,7 +3035,7 @@ namespace sabre
 	}
 
 	inline static const char*
-	_typer_generate_package_name_for_symbol(Typer& self, Symbol* sym, bool prepend_scope)
+	_typer_generate_package_name_for_symbol(Typer* self, Symbol* sym, bool prepend_scope)
 	{
 		auto scope = sym->scope;
 
@@ -3065,7 +3065,7 @@ namespace sabre
 			res = mn::strf(res, "{}", sym->name);
 		}
 
-		auto interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+		auto interned_res = unit_intern(self->unit->parent_unit, res.ptr);
 
 		bool collided = false;
 		// try to search the already generated names for this new name and if found
@@ -3075,7 +3075,7 @@ namespace sabre
 			if (auto name_it = mn::map_lookup(it->generated_names, interned_res))
 			{
 				res = mn::strf(res, "_{}", name_it->value + 1);
-				auto interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+				auto interned_res = unit_intern(self->unit->parent_unit, res.ptr);
 				++name_it->value;
 				collided = true;
 				break;
@@ -3090,7 +3090,7 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_resolve_symbol(Typer& self, Symbol* sym)
+	_typer_resolve_symbol(Typer* self, Symbol* sym)
 	{
 		if (sym->state == STATE_RESOLVED)
 		{
@@ -3101,22 +3101,16 @@ namespace sabre
 			Err err{};
 			err.loc = symbol_location(sym);
 			err.msg = mn::strf("'{}' cyclic dependency", sym->name);
-			unit_err(self.unit, err);
+			unit_err(self->unit, err);
 			return;
 		}
 
 		// TODO(Moustapha): maybe cache the typer instead of creating it every time
 		auto old_typer = self;
-		bool create_sub_typer = self.unit != sym->package;
-		if (create_sub_typer)
-			self = *sym->package->typer;
-		mn_defer({
-			if (create_sub_typer)
-			{
-				*sym->package->typer = self;
-				self = old_typer;
-			}
-		});
+		bool different_package = self->unit != sym->package;
+		if (different_package)
+			self = sym->package->typer;
+		mn_defer(if (different_package) self = old_typer;);
 
 		sym->state = STATE_RESOLVING;
 		switch (sym->kind)
@@ -3131,16 +3125,16 @@ namespace sabre
 			sym->type = _typer_resolve_func_decl(self, sym);
 			break;
 		case Symbol::KIND_STRUCT:
-			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
+			sym->type = type_interner_incomplete(self->unit->parent_unit->type_interner, sym);
 			break;
 		case Symbol::KIND_PACKAGE:
-			sym->type = type_interner_package(self.unit->parent_unit->type_interner, sym->package_sym.package);
+			sym->type = type_interner_package(self->unit->parent_unit->type_interner, sym->package_sym.package);
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			sym->type = _typer_resolve_func_overload_set(self, sym);
 			break;
 		case Symbol::KIND_ENUM:
-			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
+			sym->type = type_interner_incomplete(self->unit->parent_unit->type_interner, sym);
 			break;
 		default:
 			assert(false && "unreachable");
@@ -3167,9 +3161,8 @@ namespace sabre
 			auto package = sym->package_sym.package;
 			if (package->stage == COMPILATION_STAGE_CHECK)
 			{
-				package->typer = mn::alloc<Typer>();
-				*package->typer = typer_new(package);
-				_typer_shallow_walk(*package->typer);
+				package->typer = typer_new(package);
+				_typer_shallow_walk(package->typer);
 
 				if (unit_package_has_errors(package))
 					package->stage = COMPILATION_STAGE_FAILED;
@@ -3188,7 +3181,7 @@ namespace sabre
 		}
 
 		// if sym is top level we add it to reachable symbols
-		auto is_top_level = scope_is_top_level(self.global_scope, sym);
+		auto is_top_level = scope_is_top_level(self->global_scope, sym);
 		if (auto decl = symbol_decl(sym))
 		{
 			is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
@@ -3205,16 +3198,16 @@ namespace sabre
 			sym->kind == Symbol::KIND_FUNC ||
 			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
 		{
-			mn::buf_push(self.reachable_symbols, sym);
+			mn::buf_push(self->reachable_symbols, sym);
 		}
 	}
 
 	inline static void
-	_typer_shallow_walk(Typer& self)
+	_typer_shallow_walk(Typer* self)
 	{
 		auto compile_ifs = mn::buf_with_allocator<Decl*>(mn::memory::tmp());
 
-		for (auto file: self.unit->files)
+		for (auto file: self->unit->files)
 		{
 			for (auto decl: file->decls)
 			{
@@ -3238,7 +3231,7 @@ namespace sabre
 					Err err{};
 					err.loc = cond_expr->loc;
 					err.msg = mn::strf("if condition type '{}' is not a boolean", cond_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 
 				if (cond_expr->mode != ADDRESS_MODE_CONST)
@@ -3246,7 +3239,7 @@ namespace sabre
 					Err err{};
 					err.loc = cond_expr->loc;
 					err.msg = mn::strf("compile time if condition is not a constant");
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 
 				if (cond_expr->const_value.type == type_bool && cond_expr->const_value.as_bool)
@@ -3292,7 +3285,7 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_check_entry_struct_input(Typer& self, Type* type)
+	_typer_check_entry_struct_input(Typer* self, Type* type)
 	{
 		auto struct_decl = symbol_decl(type->struct_type.symbol);
 		size_t struct_type_index = 0;
@@ -3305,14 +3298,14 @@ namespace sabre
 				Err err{};
 				err.loc = struct_field.name.loc;
 				err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 			struct_type_index += field.names.count;
 		}
 	}
 
 	inline static void
-	_typer_check_entry_input(Typer& self, Symbol* entry)
+	_typer_check_entry_input(Typer* self, Symbol* entry)
 	{
 		auto decl = symbol_decl(entry);
 		auto type = entry->type;
@@ -3349,7 +3342,7 @@ namespace sabre
 				Err err{};
 				err.loc = err_loc;
 				err.msg = mn::strf("type '{}' cannot be used as shader input", arg_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 			type_index += arg.names.count;
 		}
@@ -3357,7 +3350,7 @@ namespace sabre
 		// handle return type
 		auto return_type = type->as_func.sign.return_type;
 		// special case geometry shaders
-		if (self.entry && self.entry->mode == COMPILATION_MODE_GEOMETRY)
+		if (self->entry && self->entry->mode == COMPILATION_MODE_GEOMETRY)
 		{
 			if (type_is_struct(return_type) == false)
 			{
@@ -3368,7 +3361,7 @@ namespace sabre
 				Err err{};
 				err.loc = err_loc;
 				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 		else
@@ -3388,7 +3381,7 @@ namespace sabre
 							Err err{};
 							err.loc = struct_field.name.loc;
 							err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
-							unit_err(self.unit, err);
+							unit_err(self->unit, err);
 						}
 					}
 
@@ -3397,7 +3390,7 @@ namespace sabre
 						Err err{};
 						err.loc = struct_field.name.loc;
 						err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
-						unit_err(self.unit, err);
+						unit_err(self->unit, err);
 					}
 					struct_type_index += field.names.count;
 				}
@@ -3413,59 +3406,63 @@ namespace sabre
 					Err err{};
 					err.loc = err_loc;
 					err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 		}
 	}
 
 	// API
-	Typer
+	Typer*
 	typer_new(Unit_Package* unit)
 	{
-		Typer self{};
-		self.unit = unit;
-		self.global_scope = unit->global_scope;
+		auto self = mn::alloc_zerod<Typer>();
+		self->unit = unit;
+		self->global_scope = unit->global_scope;
 
-		mn::buf_push(self.scope_stack, self.global_scope);
+		mn::buf_push(self->scope_stack, self->global_scope);
 		return self;
 	}
 
 	void
-	typer_free(Typer& self)
+	typer_free(Typer* self)
 	{
-		mn::buf_free(self.reachable_symbols);
-		mn::buf_free(self.scope_stack);
-		mn::buf_free(self.expected_expr_type);
-		mn::buf_free(self.func_stack);
+		if (self)
+		{
+			mn::buf_free(self->reachable_symbols);
+			mn::buf_free(self->scope_stack);
+			mn::buf_free(self->expected_expr_type);
+			mn::buf_free(self->func_stack);
+			mn::free(self);
+		}
 	}
 
 	void
-	typer_shallow_walk(Typer& self)
+	typer_shallow_walk(Typer* self)
 	{
-		mn::buf_clear(self.reachable_symbols);
+		mn::buf_clear(self->reachable_symbols);
 		_typer_shallow_walk(self);
 
-		if (self.unit == self.unit->parent_unit->root_package)
+		if (self->unit == self->unit->parent_unit->root_package)
 		{
-			for (auto symbol: self.global_scope->symbols)
+			for (auto symbol: self->global_scope->symbols)
 			{
 				if (symbol->kind == Symbol::KIND_FUNC)
 				{
 					auto decl = symbol_decl(symbol);
 					if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
 					{
-						unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_VERTEX));
+						unit_entry_add(self->unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_VERTEX));
 						mn::log_debug("vertex shader: {}", decl->name.str);
 					}
 					else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
 					{
-						unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_PIXEL));
+						unit_entry_add(self->unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_PIXEL));
 						mn::log_debug("pixel shader: {}", decl->name.str);
 					}
 					else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY) != nullptr)
 					{
-						unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_GEOMETRY));
+						unit_entry_add(self->unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_GEOMETRY));
 						mn::log_debug("geometry shader: {}", decl->name.str);
 					}
 				}
@@ -3474,10 +3471,10 @@ namespace sabre
 	}
 
 	void
-	typer_check_entry(Typer& self, Entry_Point* entry)
+	typer_check_entry(Typer* self, Entry_Point* entry)
 	{
-		self.entry = entry;
-		auto compilation_unit = self.unit->parent_unit;
+		self->entry = entry;
+		auto compilation_unit = self->unit->parent_unit;
 
 		auto decl = symbol_decl(entry->symbol);
 		// verify some mandatory tags in case of geometry shader
@@ -3492,7 +3489,7 @@ namespace sabre
 				Err err{};
 				err.loc = decl->loc;
 				err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
@@ -3506,7 +3503,7 @@ namespace sabre
 					Err err{};
 					err.loc = decl->loc;
 					err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 			else
@@ -3514,7 +3511,7 @@ namespace sabre
 				Err err{};
 				err.loc = decl->loc;
 				err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 
 			if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
@@ -3528,7 +3525,7 @@ namespace sabre
 					Err err{};
 					err.loc = decl->loc;
 					err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
-					unit_err(self.unit, err);
+					unit_err(self->unit, err);
 				}
 			}
 			else
@@ -3536,7 +3533,7 @@ namespace sabre
 				Err err{};
 				err.loc = decl->loc;
 				err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
-				unit_err(self.unit, err);
+				unit_err(self->unit, err);
 			}
 		}
 
@@ -3556,23 +3553,23 @@ namespace sabre
 			break;
 		}
 
-		for (auto s: self.unit->parent_unit->reflected_symbols)
+		for (auto s: self->unit->parent_unit->reflected_symbols)
 			_typer_resolve_symbol(self, s);
 
-		entry->reachable_symbols = self.reachable_symbols;
-		self.reachable_symbols = {};
+		entry->reachable_symbols = self->reachable_symbols;
+		self->reachable_symbols = {};
 	}
 
 	void
-	typer_check_library(Typer& self)
+	typer_check_library(Typer* self)
 	{
-		self.entry = nullptr;
+		self->entry = nullptr;
 
 		// library mode we check all the available global symbols
-		for (auto sym: self.global_scope->symbols)
+		for (auto sym: self->global_scope->symbols)
 			_typer_resolve_symbol(self, sym);
 
-		for (auto s: self.unit->parent_unit->reflected_symbols)
+		for (auto s: self->unit->parent_unit->reflected_symbols)
 			_typer_resolve_symbol(self, s);
 	}
 }

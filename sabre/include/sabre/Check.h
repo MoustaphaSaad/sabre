@@ -26,28 +26,28 @@ namespace sabre
 	};
 
 	// creates a new type checker
-	SABRE_EXPORT Typer
+	SABRE_EXPORT Typer*
 	typer_new(Unit_Package* unit);
 
 	// frees the given type checker
 	SABRE_EXPORT void
-	typer_free(Typer& self);
+	typer_free(Typer* self);
 
 	inline static void
-	destruct(Typer& self)
+	destruct(Typer* self)
 	{
 		typer_free(self);
 	}
 
 	// performs shallow walk over all the symbols
 	SABRE_EXPORT void
-	typer_shallow_walk(Typer& self);
+	typer_shallow_walk(Typer* self);
 
 	// checks a single entry point
 	SABRE_EXPORT void
-	typer_check_entry(Typer& self, Entry_Point* entry);
+	typer_check_entry(Typer* self, Entry_Point* entry);
 
 	// performs type checking on the entire code (library mode)
 	SABRE_EXPORT void
-	typer_check_library(Typer& self);
+	typer_check_library(Typer* self);
 }
