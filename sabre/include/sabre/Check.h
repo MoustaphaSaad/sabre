@@ -15,6 +15,7 @@ namespace sabre
 	{
 		Unit_Package* unit;
 		Entry_Point* entry;
+		mn::Buf<Symbol*> reachable_symbols;
 		Scope* global_scope;
 		mn::Buf<Scope*> scope_stack;
 		mn::Buf<Decl*> func_stack;

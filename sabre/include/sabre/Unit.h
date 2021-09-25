@@ -24,6 +24,7 @@ namespace sabre
 	struct Symbol;
 	struct Type;
 	struct Scope;
+	struct Typer;
 
 	// this is a list of constant strings that's used across stages
 	// it's placed here so that when we use them as map keyes we don't
@@ -174,8 +175,9 @@ namespace sabre
 		mn::Map<mn::Str, Unit_File*> absolute_path_to_file;
 		// package level errors
 		mn::Buf<Err> errs;
-		// reachable symbols sorted by first usage
-		mn::Buf<Symbol*> reachable_symbols;
+		// typer of this package, we cache the typer of every package because when users references a
+		// symbol from this package we'll need to jump into its typer context to resolve it
+		Typer* typer;
 		// all the symbols are allocated from this arena, so we don't need to manage
 		// memory for the symbols on a symbol by symbol basis
 		mn::memory::Arena* symbols_arena;

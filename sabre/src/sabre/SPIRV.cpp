@@ -353,7 +353,7 @@ namespace sabre
 	spirv_gen(SPIRV& self)
 	{
 		// loop over all reachable symbols and generate them
-		for (auto sym: self.unit->reachable_symbols)
+		for (auto sym: self.unit->typer->reachable_symbols)
 		{
 			_spirv_symbol_gen(self, sym);
 		}

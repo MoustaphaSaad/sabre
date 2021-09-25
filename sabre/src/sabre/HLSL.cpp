@@ -1795,13 +1795,13 @@ namespace sabre
 			auto package = sym->package_sym.package;
 			if (package->stage == COMPILATION_STAGE_CODEGEN)
 			{
-				for (size_t i = 0; i < package->reachable_symbols.count; ++i)
+				for (size_t i = 0; i < package->typer->reachable_symbols.count; ++i)
 				{
 					if (i > 0)
 						_hlsl_newline(self);
-					_hlsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
+					_hlsl_symbol_gen(self, package->typer->reachable_symbols[i], in_stmt);
 				}
-				if (package->reachable_symbols.count > 0)
+				if (package->typer->reachable_symbols.count > 0)
 					_hlsl_newline(self);
 				package->stage = COMPILATION_STAGE_SUCCESS;
 			}
@@ -2220,13 +2220,13 @@ namespace sabre
 		}
 
 		bool last_symbol_was_generated = false;
-		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
+		for (size_t i = 0; i < entry->reachable_symbols.count; ++i)
 		{
 			if (last_symbol_was_generated)
 				_hlsl_newline(self);
 
 			auto pos = _hlsl_buffer_position(self);
-			_hlsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
+			_hlsl_symbol_gen(self, entry->reachable_symbols[i], false);
 			last_symbol_was_generated = _hlsl_code_generated_after(self, pos);
 		}
 
@@ -2239,13 +2239,13 @@ namespace sabre
 	hlsl_gen_library(HLSL& self)
 	{
 		bool last_symbol_was_generated = false;
-		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
+		for (size_t i = 0; i < self.unit->typer->reachable_symbols.count; ++i)
 		{
 			if (last_symbol_was_generated)
 				_hlsl_newline(self);
 
 			auto pos = _hlsl_buffer_position(self);
-			_hlsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
+			_hlsl_symbol_gen(self, self.unit->typer->reachable_symbols[i], false);
 			last_symbol_was_generated = _hlsl_code_generated_after(self, pos);
 		}
 	}

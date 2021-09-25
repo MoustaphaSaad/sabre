@@ -3109,11 +3109,11 @@ namespace sabre
 		auto old_typer = self;
 		bool create_sub_typer = self.unit != sym->package;
 		if (create_sub_typer)
-			self = typer_new(sym->package);
+			self = *sym->package->typer;
 		mn_defer({
 			if (create_sub_typer)
 			{
-				typer_free(self);
+				*sym->package->typer = self;
 				self = old_typer;
 			}
 		});
@@ -3167,9 +3167,9 @@ namespace sabre
 			auto package = sym->package_sym.package;
 			if (package->stage == COMPILATION_STAGE_CHECK)
 			{
-				auto sub_typer = typer_new(package);
-				_typer_shallow_walk(sub_typer);
-				typer_free(sub_typer);
+				package->typer = mn::alloc<Typer>();
+				*package->typer = typer_new(package);
+				_typer_shallow_walk(*package->typer);
 
 				if (unit_package_has_errors(package))
 					package->stage = COMPILATION_STAGE_FAILED;
@@ -3205,7 +3205,7 @@ namespace sabre
 			sym->kind == Symbol::KIND_FUNC ||
 			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
 		{
-			mn::buf_push(self.unit->reachable_symbols, sym);
+			mn::buf_push(self.reachable_symbols, sym);
 		}
 	}
 
@@ -3434,6 +3434,7 @@ namespace sabre
 	void
 	typer_free(Typer& self)
 	{
+		mn::buf_free(self.reachable_symbols);
 		mn::buf_free(self.scope_stack);
 		mn::buf_free(self.expected_expr_type);
 		mn::buf_free(self.func_stack);
@@ -3442,27 +3443,31 @@ namespace sabre
 	void
 	typer_shallow_walk(Typer& self)
 	{
+		mn::buf_clear(self.reachable_symbols);
 		_typer_shallow_walk(self);
 
-		for (auto symbol: self.global_scope->symbols)
+		if (self.unit == self.unit->parent_unit->root_package)
 		{
-			if (symbol->kind == Symbol::KIND_FUNC)
+			for (auto symbol: self.global_scope->symbols)
 			{
-				auto decl = symbol_decl(symbol);
-				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
+				if (symbol->kind == Symbol::KIND_FUNC)
 				{
-					unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_VERTEX));
-					mn::log_debug("vertex shader: {}", decl->name.str);
-				}
-				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
-				{
-					unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_PIXEL));
-					mn::log_debug("pixel shader: {}", decl->name.str);
-				}
-				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY) != nullptr)
-				{
-					unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_GEOMETRY));
-					mn::log_debug("geometry shader: {}", decl->name.str);
+					auto decl = symbol_decl(symbol);
+					if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
+					{
+						unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_VERTEX));
+						mn::log_debug("vertex shader: {}", decl->name.str);
+					}
+					else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
+					{
+						unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_PIXEL));
+						mn::log_debug("pixel shader: {}", decl->name.str);
+					}
+					else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY) != nullptr)
+					{
+						unit_entry_add(self.unit->parent_unit, entry_point_new(symbol, COMPILATION_MODE_GEOMETRY));
+						mn::log_debug("geometry shader: {}", decl->name.str);
+					}
 				}
 			}
 		}
@@ -3553,6 +3558,9 @@ namespace sabre
 
 		for (auto s: self.unit->parent_unit->reflected_symbols)
 			_typer_resolve_symbol(self, s);
+
+		entry->reachable_symbols = self.reachable_symbols;
+		self.reachable_symbols = {};
 	}
 
 	void

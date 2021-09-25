@@ -500,7 +500,11 @@ namespace sabre
 		destruct(self->files);
 		mn::map_free(self->absolute_path_to_file);
 		destruct(self->errs);
-		mn::buf_free(self->reachable_symbols);
+		if (self->typer)
+		{
+			typer_free(*self->typer);
+			mn::free(self->typer);
+		}
 		mn::allocator_free(self->symbols_arena);
 		scope_free(self->global_scope);
 		mn::buf_free(self->imported_packages);
@@ -621,9 +625,9 @@ namespace sabre
 		{
 			auto start = _capture_timepoint();
 			bool has_errors = false;
-			auto typer = typer_new(self);
-			mn_defer(typer_free(typer));
-			typer_shallow_walk(typer);
+			self->typer = mn::alloc<Typer>();
+			*self->typer = typer_new(self);
+			typer_shallow_walk(*self->typer);
 
 			auto parent = self->parent_unit;
 			if (parent->entry != nullptr && self == parent->root_package)
@@ -632,7 +636,7 @@ namespace sabre
 				auto entry = unit_entry_find(parent, parent->entry);
 				if (entry)
 				{
-					typer_check_entry(typer, entry);
+					typer_check_entry(*self->typer, entry);
 				}
 				else
 				{
@@ -643,7 +647,7 @@ namespace sabre
 			}
 			else
 			{
-				typer_check_library(typer);
+				typer_check_library(*self->typer);
 			}
 			if (unit_package_has_errors(self))
 			{
