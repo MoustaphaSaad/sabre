@@ -675,8 +675,9 @@ namespace sabre
 	inline static void
 	_hlsl_write_geometry_stream_arg(HLSL& self)
 	{
-		auto geometry_output_type = self.unit->parent_unit->geometry_output;
-		auto geometry_out = self.unit->parent_unit->geometry_out;
+		auto decl = symbol_decl(self.entry->symbol);
+		auto geometry_output_type = decl->func_decl.geometry_output;
+		auto geometry_out = decl->func_decl.geometry_out;
 
 		if (geometry_out.str == KEYWORD_TRIANGLE)
 		{
@@ -1977,8 +1978,8 @@ namespace sabre
 
 		if (is_geometry)
 		{
-			auto geometry_max_vertex_count = self.unit->parent_unit->geometry_max_vertex_count;
-			auto geometry_in = self.unit->parent_unit->geometry_in;
+			auto geometry_max_vertex_count = d->func_decl.geometry_max_vertex_count;
+			auto geometry_in = d->func_decl.geometry_in;
 			mn::print_to(self.out, "[maxvertexcount({})] void main(", geometry_max_vertex_count.str);
 
 			if (d->func_decl.body != nullptr)
@@ -2203,6 +2204,8 @@ namespace sabre
 	void
 	hlsl_gen_entry(HLSL& self, Entry_Point* entry)
 	{
+		self.entry = entry;
+
 		switch (entry->mode)
 		{
 		case COMPILATION_MODE_VERTEX:

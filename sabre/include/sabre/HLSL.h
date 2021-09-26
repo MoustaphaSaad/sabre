@@ -22,6 +22,7 @@ namespace sabre
 		mn::Stream out;
 		size_t indent;
 
+		Entry_Point* entry;
 		mn::Buf<Scope*> scope_stack;
 		// map from the reserved keywords to the alternative names
 		mn::Map<const char*, const char*> reserved_to_alternative;

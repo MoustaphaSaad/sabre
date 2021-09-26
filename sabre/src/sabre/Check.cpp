@@ -1171,6 +1171,18 @@ namespace sabre
 		return type;
 	}
 
+	inline static Decl*
+	_typer_get_geometry_func_decl(Typer& self)
+	{
+		for (size_t i = 0; i < self.func_stack.count; ++i)
+		{
+			auto decl = self.func_stack[self.func_stack.count - i - 1];
+			if (decl->func_decl.is_geometry)
+				return decl;
+		}
+		return nullptr;
+	}
+
 	inline static Type*
 	_typer_resolve_call_expr(Typer& self, Expr* e)
 	{
@@ -1211,13 +1223,13 @@ namespace sabre
 					}
 
 					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
-					if (auto geometry_output = self.unit->parent_unit->geometry_output)
+					if (auto geometry_decl = _typer_get_geometry_func_decl(self))
 					{
-						if (type_is_equal(geometry_output, arg_type) == false)
+						if (type_is_equal(geometry_decl->func_decl.geometry_output, arg_type) == false)
 						{
 							Err err{};
 							err.loc = e->call.args[0]->loc;
-							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 1, geometry_output, arg_type);
+							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 1, geometry_decl->func_decl.geometry_output, arg_type);
 							unit_err(self.unit, err);
 						}
 					}
@@ -2370,6 +2382,8 @@ namespace sabre
 		}
 		_typer_leave_scope(self);
 
+		if (d->func_decl.is_geometry)
+			d->func_decl.geometry_output = d->type->as_func.sign.return_type;
 		return d->type;
 	}
 
@@ -3480,8 +3494,67 @@ namespace sabre
 					entry.symbol = sym;
 					mn::buf_push(self.unit->entry_points, entry);
 				}
-				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
+				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
+					decl->func_decl.is_geometry = true;
+					decl->func_decl.geometry_output = sym->type->as_func.sign.return_type;
+
+					if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
+					{
+						decl->func_decl.geometry_max_vertex_count = max_vertex_count->value.value;
+					}
+					else
+					{
+						Err err{};
+						err.loc = decl->loc;
+						err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
+						unit_err(self.unit, err);
+					}
+
+					if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
+					{
+						decl->func_decl.geometry_in = geometry_in->value.value;
+
+						if (decl->func_decl.geometry_in.str != KEYWORD_POINT &&
+							decl->func_decl.geometry_in.str != KEYWORD_LINE &&
+							decl->func_decl.geometry_in.str != KEYWORD_TRIANGLE)
+						{
+							Err err{};
+							err.loc = decl->loc;
+							err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", decl->func_decl.geometry_in.str);
+							unit_err(self.unit, err);
+						}
+					}
+					else
+					{
+						Err err{};
+						err.loc = decl->loc;
+						err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
+						unit_err(self.unit, err);
+					}
+
+					if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
+					{
+						decl->func_decl.geometry_out = geometry_out->value.value;
+
+						if (decl->func_decl.geometry_out.str != KEYWORD_POINT &&
+							decl->func_decl.geometry_out.str != KEYWORD_LINE &&
+							decl->func_decl.geometry_out.str != KEYWORD_TRIANGLE)
+						{
+							Err err{};
+							err.loc = decl->loc;
+							err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", decl->func_decl.geometry_out.str);
+							unit_err(self.unit, err);
+						}
+					}
+					else
+					{
+						Err err{};
+						err.loc = decl->loc;
+						err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
+						unit_err(self.unit, err);
+					}
+
 					Entry_Point entry{};
 					entry.mode = COMPILATION_MODE_GEOMETRY;
 					entry.symbol = sym;
@@ -3498,71 +3571,6 @@ namespace sabre
 	void
 	typer_check_entry(Typer& self, Entry_Point* entry)
 	{
-		auto compilation_unit = self.unit->parent_unit;
-
-		if (entry->mode == COMPILATION_MODE_GEOMETRY)
-		{
-			auto decl = symbol_decl(entry->symbol);
-			auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY);
-			compilation_unit->geometry_output = entry->symbol->type->as_func.sign.return_type;
-
-			if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
-			{
-				compilation_unit->geometry_max_vertex_count = max_vertex_count->value.value;
-			}
-			else
-			{
-				Err err{};
-				err.loc = decl->loc;
-				err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
-				unit_err(self.unit, err);
-			}
-
-			if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
-			{
-				compilation_unit->geometry_in = geometry_in->value.value;
-
-				if (compilation_unit->geometry_in.str != KEYWORD_POINT &&
-					compilation_unit->geometry_in.str != KEYWORD_LINE &&
-					compilation_unit->geometry_in.str != KEYWORD_TRIANGLE)
-				{
-					Err err{};
-					err.loc = decl->loc;
-					err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
-					unit_err(self.unit, err);
-				}
-			}
-			else
-			{
-				Err err{};
-				err.loc = decl->loc;
-				err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
-				unit_err(self.unit, err);
-			}
-
-			if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
-			{
-				compilation_unit->geometry_out = geometry_out->value.value;
-
-				if (compilation_unit->geometry_out.str != KEYWORD_POINT &&
-					compilation_unit->geometry_out.str != KEYWORD_LINE &&
-					compilation_unit->geometry_out.str != KEYWORD_TRIANGLE)
-				{
-					Err err{};
-					err.loc = decl->loc;
-					err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
-					unit_err(self.unit, err);
-				}
-			}
-			else
-			{
-				Err err{};
-				err.loc = decl->loc;
-				err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
-				unit_err(self.unit, err);
-			}
-		}
-
 		_typer_check_entry_input(self, entry);
 	}
 }

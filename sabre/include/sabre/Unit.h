@@ -289,11 +289,6 @@ namespace sabre
 		mn::Buf<Unit_Package*> packages;
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
-		// geometry shader output type
-		Type* geometry_output;
-		Tkn geometry_max_vertex_count;
-		Tkn geometry_in;
-		Tkn geometry_out;
 		// reflection information
 		// input layout of above entry point
 		mn::Map<const char*, Type*> input_layout;
