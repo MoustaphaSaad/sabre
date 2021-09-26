@@ -740,6 +740,7 @@ namespace sabre
 		mn::map_free(self->reachable_samplers);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
+		mn::buf_free(self->symbol_stack);
 		mn::free(self);
 	}
 

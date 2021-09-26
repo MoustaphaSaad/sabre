@@ -295,6 +295,9 @@ namespace sabre
 		mn::Buf<Symbol*> reflected_symbols;
 		// library collections, map from collection name to its path
 		mn::Map<mn::Str, mn::Str> library_collections;
+		// symbol stack used to resolve symbol dependencies in typechecking
+		// TODO: move to some other place later
+		mn::Buf<Symbol*> symbol_stack;
 	};
 
 	SABRE_EXPORT Unit*

@@ -32,6 +32,29 @@ namespace sabre
 		return nullptr;
 	}
 
+	inline static void
+	_typer_enter_symbol(Typer& self, Symbol* symbol)
+	{
+		mn::buf_push(self.unit->parent_unit->symbol_stack, symbol);
+	}
+
+	inline static void
+	_typer_leave_symbol(Typer& self)
+	{
+		assert(self.unit->parent_unit->symbol_stack.count > 0);
+		mn::buf_pop(self.unit->parent_unit->symbol_stack);
+	}
+
+	inline static void
+	_typer_add_dependency(Typer& self, Symbol* symbol)
+	{
+		if (self.unit->parent_unit->symbol_stack.count > 0)
+		{
+			auto top = mn::buf_top(self.unit->parent_unit->symbol_stack);
+			mn::set_insert(top->dependencies, symbol);
+		}
+	}
+
 	inline static Scope*
 	_typer_current_scope(const Typer& self)
 	{
@@ -3092,8 +3115,21 @@ namespace sabre
 	inline static void
 	_typer_resolve_symbol(Typer& self, Symbol* sym)
 	{
+		// if sym is top level we add it to reachable symbols
+		auto is_top_level = scope_is_top_level(self.global_scope, sym);
+		if (auto decl = symbol_decl(sym))
+		{
+			is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
+		}
+
 		if (sym->state == STATE_RESOLVED)
 		{
+			if (is_top_level ||
+				sym->kind == Symbol::KIND_FUNC ||
+				sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
+			{
+				_typer_add_dependency(self, sym);
+			}
 			return;
 		}
 		else if (sym->state == STATE_RESOLVING)
@@ -3119,6 +3155,16 @@ namespace sabre
 		});
 
 		sym->state = STATE_RESOLVING;
+
+		if (is_top_level ||
+			sym->kind == Symbol::KIND_FUNC ||
+			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
+		{
+			_typer_add_dependency(self, sym);
+		}
+
+		_typer_enter_symbol(self, sym);
+
 		switch (sym->kind)
 		{
 		case Symbol::KIND_CONST:
@@ -3187,12 +3233,7 @@ namespace sabre
 			break;
 		}
 
-		// if sym is top level we add it to reachable symbols
-		auto is_top_level = scope_is_top_level(self.global_scope, sym);
-		if (auto decl = symbol_decl(sym))
-		{
-			is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
-		}
+		_typer_leave_symbol(self);
 
 		// we don't prepend scope for local variables
 		bool prepend_scope = true;

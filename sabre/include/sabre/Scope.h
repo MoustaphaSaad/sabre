@@ -3,6 +3,8 @@
 #include "sabre/Exports.h"
 #include "sabre/AST.h"
 
+#include <mn/Map.h>
+
 namespace sabre
 {
 	struct Type;
@@ -39,6 +41,7 @@ namespace sabre
 		Scope* scope;
 		const char* name;
 		const char* package_name;
+		mn::Set<Symbol*> dependencies;
 
 		union
 		{
