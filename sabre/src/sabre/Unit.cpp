@@ -696,7 +696,6 @@ namespace sabre
 
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
-		self->mode = COMPILATION_MODE_LIBRARY;
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
@@ -719,10 +718,6 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_POINT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_LINE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_TRIANGLE));
-
-
-		if (entry.count > 0)
-			self->entry = mn::str_intern(self->str_interner, entry.ptr);
 
 		unit_add_package(self, root_package);
 
@@ -812,15 +807,6 @@ namespace sabre
 			auto package = self->packages[i];
 			if (unit_package_check(package) == false)
 				has_errors = true;
-
-			// if we have a unit which is not in library mode
-			// then it's enough to check the first/main package only
-			// we don't need to go through other packages because we
-			// check only their used symbols
-			if (self->mode != COMPILATION_MODE_LIBRARY)
-			{
-				break;
-			}
 		}
 		auto end = _capture_timepoint();
 		#if SABRE_LOG_METRICS

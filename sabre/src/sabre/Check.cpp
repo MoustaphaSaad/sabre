@@ -3374,7 +3374,7 @@ namespace sabre
 		// handle return type
 		auto return_type = type->as_func.sign.return_type;
 		// special case geometry shaders
-		if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
+		if (entry->mode == COMPILATION_MODE_GEOMETRY)
 		{
 			if (type_is_struct(return_type) == false)
 			{
@@ -3499,8 +3499,6 @@ namespace sabre
 	typer_check_entry(Typer& self, Entry_Point* entry)
 	{
 		auto compilation_unit = self.unit->parent_unit;
-		compilation_unit->mode = entry->mode;
-		compilation_unit->entry_symbol = entry->symbol;
 
 		if (entry->mode == COMPILATION_MODE_GEOMETRY)
 		{

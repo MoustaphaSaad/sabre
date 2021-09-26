@@ -289,13 +289,6 @@ namespace sabre
 		mn::Buf<Unit_Package*> packages;
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
-		// mode of this compilation unit
-		COMPILATION_MODE mode;
-		// entry point name
-		const char* entry;
-		// entry point symbol which is resolved by the type checker if we provide an entry
-		// option to the command line
-		Symbol* entry_symbol;
 		// geometry shader output type
 		Type* geometry_output;
 		Tkn geometry_max_vertex_count;
