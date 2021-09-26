@@ -500,6 +500,7 @@ namespace sabre
 		destruct(self->files);
 		mn::map_free(self->absolute_path_to_file);
 		destruct(self->errs);
+		mn::buf_free(self->entry_points);
 		mn::buf_free(self->reachable_symbols);
 		mn::allocator_free(self->symbols_arena);
 		scope_free(self->global_scope);
@@ -673,6 +674,15 @@ namespace sabre
 		return err;
 	}
 
+	Entry_Point*
+	unit_package_entry_find(Unit_Package* self, const mn::Str& name)
+	{
+		for (auto& entry: self->entry_points)
+			if (entry.symbol->name == name)
+				return &entry;
+		return nullptr;
+	}
+
 	Unit*
 	unit_from_file(const mn::Str& filepath, const mn::Str& entry)
 	{
@@ -820,26 +830,24 @@ namespace sabre
 	}
 
 	bool
-	unit_reflect(Unit* self)
+	unit_reflect(Unit* self, Entry_Point* entry)
 	{
-		bool has_errors = false;
-		if (self->entry_symbol)
-		{
-			auto package = self->entry_symbol->package;
-			reflect_package(package);
-		}
-		return has_errors == false;
+		if (entry == nullptr)
+			return false;
+
+		reflect_package(entry);
+		return true;
 	}
 
 	mn::Str
-	unit_reflection_info_as_json(Unit* self, mn::Allocator allocator)
+	unit_reflection_info_as_json(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
 		auto types = mn::set_with_allocator<Type*>(mn::memory::tmp());
 
 		auto json_entry = mn::json::value_object_new();
-		if (self->entry_symbol)
+		if (entry)
 		{
-			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(self->entry_symbol->name));
+			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(entry->symbol->name));
 
 			auto json_layout = mn::json::value_array_new();
 			for (const auto& [attribute_name, attribute_type]: self->input_layout)
@@ -983,8 +991,15 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	unit_glsl(Unit* self, mn::Allocator allocator)
+	unit_glsl(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
+		if (entry)
+		{
+			auto typer = typer_new(entry->symbol->package);
+			typer_check_entry(typer, entry);
+			typer_free(typer);
+		}
+
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
 
@@ -995,7 +1010,10 @@ namespace sabre
 		auto glsl = glsl_new(self->packages[0], stream);
 		mn_defer(glsl_free(glsl));
 
-		glsl_gen(glsl);
+		if (entry)
+			glsl_gen_entry(glsl, entry);
+		else
+			glsl_gen_library(glsl);
 		auto end = _capture_timepoint();
 
 		#if SABRE_LOG_METRICS
@@ -1006,8 +1024,15 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	unit_hlsl(Unit* self, mn::Allocator allocator)
+	unit_hlsl(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
+		if (entry)
+		{
+			auto typer = typer_new(entry->symbol->package);
+			typer_check_entry(typer, entry);
+			typer_free(typer);
+		}
+
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
 
@@ -1018,7 +1043,10 @@ namespace sabre
 		auto hlsl = hlsl_new(self->packages[0], stream);
 		mn_defer(hlsl_free(hlsl));
 
-		hlsl_gen(hlsl);
+		if (entry)
+			hlsl_gen_entry(hlsl, entry);
+		else
+			hlsl_gen_library(hlsl);
 		auto end = _capture_timepoint();
 		#if SABRE_LOG_METRICS
 		mn::log_info("Total HLSL gen time {}", end - start);

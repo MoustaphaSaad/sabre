@@ -42,6 +42,7 @@ namespace sabre
 		const char* name;
 		const char* package_name;
 		mn::Set<Symbol*> dependencies;
+		bool is_top_level;
 
 		union
 		{
@@ -181,6 +182,8 @@ namespace sabre
 			return nullptr;
 		case Symbol::KIND_ENUM:
 			return self->enum_sym.decl;
+		case Symbol::KIND_TYPENAME:
+			return nullptr;
 		default:
 			assert(false && "unreachable");
 			return nullptr;

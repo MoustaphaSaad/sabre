@@ -2351,17 +2351,6 @@ namespace sabre
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
 			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, d, template_args);
 
-			if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
-			{
-				if (d == symbol_decl(self.unit->parent_unit->entry_symbol))
-				{
-					if (mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY))
-					{
-						self.unit->parent_unit->geometry_output = d->type->as_func.sign.return_type;
-					}
-				}
-			}
-
 			scope->expected_type = d->type->as_func.sign.return_type;
 
 			// push function arguments into scope
@@ -3115,21 +3104,9 @@ namespace sabre
 	inline static void
 	_typer_resolve_symbol(Typer& self, Symbol* sym)
 	{
-		// if sym is top level we add it to reachable symbols
-		auto is_top_level = scope_is_top_level(self.global_scope, sym);
-		if (auto decl = symbol_decl(sym))
-		{
-			is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
-		}
-
 		if (sym->state == STATE_RESOLVED)
 		{
-			if (is_top_level ||
-				sym->kind == Symbol::KIND_FUNC ||
-				sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
-			{
-				_typer_add_dependency(self, sym);
-			}
+			_typer_add_dependency(self, sym);
 			return;
 		}
 		else if (sym->state == STATE_RESOLVING)
@@ -3156,13 +3133,7 @@ namespace sabre
 
 		sym->state = STATE_RESOLVING;
 
-		if (is_top_level ||
-			sym->kind == Symbol::KIND_FUNC ||
-			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
-		{
-			_typer_add_dependency(self, sym);
-		}
-
+		_typer_add_dependency(self, sym);
 		_typer_enter_symbol(self, sym);
 
 		switch (sym->kind)
@@ -3235,14 +3206,19 @@ namespace sabre
 
 		_typer_leave_symbol(self);
 
+		// if sym is top level we add it to reachable symbols
+		sym->is_top_level = scope_is_top_level(self.global_scope, sym);
+		if (auto decl = symbol_decl(sym))
+			sym->is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
+
 		// we don't prepend scope for local variables
 		bool prepend_scope = true;
-		if (sym->kind == Symbol::KIND_VAR && is_top_level == false)
+		if (sym->kind == Symbol::KIND_VAR && sym->is_top_level == false)
 			prepend_scope = false;
 
 		sym->package_name = _typer_generate_package_name_for_symbol(self, sym, prepend_scope);
 
-		if (is_top_level ||
+		if (sym->is_top_level ||
 			sym->kind == Symbol::KIND_FUNC ||
 			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
 		{
@@ -3353,10 +3329,10 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_check_entry_input(Typer& self, Symbol* entry)
+	_typer_check_entry_input(Typer& self, Entry_Point* entry)
 	{
-		auto decl = symbol_decl(entry);
-		auto type = entry->type;
+		auto decl = symbol_decl(entry->symbol);
+		auto type = entry->symbol->type;
 
 		size_t type_index = 0;
 		for (auto arg: decl->func_decl.args)
@@ -3485,131 +3461,110 @@ namespace sabre
 	{
 		_typer_shallow_walk(self);
 
-		auto compilation_unit = self.unit->parent_unit;
-		Symbol* entry = nullptr;
-
-		// check the entry function name if it does exist then we figure out
-		// our compilation mode from the function tags
-		if (compilation_unit->entry != nullptr)
+		for (auto sym: self.unit->global_scope->symbols)
 		{
-			entry = scope_find(self.unit->global_scope, compilation_unit->entry);
-			if (entry == nullptr || entry->kind != Symbol::KIND_FUNC)
+			if (sym->kind == Symbol::KIND_FUNC)
 			{
-				Location err_loc{};
-				if (entry)
-					if (auto decl = symbol_decl(entry))
-						err_loc = decl->loc;
-
-				Err err{};
-				err.loc = err_loc;
-				err.msg = mn::strf("entry point '{}' is not a function, or its name is not unique (it may be overloaded)", compilation_unit->entry);
-				unit_err(self.unit, err);
-			}
-			else
-			{
-				auto decl = symbol_decl(entry);
+				auto decl = symbol_decl(sym);
 				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
 				{
-					compilation_unit->mode = COMPILATION_MODE_VERTEX;
-					compilation_unit->entry_symbol = entry;
+					Entry_Point entry{};
+					entry.mode = COMPILATION_MODE_VERTEX;
+					entry.symbol = sym;
+					mn::buf_push(self.unit->entry_points, entry);
 				}
 				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
 				{
-					compilation_unit->mode = COMPILATION_MODE_PIXEL;
-					compilation_unit->entry_symbol = entry;
+					Entry_Point entry{};
+					entry.mode = COMPILATION_MODE_PIXEL;
+					entry.symbol = sym;
+					mn::buf_push(self.unit->entry_points, entry);
 				}
-				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
-					compilation_unit->mode = COMPILATION_MODE_GEOMETRY;
-					compilation_unit->entry_symbol = entry;
-
-					if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
-					{
-						compilation_unit->geometry_max_vertex_count = max_vertex_count->value.value;
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
-						unit_err(self.unit, err);
-					}
-
-					if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
-					{
-						compilation_unit->geometry_in = geometry_in->value.value;
-
-						if (compilation_unit->geometry_in.str != KEYWORD_POINT &&
-							compilation_unit->geometry_in.str != KEYWORD_LINE &&
-							compilation_unit->geometry_in.str != KEYWORD_TRIANGLE)
-						{
-							Err err{};
-							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
-						unit_err(self.unit, err);
-					}
-
-					if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
-					{
-						compilation_unit->geometry_out = geometry_out->value.value;
-
-						if (compilation_unit->geometry_out.str != KEYWORD_POINT &&
-							compilation_unit->geometry_out.str != KEYWORD_LINE &&
-							compilation_unit->geometry_out.str != KEYWORD_TRIANGLE)
-						{
-							Err err{};
-							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
-						unit_err(self.unit, err);
-					}
-				}
-				else
-				{
-					Err err{};
-					err.loc = decl->loc;
-					err.msg = mn::strf("entry point is not tagged with @vertex or @pixel");
-					unit_err(self.unit, err);
+					Entry_Point entry{};
+					entry.mode = COMPILATION_MODE_GEOMETRY;
+					entry.symbol = sym;
+					mn::buf_push(self.unit->entry_points, entry);
 				}
 			}
 		}
 
+		// check all symbols
+		for (auto sym: self.global_scope->symbols)
+			_typer_resolve_symbol(self, sym);
+	}
 
-		switch (compilation_unit->mode)
+	void
+	typer_check_entry(Typer& self, Entry_Point* entry)
+	{
+		auto compilation_unit = self.unit->parent_unit;
+		compilation_unit->mode = entry->mode;
+		compilation_unit->entry_symbol = entry->symbol;
+
+		if (entry->mode == COMPILATION_MODE_GEOMETRY)
 		{
-		// library mode we check all the available global symbols
-		case COMPILATION_MODE_LIBRARY:
-			for (auto sym: self.global_scope->symbols)
-				_typer_resolve_symbol(self, sym);
-			break;
-		// in case of vertex and pixel we start from the entry point
-		case COMPILATION_MODE_VERTEX:
-		case COMPILATION_MODE_PIXEL:
-		case COMPILATION_MODE_GEOMETRY:
-			_typer_resolve_symbol(self, entry);
-			_typer_check_entry_input(self, entry);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
+			auto decl = symbol_decl(entry->symbol);
+			auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY);
+			compilation_unit->geometry_output = entry->symbol->type->as_func.sign.return_type;
+
+			if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
+			{
+				compilation_unit->geometry_max_vertex_count = max_vertex_count->value.value;
+			}
+			else
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
+				unit_err(self.unit, err);
+			}
+
+			if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
+			{
+				compilation_unit->geometry_in = geometry_in->value.value;
+
+				if (compilation_unit->geometry_in.str != KEYWORD_POINT &&
+					compilation_unit->geometry_in.str != KEYWORD_LINE &&
+					compilation_unit->geometry_in.str != KEYWORD_TRIANGLE)
+				{
+					Err err{};
+					err.loc = decl->loc;
+					err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
+					unit_err(self.unit, err);
+				}
+			}
+			else
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
+				unit_err(self.unit, err);
+			}
+
+			if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
+			{
+				compilation_unit->geometry_out = geometry_out->value.value;
+
+				if (compilation_unit->geometry_out.str != KEYWORD_POINT &&
+					compilation_unit->geometry_out.str != KEYWORD_LINE &&
+					compilation_unit->geometry_out.str != KEYWORD_TRIANGLE)
+				{
+					Err err{};
+					err.loc = decl->loc;
+					err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
+					unit_err(self.unit, err);
+				}
+			}
+			else
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
+				unit_err(self.unit, err);
+			}
 		}
 
-		for (auto s: self.unit->parent_unit->reflected_symbols)
-			_typer_resolve_symbol(self, s);
+		_typer_check_entry_input(self, entry);
 	}
 }

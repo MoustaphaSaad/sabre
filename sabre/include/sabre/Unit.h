@@ -147,6 +147,21 @@ namespace sabre
 	SABRE_EXPORT mn::Result<Unit_Package*>
 	unit_file_resolve_package(Unit_File* self, const mn::Str& path);
 
+	// determine the mode of this compilation unit
+	enum COMPILATION_MODE
+	{
+		COMPILATION_MODE_LIBRARY,
+		COMPILATION_MODE_VERTEX,
+		COMPILATION_MODE_PIXEL,
+		COMPILATION_MODE_GEOMETRY,
+	};
+
+	struct Entry_Point
+	{
+		COMPILATION_MODE mode;
+		Symbol* symbol;
+	};
+
 	// represents a package compilation unit
 	struct Unit_Package
 	{
@@ -174,6 +189,8 @@ namespace sabre
 		mn::Map<mn::Str, Unit_File*> absolute_path_to_file;
 		// package level errors
 		mn::Buf<Err> errs;
+		// all the found entry points in this package
+		mn::Buf<Entry_Point> entry_points;
 		// reachable symbols sorted by first usage
 		mn::Buf<Symbol*> reachable_symbols;
 		// all the symbols are allocated from this arena, so we don't need to manage
@@ -247,14 +264,16 @@ namespace sabre
 	SABRE_EXPORT mn::Result<Unit_Package*>
 	unit_package_resolve_package(Unit_Package* self, const mn::Str& absolute_path);
 
-	// determine the mode of this compilation unit
-	enum COMPILATION_MODE
+	// finds the entry point by name, returns nullptr if it doesn't exist
+	SABRE_EXPORT Entry_Point*
+	unit_package_entry_find(Unit_Package* self, const mn::Str& name);
+
+	// finds the entry point by name, returns nullptr if it doesn't exist
+	inline static Entry_Point*
+	unit_package_entry_find(Unit_Package* self, const char* name)
 	{
-		COMPILATION_MODE_LIBRARY,
-		COMPILATION_MODE_VERTEX,
-		COMPILATION_MODE_PIXEL,
-		COMPILATION_MODE_GEOMETRY,
-	};
+		return unit_package_entry_find(self, mn::str_lit(name));
+	}
 
 	struct Unit
 	{
@@ -364,24 +383,23 @@ namespace sabre
 	SABRE_EXPORT bool
 	unit_check(Unit* self);
 
-	// generates reflection information for the given unit
-	// it should have an entry point specifed
+	// generates reflection information for the given entry point
 	SABRE_EXPORT bool
-	unit_reflect(Unit* self);
+	unit_reflect(Unit* self, Entry_Point* entry);
 
 	// generates reflection information for the given unit and writes them as json
 	SABRE_EXPORT mn::Str
-	unit_reflection_info_as_json(Unit* self, mn::Allocator allocator = mn::allocator_top());
+	unit_reflection_info_as_json(Unit* self, Entry_Point* entry, mn::Allocator allocator = mn::allocator_top());
 
-	// generates glsl code for the given unit, if it has errors
-	// it will return the an error
+	// generates glsl code for the given entry, if it has errors it will return the an error
+	// if entry is nullptr it will generate code for the entire library
 	SABRE_EXPORT mn::Result<mn::Str>
-	unit_glsl(Unit* self, mn::Allocator allocator = mn::allocator_top());
+	unit_glsl(Unit* self, Entry_Point* entry, mn::Allocator allocator = mn::allocator_top());
 
-	// generates hlsl code for the given unit, if it has errors
-	// it will return the an error
+	// generates hlsl code for the given entry, if it has errors it will return the an error
+	// if entry is nullptr it will generate code for the entire library
 	SABRE_EXPORT mn::Result<mn::Str>
-	unit_hlsl(Unit* self, mn::Allocator allocator = mn::allocator_top());
+	unit_hlsl(Unit* self, Entry_Point* entry, mn::Allocator allocator = mn::allocator_top());
 
 	// generates spirv code for the given unit, if it has errors
 	// it will return the an error

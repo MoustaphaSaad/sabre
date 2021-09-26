@@ -1887,32 +1887,71 @@ namespace sabre
 	}
 
 	void
-	glsl_gen(GLSL& self)
+	glsl_gen_entry(GLSL& self, Entry_Point* entry)
 	{
-		auto compilation_unit = self.unit->parent_unit;
+		mn::print_to(self.out, "#version 450");
+		_glsl_newline(self);
 
-		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
+		switch (entry->mode)
 		{
-			mn::print_to(self.out, "#version 450");
-			_glsl_newline(self);
-		}
-
-		switch (compilation_unit->mode)
-		{
-		case COMPILATION_MODE_LIBRARY:
-			// do nothing
-			break;
 		case COMPILATION_MODE_VERTEX:
-			_glsl_generate_vertex_shader_io(self, compilation_unit->entry_symbol);
+			_glsl_generate_vertex_shader_io(self, entry->symbol);
 			break;
 		case COMPILATION_MODE_PIXEL:
-			_glsl_generate_pixel_shader_io(self, compilation_unit->entry_symbol);
+			_glsl_generate_pixel_shader_io(self, entry->symbol);
 			break;
+		case COMPILATION_MODE_LIBRARY:
+			// library mode is not allowed
 		default:
 			assert(false && "unreachable");
 			break;
 		}
 
+		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
+		auto stack = mn::buf_with_allocator<Symbol*>(mn::memory::tmp());
+		mn::buf_push(stack, entry->symbol);
+		mn::set_insert(visited, entry->symbol);
+		for (size_t i = 0; i < stack.count; ++i)
+		{
+			for (auto sym: stack[i]->dependencies)
+			{
+				if (mn::set_lookup(visited, sym) == nullptr)
+				{
+					mn::buf_push(stack, sym);
+					mn::set_insert(visited, sym);
+				}
+			}
+		}
+
+		// now that we have our dependencies ordered we'll just traverse them back to front and generate them
+		bool last_symbol_was_generated = false;
+		for (size_t i = 0; i < stack.count; ++i)
+		{
+			auto sym = stack[stack.count - i - 1];
+			if (sym->is_top_level == false &&
+				sym->kind != Symbol::KIND_FUNC &&
+				sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET)
+			{
+				continue;
+			}
+
+			if (last_symbol_was_generated)
+				_glsl_newline(self);
+
+			auto pos = _glsl_buffer_position(self);
+			_glsl_symbol_gen(self, sym, false);
+			last_symbol_was_generated = _glsl_code_generated_after(self, pos);
+		}
+
+		// generate real entry function
+		_glsl_newline(self);
+		_glsl_newline(self);
+		_glsl_generate_main_func(self, entry->symbol);
+	}
+
+	void
+	glsl_gen_library(GLSL& self)
+	{
 		bool last_symbol_was_generated = false;
 		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
 		{
@@ -1922,14 +1961,6 @@ namespace sabre
 			auto pos = _glsl_buffer_position(self);
 			_glsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
 			last_symbol_was_generated = _glsl_code_generated_after(self, pos);
-		}
-
-		// generate real entry function
-		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
-		{
-			_glsl_newline(self);
-			_glsl_newline(self);
-			_glsl_generate_main_func(self, compilation_unit->entry_symbol);
 		}
 	}
 }
