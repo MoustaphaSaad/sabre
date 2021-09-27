@@ -1793,18 +1793,21 @@ namespace sabre
 			break;
 		case Symbol::KIND_PACKAGE:
 		{
-			auto package = sym->package_sym.package;
-			if (package->stage == COMPILATION_STAGE_CODEGEN)
+			if (self.entry == nullptr)
 			{
-				for (size_t i = 0; i < package->reachable_symbols.count; ++i)
+				auto package = sym->package_sym.package;
+				if (package->stage == COMPILATION_STAGE_CODEGEN)
 				{
-					if (i > 0)
+					for (size_t i = 0; i < package->reachable_symbols.count; ++i)
+					{
+						if (i > 0)
+							_hlsl_newline(self);
+						_hlsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
+					}
+					if (package->reachable_symbols.count > 0)
 						_hlsl_newline(self);
-					_hlsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
+					package->stage = COMPILATION_STAGE_SUCCESS;
 				}
-				if (package->reachable_symbols.count > 0)
-					_hlsl_newline(self);
-				package->stage = COMPILATION_STAGE_SUCCESS;
 			}
 			break;
 		}
@@ -2269,6 +2272,8 @@ namespace sabre
 	void
 	hlsl_gen_library(HLSL& self)
 	{
+		self.entry = nullptr;
+
 		bool last_symbol_was_generated = false;
 		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
 		{
