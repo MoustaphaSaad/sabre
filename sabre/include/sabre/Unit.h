@@ -309,6 +309,8 @@ namespace sabre
 		// symbol stack used to resolve symbol dependencies in typechecking
 		// TODO: move to some other place later
 		mn::Buf<Symbol*> symbol_stack;
+		// list of all the uniforms found in a program
+		mn::Buf<Symbol*> all_uniforms;
 	};
 
 	SABRE_EXPORT Unit*

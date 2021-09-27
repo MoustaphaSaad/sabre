@@ -746,6 +746,7 @@ namespace sabre
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
 		mn::buf_free(self->symbol_stack);
+		mn::buf_free(self->all_uniforms);
 		mn::free(self);
 	}
 

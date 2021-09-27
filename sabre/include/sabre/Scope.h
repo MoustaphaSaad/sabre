@@ -64,6 +64,7 @@ namespace sabre
 				// used when a variable refers is a uniform
 				int uniform_binding;
 				bool is_uniform;
+				bool uniform_binding_processed;
 			} var_sym;
 
 			struct
