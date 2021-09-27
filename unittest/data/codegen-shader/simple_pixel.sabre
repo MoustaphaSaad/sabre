@@ -1,0 +1,18 @@
+package main
+
+type PS_Input struct {
+	@system_position position: vec4,
+}
+
+type PS_Output struct {
+	color: vec4,
+	@system_depth depth: float,
+}
+
+@pixel
+func main(input: PS_Input): PS_Output {
+	return {
+		color = input.position,
+		depth = input.position.z,
+	};
+}

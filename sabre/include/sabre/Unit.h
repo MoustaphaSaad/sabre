@@ -36,6 +36,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_VERTEX = "vertex";
 	inline constexpr const char* KEYWORD_PIXEL = "pixel";
 	inline constexpr const char* KEYWORD_SV_POSITION = "system_position";
+	inline constexpr const char* KEYWORD_SV_DEPTH = "system_depth";
 	inline constexpr const char* KEYWORD_GLSL = "glsl";
 	inline constexpr const char* KEYWORD_REFLECT = "reflect";
 	inline constexpr const char* KEYWORD_HLSL = "hlsl";

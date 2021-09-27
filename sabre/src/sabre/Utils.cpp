@@ -189,7 +189,10 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto entry_point = unit_package_entry_find(unit->root_package, entry);
-		return unit_glsl(unit, entry_point);
+		if (auto [res, err] = unit_glsl(unit, entry_point); err)
+			return unit_dump_errors(unit);
+		else
+			return res;
 	}
 
 	mn::Result<mn::Str, mn::Err>
@@ -217,7 +220,10 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto entry_point = unit_package_entry_find(unit->root_package, entry);
-		return unit_hlsl(unit, entry_point);
+		if (auto [res, err] = unit_hlsl(unit, entry_point); err)
+			return unit_dump_errors(unit);
+		else
+			return res;
 	}
 
 	mn::Result<mn::Str, mn::Err>

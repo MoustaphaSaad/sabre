@@ -3313,6 +3313,17 @@ namespace sabre
 						}
 					}
 
+					if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
+					{
+						if (struct_field.type != type_float)
+						{
+							Err err{};
+							err.loc = struct_field.name.loc;
+							err.msg = mn::strf("system depth type is '{}', but it should be 'float'", struct_field.type);
+							unit_err(self.unit, err);
+						}
+					}
+
 					if (type_is_shader_input(struct_field.type) == false)
 					{
 						Err err{};
