@@ -287,6 +287,10 @@ namespace sabre
 		mn::Map<void*, Scope*> scope_table;
 		// list of imported packages in this compilation unit
 		mn::Buf<Unit_Package*> packages;
+		// root package is the first package added to the compilation unit, this is the main package provided by user
+		Unit_Package* root_package;
+		// root file is the first file added to the compilation unit, this is the main file provided by user
+		Unit_File* root_file;
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
 		// reflection information
