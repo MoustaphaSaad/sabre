@@ -675,8 +675,9 @@ namespace sabre
 	inline static void
 	_hlsl_write_geometry_stream_arg(HLSL& self)
 	{
-		auto geometry_output_type = self.unit->parent_unit->geometry_output;
-		auto geometry_out = self.unit->parent_unit->geometry_out;
+		auto decl = symbol_decl(self.entry->symbol);
+		auto geometry_output_type = decl->func_decl.geometry_output;
+		auto geometry_out = decl->func_decl.geometry_out;
 
 		if (geometry_out.str == KEYWORD_TRIANGLE)
 		{
@@ -1792,18 +1793,21 @@ namespace sabre
 			break;
 		case Symbol::KIND_PACKAGE:
 		{
-			auto package = sym->package_sym.package;
-			if (package->stage == COMPILATION_STAGE_CODEGEN)
+			if (self.entry == nullptr)
 			{
-				for (size_t i = 0; i < package->reachable_symbols.count; ++i)
+				auto package = sym->package_sym.package;
+				if (package->stage == COMPILATION_STAGE_CODEGEN)
 				{
-					if (i > 0)
+					for (size_t i = 0; i < package->reachable_symbols.count; ++i)
+					{
+						if (i > 0)
+							_hlsl_newline(self);
+						_hlsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
+					}
+					if (package->reachable_symbols.count > 0)
 						_hlsl_newline(self);
-					_hlsl_symbol_gen(self, package->reachable_symbols[i], in_stmt);
+					package->stage = COMPILATION_STAGE_SUCCESS;
 				}
-				if (package->reachable_symbols.count > 0)
-					_hlsl_newline(self);
-				package->stage = COMPILATION_STAGE_SUCCESS;
 			}
 			break;
 		}
@@ -1977,8 +1981,8 @@ namespace sabre
 
 		if (is_geometry)
 		{
-			auto geometry_max_vertex_count = self.unit->parent_unit->geometry_max_vertex_count;
-			auto geometry_in = self.unit->parent_unit->geometry_in;
+			auto geometry_max_vertex_count = d->func_decl.geometry_max_vertex_count;
+			auto geometry_in = d->func_decl.geometry_in;
 			mn::print_to(self.out, "[maxvertexcount({})] void main(", geometry_max_vertex_count.str);
 
 			if (d->func_decl.body != nullptr)
@@ -2201,28 +2205,74 @@ namespace sabre
 	}
 
 	void
-	hlsl_gen(HLSL& self)
+	hlsl_gen_entry(HLSL& self, Entry_Point* entry)
 	{
-		auto compilation_unit = self.unit->parent_unit;
+		self.entry = entry;
 
-		switch (compilation_unit->mode)
+		switch (entry->mode)
 		{
-		case COMPILATION_MODE_LIBRARY:
-			// do nothing
-			break;
 		case COMPILATION_MODE_VERTEX:
-			_hlsl_generate_vertex_shader_io(self, compilation_unit->entry_symbol);
+			_hlsl_generate_vertex_shader_io(self, entry->symbol);
 			break;
 		case COMPILATION_MODE_PIXEL:
-			_hlsl_generate_pixel_shader_io(self, compilation_unit->entry_symbol);
+			_hlsl_generate_pixel_shader_io(self, entry->symbol);
 			break;
 		case COMPILATION_MODE_GEOMETRY:
-			_hlsl_generate_geometry_shader_io(self, compilation_unit->entry_symbol);
+			_hlsl_generate_geometry_shader_io(self, entry->symbol);
 			break;
+		case COMPILATION_MODE_LIBRARY:
+			// library mode is not allowed
 		default:
 			assert(false && "unreachable");
 			break;
 		}
+
+		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
+		auto stack = mn::buf_with_allocator<Symbol*>(mn::memory::tmp());
+		mn::buf_push(stack, entry->symbol);
+		mn::set_insert(visited, entry->symbol);
+		for (size_t i = 0; i < stack.count; ++i)
+		{
+			for (auto sym: stack[i]->dependencies)
+			{
+				if (mn::set_lookup(visited, sym) == nullptr)
+				{
+					mn::buf_push(stack, sym);
+					mn::set_insert(visited, sym);
+				}
+			}
+		}
+
+		// now that we have our dependencies ordered we'll just traverse them back to front and generate them
+		bool last_symbol_was_generated = false;
+		for (size_t i = 0; i < stack.count; ++i)
+		{
+			auto sym = stack[stack.count - i - 1];
+			if (sym->is_top_level == false &&
+				sym->kind != Symbol::KIND_FUNC &&
+				sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET)
+			{
+				continue;
+			}
+
+			if (last_symbol_was_generated)
+				_hlsl_newline(self);
+
+			auto pos = _hlsl_buffer_position(self);
+			_hlsl_symbol_gen(self, sym, false);
+			last_symbol_was_generated = _hlsl_code_generated_after(self, pos);
+		}
+
+		// generate real entry function
+		_hlsl_newline(self);
+		_hlsl_newline(self);
+		_hlsl_generate_main_func(self, entry->symbol);
+	}
+
+	void
+	hlsl_gen_library(HLSL& self)
+	{
+		self.entry = nullptr;
 
 		bool last_symbol_was_generated = false;
 		for (size_t i = 0; i < self.unit->reachable_symbols.count; ++i)
@@ -2233,14 +2283,6 @@ namespace sabre
 			auto pos = _hlsl_buffer_position(self);
 			_hlsl_symbol_gen(self, self.unit->reachable_symbols[i], false);
 			last_symbol_was_generated = _hlsl_code_generated_after(self, pos);
-		}
-
-		// generate real entry function
-		if (compilation_unit->mode != COMPILATION_MODE_LIBRARY)
-		{
-			_hlsl_newline(self);
-			_hlsl_newline(self);
-			_hlsl_generate_main_func(self, compilation_unit->entry_symbol);
 		}
 	}
 }

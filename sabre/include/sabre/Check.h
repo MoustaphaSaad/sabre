@@ -9,6 +9,7 @@ namespace sabre
 	struct Unit_Package;
 	struct Scope;
 	struct Type;
+	struct Entry_Point;
 
 	// type checker state
 	struct Typer
@@ -40,4 +41,9 @@ namespace sabre
 	// performs type checking on the initialized typer
 	SABRE_EXPORT void
 	typer_check(Typer& self);
+
+	// performs type checking on the given entry after you have
+	// type checked the entire library itself
+	SABRE_EXPORT void
+	typer_check_entry(Typer& self, Entry_Point* entry);
 }

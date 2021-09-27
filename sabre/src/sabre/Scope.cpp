@@ -12,6 +12,7 @@ namespace sabre
 		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->const_sym.decl = decl;
 		self->const_sym.name = name;
 		self->const_sym.sign = sign;
@@ -27,6 +28,7 @@ namespace sabre
 		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->var_sym.decl = decl;
 		self->var_sym.name = name;
 		self->var_sym.sign = sign;
@@ -42,6 +44,7 @@ namespace sabre
 		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->func_sym.decl = decl;
 		self->func_sym.name = name;
 		return self;
@@ -55,6 +58,7 @@ namespace sabre
 		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->struct_sym.decl = decl;
 		self->struct_sym.name = name;
 		return self;
@@ -68,6 +72,7 @@ namespace sabre
 		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->enum_sym.decl = decl;
 		return self;
 	}
@@ -80,6 +85,7 @@ namespace sabre
 		self->state = STATE_UNRESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->package_sym.decl = decl;
 		self->package_sym.name = name;
 		self->package_sym.package = package;
@@ -118,6 +124,7 @@ namespace sabre
 		self->state = STATE_RESOLVED;
 		self->type = type_void;
 		self->name = name.str;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->typename_sym.name = name;
 		return self;
 	}

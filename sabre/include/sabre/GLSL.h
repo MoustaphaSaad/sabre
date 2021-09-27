@@ -11,6 +11,7 @@ namespace sabre
 	struct Scope;
 	struct Expr;
 	struct Stmt;
+	struct Entry_Point;
 
 	struct GLSL
 	{
@@ -19,6 +20,7 @@ namespace sabre
 		mn::Stream out;
 		size_t indent;
 
+		Entry_Point* entry;
 		mn::Buf<Scope*> scope_stack;
 		// map from the reserved keywords to the alternative names
 		mn::Map<const char*, const char*> reserved_to_alternative;
@@ -45,7 +47,11 @@ namespace sabre
 	SABRE_EXPORT void
 	glsl_stmt_gen(GLSL& self, Stmt* s);
 
-	// it will generate all of the reachable symbols in the given unit
+	// it will generate all of the reachable symbols in the given entry
 	SABRE_EXPORT void
-	glsl_gen(GLSL& self);
+	glsl_gen_entry(GLSL& self, Entry_Point* entry);
+
+	// it will generate all of the reachable symbols in the given unit (library mode)
+	SABRE_EXPORT void
+	glsl_gen_library(GLSL& self);
 }

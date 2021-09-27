@@ -38,20 +38,17 @@ namespace sabre
 
 	// API
 	void
-	reflect_package(Unit_Package* unit)
+	reflect_package(Entry_Point* entry)
 	{
-		auto compilation_unit = unit->parent_unit;
-
-		switch (compilation_unit->mode)
+		switch (entry->mode)
 		{
-		case COMPILATION_MODE_LIBRARY:
-			// do nothing
-			break;
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
 		case COMPILATION_MODE_GEOMETRY:
-			_generate_entry_shader_io(unit, compilation_unit->entry_symbol);
+			_generate_entry_shader_io(entry->symbol->package, entry->symbol);
 			break;
+		case COMPILATION_MODE_LIBRARY:
+			// library mode is not allowed here
 		default:
 			assert(false && "unreachable");
 			break;

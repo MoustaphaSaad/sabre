@@ -500,6 +500,7 @@ namespace sabre
 		destruct(self->files);
 		mn::map_free(self->absolute_path_to_file);
 		destruct(self->errs);
+		mn::buf_free(self->entry_points);
 		mn::buf_free(self->reachable_symbols);
 		mn::allocator_free(self->symbols_arena);
 		scope_free(self->global_scope);
@@ -673,20 +674,28 @@ namespace sabre
 		return err;
 	}
 
+	Entry_Point*
+	unit_package_entry_find(Unit_Package* self, const mn::Str& name)
+	{
+		for (auto& entry: self->entry_points)
+			if (entry.symbol->name == name)
+				return &entry;
+		return nullptr;
+	}
+
 	Unit*
 	unit_from_file(const mn::Str& filepath, const mn::Str& entry)
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
-		auto root_file = unit_file_from_path(filepath);
-		auto root_package = unit_package_new();
+		self->root_file = unit_file_from_path(filepath);
+		self->root_package = unit_package_new();
 		// single file packages has their paths be the file path
-		root_package->absolute_path = clone(root_file->absolute_path);
-		unit_package_add_file(root_package, root_file);
+		self->root_package->absolute_path = clone(self->root_file->absolute_path);
+		unit_package_add_file(self->root_package, self->root_file);
 
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
-		self->mode = COMPILATION_MODE_LIBRARY;
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
@@ -710,11 +719,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_LINE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_TRIANGLE));
 
-
-		if (entry.count > 0)
-			self->entry = mn::str_intern(self->str_interner, entry.ptr);
-
-		unit_add_package(self, root_package);
+		unit_add_package(self, self->root_package);
 
 		return self;
 	}
@@ -740,6 +745,8 @@ namespace sabre
 		mn::map_free(self->reachable_samplers);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
+		mn::buf_free(self->symbol_stack);
+		mn::buf_free(self->all_uniforms);
 		mn::free(self);
 	}
 
@@ -801,15 +808,6 @@ namespace sabre
 			auto package = self->packages[i];
 			if (unit_package_check(package) == false)
 				has_errors = true;
-
-			// if we have a unit which is not in library mode
-			// then it's enough to check the first/main package only
-			// we don't need to go through other packages because we
-			// check only their used symbols
-			if (self->mode != COMPILATION_MODE_LIBRARY)
-			{
-				break;
-			}
 		}
 		auto end = _capture_timepoint();
 		#if SABRE_LOG_METRICS
@@ -819,26 +817,24 @@ namespace sabre
 	}
 
 	bool
-	unit_reflect(Unit* self)
+	unit_reflect(Unit* self, Entry_Point* entry)
 	{
-		bool has_errors = false;
-		if (self->entry_symbol)
-		{
-			auto package = self->entry_symbol->package;
-			reflect_package(package);
-		}
-		return has_errors == false;
+		if (entry == nullptr)
+			return false;
+
+		reflect_package(entry);
+		return true;
 	}
 
 	mn::Str
-	unit_reflection_info_as_json(Unit* self, mn::Allocator allocator)
+	unit_reflection_info_as_json(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
 		auto types = mn::set_with_allocator<Type*>(mn::memory::tmp());
 
 		auto json_entry = mn::json::value_object_new();
-		if (self->entry_symbol)
+		if (entry)
 		{
-			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(self->entry_symbol->name));
+			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(entry->symbol->name));
 
 			auto json_layout = mn::json::value_array_new();
 			for (const auto& [attribute_name, attribute_type]: self->input_layout)
@@ -853,16 +849,11 @@ namespace sabre
 			mn::json::value_object_insert(json_entry, "input_layout", json_layout);
 		}
 
-		// root package
-		Unit_Package* root = nullptr;
-		if (self->packages.count > 0)
-			root = self->packages[0];
-
 		auto json_uniforms = mn::json::value_array_new();
 		for (const auto& [binding, symbol]: self->reachable_uniforms)
 		{
 			auto json_uniform = mn::json::value_object_new();
-			if (symbol->package == root)
+			if (symbol->package == self->root_package)
 			{
 				mn::json::value_object_insert(json_uniform, "name", mn::json::value_string_new(symbol->name));
 			}
@@ -884,7 +875,7 @@ namespace sabre
 		for (const auto& [binding, symbol]: self->reachable_textures)
 		{
 			auto json_texture = mn::json::value_object_new();
-			if (symbol->package == root)
+			if (symbol->package == self->root_package)
 			{
 				mn::json::value_object_insert(json_texture, "name", mn::json::value_string_new(symbol->name));
 			}
@@ -953,7 +944,7 @@ namespace sabre
 		auto json_result = mn::json::value_object_new();
 		mn_defer(mn::json::value_free(json_result));
 
-		mn::json::value_object_insert(json_result, "package", mn::json::value_string_new(self->packages[0]->name.str));
+		mn::json::value_object_insert(json_result, "package", mn::json::value_string_new(self->root_package->name.str));
 		mn::json::value_object_insert(json_result, "entry", json_entry);
 		mn::json::value_object_insert(json_result, "uniforms", json_uniforms);
 		mn::json::value_object_insert(json_result, "textures", json_textures);
@@ -967,7 +958,7 @@ namespace sabre
 			else
 				json_sym = expr_value_to_json(expr_value_zero(mn::memory::tmp(), s->type));
 
-			if (s->package != root)
+			if (s->package != self->root_package)
 			{
 				auto sym_name = mn::str_tmpf("{}.{}", s->package->name.str, s->name);
 				mn::json::value_object_insert(json_result, sym_name, json_sym);
@@ -982,8 +973,15 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	unit_glsl(Unit* self, mn::Allocator allocator)
+	unit_glsl(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
+		if (entry)
+		{
+			auto typer = typer_new(entry->symbol->package);
+			typer_check_entry(typer, entry);
+			typer_free(typer);
+		}
+
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
 
@@ -991,10 +989,13 @@ namespace sabre
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto glsl = glsl_new(self->packages[0], stream);
+		auto glsl = glsl_new(self->root_package, stream);
 		mn_defer(glsl_free(glsl));
 
-		glsl_gen(glsl);
+		if (entry)
+			glsl_gen_entry(glsl, entry);
+		else
+			glsl_gen_library(glsl);
 		auto end = _capture_timepoint();
 
 		#if SABRE_LOG_METRICS
@@ -1005,8 +1006,15 @@ namespace sabre
 	}
 
 	mn::Result<mn::Str>
-	unit_hlsl(Unit* self, mn::Allocator allocator)
+	unit_hlsl(Unit* self, Entry_Point* entry, mn::Allocator allocator)
 	{
+		if (entry)
+		{
+			auto typer = typer_new(entry->symbol->package);
+			typer_check_entry(typer, entry);
+			typer_free(typer);
+		}
+
 		if (unit_has_errors(self))
 			return mn::Err {"unit has errors"};
 
@@ -1014,10 +1022,13 @@ namespace sabre
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto hlsl = hlsl_new(self->packages[0], stream);
+		auto hlsl = hlsl_new(self->root_package, stream);
 		mn_defer(hlsl_free(hlsl));
 
-		hlsl_gen(hlsl);
+		if (entry)
+			hlsl_gen_entry(hlsl, entry);
+		else
+			hlsl_gen_library(hlsl);
 		auto end = _capture_timepoint();
 		#if SABRE_LOG_METRICS
 		mn::log_info("Total HLSL gen time {}", end - start);
@@ -1036,7 +1047,7 @@ namespace sabre
 		auto stream = mn::memory_stream_new(allocator);
 		mn_defer(mn::memory_stream_free(stream));
 
-		auto bc = spirv_new(self->packages[0]);
+		auto bc = spirv_new(self->root_package);
 		mn_defer(spirv_free(bc));
 
 		spirv_gen(bc);

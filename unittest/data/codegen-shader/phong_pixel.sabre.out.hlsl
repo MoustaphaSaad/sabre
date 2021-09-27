@@ -1,28 +1,28 @@
-struct main_PS_Input {
-	float4 position: SV_POSITION;
-	float3 vertex_position: TEXCOORD1;
-	float3 vertex_normal: TEXCOORD2;
-};
-struct main_PS_Output {
-	float4 color: SV_TARGET0;
+struct main_Light {
+	float3 direction;
+	float4 color;
 };
 struct main_Model {
 	column_major float4x4 model_matrix;
 	column_major float4x4 model_inverse_transposed;
 	float4 color;
 };
+cbuffer main_light: register(b2) {
+	float3 main_light_direction: packoffset(c0);
+	float4 main_light_color: packoffset(c1);
+};
 cbuffer main_model: register(b3) {
 	column_major float4x4 main_model_model_matrix: packoffset(c0);
 	column_major float4x4 main_model_model_inverse_transposed: packoffset(c4);
 	float4 main_model_color: packoffset(c8);
 };
-struct main_Light {
-	float3 direction;
-	float4 color;
+struct main_PS_Output {
+	float4 color: SV_TARGET0;
 };
-cbuffer main_light: register(b2) {
-	float3 main_light_direction: packoffset(c0);
-	float4 main_light_color: packoffset(c1);
+struct main_PS_Input {
+	float4 position: SV_POSITION;
+	float3 vertex_position: TEXCOORD1;
+	float3 vertex_normal: TEXCOORD2;
 };
 main_PS_Output main_main(main_PS_Input input) {
 	float4 _tmp_1 = float4(input.vertex_position, 1.0);

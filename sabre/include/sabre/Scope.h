@@ -3,6 +3,8 @@
 #include "sabre/Exports.h"
 #include "sabre/AST.h"
 
+#include <mn/Map.h>
+
 namespace sabre
 {
 	struct Type;
@@ -39,6 +41,8 @@ namespace sabre
 		Scope* scope;
 		const char* name;
 		const char* package_name;
+		mn::Set<Symbol*> dependencies;
+		bool is_top_level;
 
 		union
 		{
@@ -60,6 +64,7 @@ namespace sabre
 				// used when a variable refers is a uniform
 				int uniform_binding;
 				bool is_uniform;
+				bool uniform_binding_processed;
 			} var_sym;
 
 			struct
@@ -178,6 +183,8 @@ namespace sabre
 			return nullptr;
 		case Symbol::KIND_ENUM:
 			return self->enum_sym.decl;
+		case Symbol::KIND_TYPENAME:
+			return nullptr;
 		default:
 			assert(false && "unreachable");
 			return nullptr;

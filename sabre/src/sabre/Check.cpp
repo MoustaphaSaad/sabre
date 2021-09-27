@@ -32,6 +32,29 @@ namespace sabre
 		return nullptr;
 	}
 
+	inline static void
+	_typer_enter_symbol(Typer& self, Symbol* symbol)
+	{
+		mn::buf_push(self.unit->parent_unit->symbol_stack, symbol);
+	}
+
+	inline static void
+	_typer_leave_symbol(Typer& self)
+	{
+		assert(self.unit->parent_unit->symbol_stack.count > 0);
+		mn::buf_pop(self.unit->parent_unit->symbol_stack);
+	}
+
+	inline static void
+	_typer_add_dependency(Typer& self, Symbol* symbol)
+	{
+		if (self.unit->parent_unit->symbol_stack.count > 0)
+		{
+			auto top = mn::buf_top(self.unit->parent_unit->symbol_stack);
+			mn::set_insert(top->dependencies, symbol);
+		}
+	}
+
 	inline static Scope*
 	_typer_current_scope(const Typer& self)
 	{
@@ -1148,6 +1171,18 @@ namespace sabre
 		return type;
 	}
 
+	inline static Decl*
+	_typer_get_geometry_func_decl(Typer& self)
+	{
+		for (size_t i = 0; i < self.func_stack.count; ++i)
+		{
+			auto decl = self.func_stack[self.func_stack.count - i - 1];
+			if (decl->func_decl.is_geometry)
+				return decl;
+		}
+		return nullptr;
+	}
+
 	inline static Type*
 	_typer_resolve_call_expr(Typer& self, Expr* e)
 	{
@@ -1188,13 +1223,13 @@ namespace sabre
 					}
 
 					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
-					if (auto geometry_output = self.unit->parent_unit->geometry_output)
+					if (auto geometry_decl = _typer_get_geometry_func_decl(self))
 					{
-						if (type_is_equal(geometry_output, arg_type) == false)
+						if (type_is_equal(geometry_decl->func_decl.geometry_output, arg_type) == false)
 						{
 							Err err{};
 							err.loc = e->call.args[0]->loc;
-							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 1, geometry_output, arg_type);
+							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 1, geometry_decl->func_decl.geometry_output, arg_type);
 							unit_err(self.unit, err);
 						}
 					}
@@ -2165,120 +2200,10 @@ namespace sabre
 				err.msg = mn::strf("uniform variable type '{}' contains types which cannot be used in a uniform", res);
 				unit_err(self.unit, err);
 			}
-
-			if (sym->type->kind == Type::KIND_TEXTURE)
-			{
-				sym->var_sym.is_uniform = true;
-				if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
-				{
-					auto value_tkn = binding_it->value.value;
-					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
-					{
-						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-						if (sym->var_sym.uniform_binding > self.texture_binding_generator)
-							self.texture_binding_generator = sym->var_sym.uniform_binding + 1;
-					}
-				}
-				else
-				{
-					sym->var_sym.uniform_binding = self.texture_binding_generator++;
-				}
-
-				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding))
-				{
-					auto old_sym = it->value;
-					auto old_loc = symbol_location(old_sym);
-
-					Err err{};
-					err.loc = symbol_location(sym);
-					err.msg = mn::strf(
-						"texture binding point {} is shared with other texture defined in {}:{}",
-						sym->var_sym.uniform_binding,
-						old_loc.file->filepath,
-						old_loc.pos.line
-					);
-					unit_err(self.unit, err);
-				}
-				else
-				{
-					mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
-				}
-			}
-			else if (type_is_sampler(sym->type))
-			{
-				sym->var_sym.is_uniform = true;
-				if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
-				{
-					auto value_tkn = binding_it->value.value;
-					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
-					{
-						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-						if (sym->var_sym.uniform_binding > self.sampler_binding_generator)
-							self.sampler_binding_generator = sym->var_sym.uniform_binding + 1;
-					}
-				}
-				else
-				{
-					sym->var_sym.uniform_binding = self.sampler_binding_generator++;
-				}
-
-				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding))
-				{
-					auto old_sym = it->value;
-					auto old_loc = symbol_location(old_sym);
-
-					Err err{};
-					err.loc = symbol_location(sym);
-					err.msg = mn::strf(
-						"sampler binding point {} is shared with other sampler defined in {}:{}",
-						sym->var_sym.uniform_binding,
-						old_loc.file->filepath,
-						old_loc.pos.line
-					);
-					unit_err(self.unit, err);
-				}
-				else
-				{
-					mn::map_insert(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding, sym);
-				}
-			}
 			else
 			{
 				sym->var_sym.is_uniform = true;
-				if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
-				{
-					auto value_tkn = binding_it->value.value;
-					if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
-					{
-						sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
-						if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
-							self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
-					}
-				}
-				else
-				{
-					sym->var_sym.uniform_binding = self.uniform_binding_generator++;
-				}
-
-				if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
-				{
-					auto old_sym = it->value;
-					auto old_loc = symbol_location(old_sym);
-
-					Err err{};
-					err.loc = symbol_location(sym);
-					err.msg = mn::strf(
-						"uniform binding point {} is shared with other uniform defined in {}:{}",
-						sym->var_sym.uniform_binding,
-						old_loc.file->filepath,
-						old_loc.pos.line
-					);
-					unit_err(self.unit, err);
-				}
-				else
-				{
-					mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
-				}
+				mn::buf_push(self.unit->parent_unit->all_uniforms, sym);
 			}
 		}
 
@@ -2328,17 +2253,6 @@ namespace sabre
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
 			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, d, template_args);
 
-			if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
-			{
-				if (d == symbol_decl(self.unit->parent_unit->entry_symbol))
-				{
-					if (mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY))
-					{
-						self.unit->parent_unit->geometry_output = d->type->as_func.sign.return_type;
-					}
-				}
-			}
-
 			scope->expected_type = d->type->as_func.sign.return_type;
 
 			// push function arguments into scope
@@ -2358,6 +2272,8 @@ namespace sabre
 		}
 		_typer_leave_scope(self);
 
+		if (d->func_decl.is_geometry)
+			d->func_decl.geometry_output = d->type->as_func.sign.return_type;
 		return d->type;
 	}
 
@@ -3094,6 +3010,7 @@ namespace sabre
 	{
 		if (sym->state == STATE_RESOLVED)
 		{
+			_typer_add_dependency(self, sym);
 			return;
 		}
 		else if (sym->state == STATE_RESOLVING)
@@ -3119,6 +3036,10 @@ namespace sabre
 		});
 
 		sym->state = STATE_RESOLVING;
+
+		_typer_add_dependency(self, sym);
+		_typer_enter_symbol(self, sym);
+
 		switch (sym->kind)
 		{
 		case Symbol::KIND_CONST:
@@ -3187,21 +3108,21 @@ namespace sabre
 			break;
 		}
 
+		_typer_leave_symbol(self);
+
 		// if sym is top level we add it to reachable symbols
-		auto is_top_level = scope_is_top_level(self.global_scope, sym);
+		sym->is_top_level = scope_is_top_level(self.global_scope, sym);
 		if (auto decl = symbol_decl(sym))
-		{
-			is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
-		}
+			sym->is_top_level |= scope_is_top_level(decl->loc.file->file_scope, sym);
 
 		// we don't prepend scope for local variables
 		bool prepend_scope = true;
-		if (sym->kind == Symbol::KIND_VAR && is_top_level == false)
+		if (sym->kind == Symbol::KIND_VAR && sym->is_top_level == false)
 			prepend_scope = false;
 
 		sym->package_name = _typer_generate_package_name_for_symbol(self, sym, prepend_scope);
 
-		if (is_top_level ||
+		if (sym->is_top_level ||
 			sym->kind == Symbol::KIND_FUNC ||
 			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
 		{
@@ -3312,10 +3233,10 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_check_entry_input(Typer& self, Symbol* entry)
+	_typer_check_entry_input(Typer& self, Entry_Point* entry)
 	{
-		auto decl = symbol_decl(entry);
-		auto type = entry->type;
+		auto decl = symbol_decl(entry->symbol);
+		auto type = entry->symbol->type;
 
 		size_t type_index = 0;
 		for (auto arg: decl->func_decl.args)
@@ -3357,7 +3278,7 @@ namespace sabre
 		// handle return type
 		auto return_type = type->as_func.sign.return_type;
 		// special case geometry shaders
-		if (self.unit->parent_unit->mode == COMPILATION_MODE_GEOMETRY)
+		if (entry->mode == COMPILATION_MODE_GEOMETRY)
 		{
 			if (type_is_struct(return_type) == false)
 			{
@@ -3419,6 +3340,128 @@ namespace sabre
 		}
 	}
 
+	inline static void
+	_typer_assign_bindings(Typer& self, Symbol* sym)
+	{
+		assert(sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform);
+		if (sym->var_sym.uniform_binding_processed)
+			return;
+		sym->var_sym.uniform_binding_processed = true;
+		auto decl = symbol_decl(sym);
+		auto uniform_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM);
+		if (sym->type->kind == Type::KIND_TEXTURE)
+		{
+			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+			{
+				auto value_tkn = binding_it->value.value;
+				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				{
+					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					if (sym->var_sym.uniform_binding > self.texture_binding_generator)
+						self.texture_binding_generator = sym->var_sym.uniform_binding + 1;
+				}
+			}
+			else
+			{
+				sym->var_sym.uniform_binding = self.texture_binding_generator++;
+			}
+
+			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding))
+			{
+				auto old_sym = it->value;
+				auto old_loc = symbol_location(old_sym);
+
+				Err err{};
+				err.loc = symbol_location(sym);
+				err.msg = mn::strf(
+					"texture binding point {} is shared with other texture defined in {}:{}",
+					sym->var_sym.uniform_binding,
+					old_loc.file->filepath,
+					old_loc.pos.line
+				);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
+			}
+		}
+		else if (type_is_sampler(sym->type))
+		{
+			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+			{
+				auto value_tkn = binding_it->value.value;
+				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				{
+					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					if (sym->var_sym.uniform_binding > self.sampler_binding_generator)
+						self.sampler_binding_generator = sym->var_sym.uniform_binding + 1;
+				}
+			}
+			else
+			{
+				sym->var_sym.uniform_binding = self.sampler_binding_generator++;
+			}
+
+			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding))
+			{
+				auto old_sym = it->value;
+				auto old_loc = symbol_location(old_sym);
+
+				Err err{};
+				err.loc = symbol_location(sym);
+				err.msg = mn::strf(
+					"sampler binding point {} is shared with other sampler defined in {}:{}",
+					sym->var_sym.uniform_binding,
+					old_loc.file->filepath,
+					old_loc.pos.line
+				);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				mn::map_insert(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding, sym);
+			}
+		}
+		else
+		{
+			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
+			{
+				auto value_tkn = binding_it->value.value;
+				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				{
+					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
+						self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
+				}
+			}
+			else
+			{
+				sym->var_sym.uniform_binding = self.uniform_binding_generator++;
+			}
+
+			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding))
+			{
+				auto old_sym = it->value;
+				auto old_loc = symbol_location(old_sym);
+
+				Err err{};
+				err.loc = symbol_location(sym);
+				err.msg = mn::strf(
+					"uniform binding point {} is shared with other uniform defined in {}:{}",
+					sym->var_sym.uniform_binding,
+					old_loc.file->filepath,
+					old_loc.pos.line
+				);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
+			}
+		}
+	}
+
 	// API
 	Typer
 	typer_new(Unit_Package* unit)
@@ -3444,47 +3487,33 @@ namespace sabre
 	{
 		_typer_shallow_walk(self);
 
-		auto compilation_unit = self.unit->parent_unit;
-		Symbol* entry = nullptr;
-
-		// check the entry function name if it does exist then we figure out
-		// our compilation mode from the function tags
-		if (compilation_unit->entry != nullptr)
+		for (auto sym: self.unit->global_scope->symbols)
 		{
-			entry = scope_find(self.unit->global_scope, compilation_unit->entry);
-			if (entry == nullptr || entry->kind != Symbol::KIND_FUNC)
+			if (sym->kind == Symbol::KIND_FUNC)
 			{
-				Location err_loc{};
-				if (entry)
-					if (auto decl = symbol_decl(entry))
-						err_loc = decl->loc;
-
-				Err err{};
-				err.loc = err_loc;
-				err.msg = mn::strf("entry point '{}' is not a function, or its name is not unique (it may be overloaded)", compilation_unit->entry);
-				unit_err(self.unit, err);
-			}
-			else
-			{
-				auto decl = symbol_decl(entry);
+				auto decl = symbol_decl(sym);
 				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
 				{
-					compilation_unit->mode = COMPILATION_MODE_VERTEX;
-					compilation_unit->entry_symbol = entry;
+					Entry_Point entry{};
+					entry.mode = COMPILATION_MODE_VERTEX;
+					entry.symbol = sym;
+					mn::buf_push(self.unit->entry_points, entry);
 				}
 				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
 				{
-					compilation_unit->mode = COMPILATION_MODE_PIXEL;
-					compilation_unit->entry_symbol = entry;
+					Entry_Point entry{};
+					entry.mode = COMPILATION_MODE_PIXEL;
+					entry.symbol = sym;
+					mn::buf_push(self.unit->entry_points, entry);
 				}
 				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
-					compilation_unit->mode = COMPILATION_MODE_GEOMETRY;
-					compilation_unit->entry_symbol = entry;
+					decl->func_decl.is_geometry = true;
+					decl->func_decl.geometry_output = sym->type->as_func.sign.return_type;
 
 					if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
 					{
-						compilation_unit->geometry_max_vertex_count = max_vertex_count->value.value;
+						decl->func_decl.geometry_max_vertex_count = max_vertex_count->value.value;
 					}
 					else
 					{
@@ -3496,15 +3525,15 @@ namespace sabre
 
 					if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
 					{
-						compilation_unit->geometry_in = geometry_in->value.value;
+						decl->func_decl.geometry_in = geometry_in->value.value;
 
-						if (compilation_unit->geometry_in.str != KEYWORD_POINT &&
-							compilation_unit->geometry_in.str != KEYWORD_LINE &&
-							compilation_unit->geometry_in.str != KEYWORD_TRIANGLE)
+						if (decl->func_decl.geometry_in.str != KEYWORD_POINT &&
+							decl->func_decl.geometry_in.str != KEYWORD_LINE &&
+							decl->func_decl.geometry_in.str != KEYWORD_TRIANGLE)
 						{
 							Err err{};
 							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_in.str);
+							err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", decl->func_decl.geometry_in.str);
 							unit_err(self.unit, err);
 						}
 					}
@@ -3518,15 +3547,15 @@ namespace sabre
 
 					if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
 					{
-						compilation_unit->geometry_out = geometry_out->value.value;
+						decl->func_decl.geometry_out = geometry_out->value.value;
 
-						if (compilation_unit->geometry_out.str != KEYWORD_POINT &&
-							compilation_unit->geometry_out.str != KEYWORD_LINE &&
-							compilation_unit->geometry_out.str != KEYWORD_TRIANGLE)
+						if (decl->func_decl.geometry_out.str != KEYWORD_POINT &&
+							decl->func_decl.geometry_out.str != KEYWORD_LINE &&
+							decl->func_decl.geometry_out.str != KEYWORD_TRIANGLE)
 						{
 							Err err{};
 							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", compilation_unit->geometry_out.str);
+							err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", decl->func_decl.geometry_out.str);
 							unit_err(self.unit, err);
 						}
 					}
@@ -3537,38 +3566,59 @@ namespace sabre
 						err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
 						unit_err(self.unit, err);
 					}
-				}
-				else
-				{
-					Err err{};
-					err.loc = decl->loc;
-					err.msg = mn::strf("entry point is not tagged with @vertex or @pixel");
-					unit_err(self.unit, err);
+
+					Entry_Point entry{};
+					entry.mode = COMPILATION_MODE_GEOMETRY;
+					entry.symbol = sym;
+					mn::buf_push(self.unit->entry_points, entry);
 				}
 			}
 		}
 
+		// check all symbols
+		for (auto sym: self.global_scope->symbols)
+			_typer_resolve_symbol(self, sym);
 
-		switch (compilation_unit->mode)
+		// handle binding points
+		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
+		auto stack = mn::buf_with_allocator<Symbol*>(mn::memory::tmp());
+		for (const auto& entry: self.unit->entry_points)
 		{
-		// library mode we check all the available global symbols
-		case COMPILATION_MODE_LIBRARY:
-			for (auto sym: self.global_scope->symbols)
-				_typer_resolve_symbol(self, sym);
-			break;
-		// in case of vertex and pixel we start from the entry point
-		case COMPILATION_MODE_VERTEX:
-		case COMPILATION_MODE_PIXEL:
-		case COMPILATION_MODE_GEOMETRY:
-			_typer_resolve_symbol(self, entry);
-			_typer_check_entry_input(self, entry);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
+			mn::set_clear(visited);
+			mn::buf_clear(stack);
+
+			auto sym = entry.symbol;
+			mn::set_insert(visited, sym);
+			mn::buf_push(stack, sym);
+			while (stack.count > 0)
+			{
+				auto sym = mn::buf_top(stack);
+				mn::buf_pop(stack);
+
+				// process symbol here
+				if (sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform)
+				{
+					_typer_assign_bindings(self, sym);
+				}
+
+				for (auto d: sym->dependencies)
+				{
+					if (mn::set_lookup(visited, d) == nullptr)
+					{
+						mn::buf_push(stack, d);
+						mn::set_insert(visited, d);
+					}
+				}
+			}
 		}
 
-		for (auto s: self.unit->parent_unit->reflected_symbols)
-			_typer_resolve_symbol(self, s);
+		for (auto sym: self.unit->parent_unit->all_uniforms)
+			_typer_assign_bindings(self, sym);
+	}
+
+	void
+	typer_check_entry(Typer& self, Entry_Point* entry)
+	{
+		_typer_check_entry_input(self, entry);
 	}
 }

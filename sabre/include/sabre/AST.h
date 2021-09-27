@@ -638,7 +638,13 @@ namespace sabre
 				Stmt* body;
 				// texture sample operations within this function
 				mn::Buf<Texture_Sample_Op> sample_ops;
-				// geometry shader emit functions
+				bool is_geometry;
+				// geometry shader manadory tags
+				Type* geometry_output;
+				Tkn geometry_max_vertex_count;
+				Tkn geometry_in;
+				Tkn geometry_out;
+				// indicates whether this function emits vertices in a geometry shader or not
 				bool has_emits;
 			} func_decl;
 
