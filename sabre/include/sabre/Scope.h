@@ -43,6 +43,7 @@ namespace sabre
 		const char* package_name;
 		mn::Set<Symbol*> dependencies;
 		bool is_top_level;
+		size_t ref_count;
 
 		union
 		{

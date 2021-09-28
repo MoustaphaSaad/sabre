@@ -4,15 +4,6 @@ layout(location = 1) in vec3 RESERVED_input_vertex_normal;
 
 layout(location = 0) out vec4 _entry_point_output_color;
 
-struct main_Light {
-	vec3 direction;
-	vec4 color;
-};
-struct main_Model {
-	mat4 model_matrix;
-	mat4 model_inverse_transposed;
-	vec4 color;
-};
 layout(binding = 2, std140) uniform main_light {
 	vec3 main_light_direction;
 	vec4 main_light_color;
@@ -23,6 +14,15 @@ layout(binding = 3, std140) uniform main_model {
 	vec4 main_model_color;
 };
 struct main_PS_Output {
+	vec4 color;
+};
+struct main_Light {
+	vec3 direction;
+	vec4 color;
+};
+struct main_Model {
+	mat4 model_matrix;
+	mat4 model_inverse_transposed;
 	vec4 color;
 };
 struct main_PS_Input {

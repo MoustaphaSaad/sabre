@@ -3,6 +3,8 @@
 #include "sabre/Type_Interner.h"
 #include "sabre/Unit.h"
 
+#include <algorithm>
+
 namespace sabre
 {
 	inline static const char* HLSL_KEYWORDS[] = {
@@ -2233,6 +2235,7 @@ namespace sabre
 
 		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
 		auto stack = mn::buf_with_allocator<Symbol*>(mn::memory::tmp());
+		entry->symbol->ref_count = 1;
 		mn::buf_push(stack, entry->symbol);
 		mn::set_insert(visited, entry->symbol);
 		for (size_t i = 0; i < stack.count; ++i)
@@ -2241,11 +2244,18 @@ namespace sabre
 			{
 				if (mn::set_lookup(visited, sym) == nullptr)
 				{
+					sym->ref_count = 1;
 					mn::buf_push(stack, sym);
 					mn::set_insert(visited, sym);
 				}
+				else
+				{
+					++sym->ref_count;
+				}
 			}
 		}
+
+		std::stable_sort(begin(stack), end(stack), [](const auto& a, const auto& b){ return a->ref_count < b->ref_count; });
 
 		// now that we have our dependencies ordered we'll just traverse them back to front and generate them
 		bool last_symbol_was_generated = false;

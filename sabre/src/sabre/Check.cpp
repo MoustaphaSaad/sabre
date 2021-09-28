@@ -2221,7 +2221,6 @@ namespace sabre
 		// we set it to void then overwrite it later at the end of this function
 		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
 		_typer_enter_scope(self, scope);
-		_typer_enter_func(self, d);
 		{
 			auto type_interner = self.unit->parent_unit->type_interner;
 			auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
@@ -2271,7 +2270,6 @@ namespace sabre
 				}
 			}
 		}
-		_typer_leave_func(self);
 		_typer_leave_scope(self);
 
 		if (d->func_decl.is_geometry)
