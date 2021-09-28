@@ -157,11 +157,47 @@ namespace sabre
 		COMPILATION_MODE_GEOMETRY,
 	};
 
+	// represents an entry point, along with its symbol and mode (vertex, pixel, geometry, etc...)
 	struct Entry_Point
 	{
 		COMPILATION_MODE mode;
 		Symbol* symbol;
+		mn::Map<const char*, Type*> input_layout;
+		mn::Buf<Symbol*> uniforms;
+		mn::Buf<Symbol*> textures;
+		mn::Buf<Symbol*> samplers;
 	};
+
+	// creates a new entry point instance
+	inline static Entry_Point*
+	entry_point_new(Symbol* symbol, COMPILATION_MODE mode)
+	{
+		auto self = mn::alloc_zerod<Entry_Point>();
+		self->mode = mode;
+		self->symbol = symbol;
+		return self;
+	}
+
+	// frees the given entry point instance
+	inline static void
+	entry_point_free(Entry_Point* self)
+	{
+		if (self)
+		{
+			mn::map_free(self->input_layout);
+			mn::buf_free(self->uniforms);
+			mn::buf_free(self->textures);
+			mn::buf_free(self->samplers);
+			mn::free(self);
+		}
+	}
+
+	// destruct overload for entry point
+	inline static void
+	destruct(Entry_Point* self)
+	{
+		entry_point_free(self);
+	}
 
 	// represents a package compilation unit
 	struct Unit_Package
@@ -191,7 +227,7 @@ namespace sabre
 		// package level errors
 		mn::Buf<Err> errs;
 		// all the found entry points in this package
-		mn::Buf<Entry_Point> entry_points;
+		mn::Buf<Entry_Point*> entry_points;
 		// reachable symbols sorted by first usage
 		mn::Buf<Symbol*> reachable_symbols;
 		// all the symbols are allocated from this arena, so we don't need to manage
@@ -295,8 +331,6 @@ namespace sabre
 		// map from package path to unit package
 		mn::Map<mn::Str, Unit_Package*> absolute_path_to_package;
 		// reflection information
-		// input layout of above entry point
-		mn::Map<const char*, Type*> input_layout;
 		// reachable uniforms info
 		mn::Map<int, Symbol*> reachable_uniforms;
 		// reachable textures info

@@ -500,7 +500,7 @@ namespace sabre
 		destruct(self->files);
 		mn::map_free(self->absolute_path_to_file);
 		destruct(self->errs);
-		mn::buf_free(self->entry_points);
+		destruct(self->entry_points);
 		mn::buf_free(self->reachable_symbols);
 		mn::allocator_free(self->symbols_arena);
 		scope_free(self->global_scope);
@@ -677,9 +677,9 @@ namespace sabre
 	Entry_Point*
 	unit_package_entry_find(Unit_Package* self, const mn::Str& name)
 	{
-		for (auto& entry: self->entry_points)
-			if (entry.symbol->name == name)
-				return &entry;
+		for (auto entry: self->entry_points)
+			if (entry->symbol->name == name)
+				return entry;
 		return nullptr;
 	}
 
@@ -740,7 +740,6 @@ namespace sabre
 		destruct(self->scope_table);
 		destruct(self->packages);
 		mn::map_free(self->absolute_path_to_package);
-		mn::map_free(self->input_layout);
 		mn::map_free(self->reachable_uniforms);
 		mn::map_free(self->reachable_textures);
 		mn::map_free(self->reachable_samplers);
@@ -838,7 +837,7 @@ namespace sabre
 			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(entry->symbol->name));
 
 			auto json_layout = mn::json::value_array_new();
-			for (const auto& [attribute_name, attribute_type]: self->input_layout)
+			for (const auto& [attribute_name, attribute_type]: entry->input_layout)
 			{
 				auto json_attribute = mn::json::value_object_new();
 				mn::json::value_object_insert(json_attribute, "name", mn::json::value_string_new(attribute_name));
@@ -851,8 +850,11 @@ namespace sabre
 		}
 
 		auto json_uniforms = mn::json::value_array_new();
-		for (const auto& [binding, symbol]: self->reachable_uniforms)
+		for (auto symbol: entry->uniforms)
 		{
+			assert(symbol->kind == Symbol::KIND_VAR);
+			auto binding = symbol->var_sym.uniform_binding;
+
 			auto json_uniform = mn::json::value_object_new();
 			if (symbol->package == self->root_package)
 			{
@@ -873,8 +875,11 @@ namespace sabre
 		}
 
 		auto json_textures = mn::json::value_array_new();
-		for (const auto& [binding, symbol]: self->reachable_textures)
+		for (auto symbol: entry->textures)
 		{
+			assert(symbol->kind == Symbol::KIND_VAR);
+			auto binding = symbol->var_sym.uniform_binding;
+
 			auto json_texture = mn::json::value_object_new();
 			if (symbol->package == self->root_package)
 			{

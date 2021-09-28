@@ -6,12 +6,10 @@
 namespace sabre
 {
 	inline static void
-	_generate_entry_shader_io(Unit_Package* unit, Symbol* entry)
+	_generate_entry_shader_io(Entry_Point* entry)
 	{
-		auto compilation_unit = unit->parent_unit;
-
-		auto decl = entry->func_sym.decl;
-		auto entry_type = entry->type;
+		auto decl = entry->symbol->func_sym.decl;
+		auto entry_type = entry->symbol->type;
 		size_t type_index = 0;
 
 		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
@@ -26,7 +24,7 @@ namespace sabre
 				case Type::KIND_STRUCT:
 					for (auto field: arg_type->struct_type.fields)
 					{
-						mn::map_insert(compilation_unit->input_layout, field.name.str, field.type);
+						mn::map_insert(entry->input_layout, field.name.str, field.type);
 					}
 					break;
 				default:
@@ -45,7 +43,7 @@ namespace sabre
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
 		case COMPILATION_MODE_GEOMETRY:
-			_generate_entry_shader_io(entry->symbol->package, entry->symbol);
+			_generate_entry_shader_io(entry);
 			break;
 		case COMPILATION_MODE_LIBRARY:
 			// library mode is not allowed here

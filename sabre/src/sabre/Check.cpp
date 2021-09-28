@@ -3352,7 +3352,7 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_assign_bindings(Typer& self, Symbol* sym)
+	_typer_assign_bindings(Typer& self, Entry_Point* entry, Symbol* sym)
 	{
 		assert(sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform);
 		if (sym->var_sym.uniform_binding_processed)
@@ -3395,6 +3395,8 @@ namespace sabre
 			else
 			{
 				mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.uniform_binding, sym);
+				if (entry)
+					mn::buf_push(entry->textures, sym);
 			}
 		}
 		else if (type_is_sampler(sym->type))
@@ -3432,6 +3434,8 @@ namespace sabre
 			else
 			{
 				mn::map_insert(self.unit->parent_unit->reachable_samplers, sym->var_sym.uniform_binding, sym);
+				if (entry)
+					mn::buf_push(entry->samplers, sym);
 			}
 		}
 		else
@@ -3469,6 +3473,8 @@ namespace sabre
 			else
 			{
 				mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.uniform_binding, sym);
+				if (entry)
+					mn::buf_push(entry->uniforms, sym);
 			}
 		}
 	}
@@ -3505,16 +3511,12 @@ namespace sabre
 				auto decl = symbol_decl(sym);
 				if (mn::map_lookup(decl->tags.table, KEYWORD_VERTEX) != nullptr)
 				{
-					Entry_Point entry{};
-					entry.mode = COMPILATION_MODE_VERTEX;
-					entry.symbol = sym;
+					auto entry = entry_point_new(sym, COMPILATION_MODE_VERTEX);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
 				else if (mn::map_lookup(decl->tags.table, KEYWORD_PIXEL) != nullptr)
 				{
-					Entry_Point entry{};
-					entry.mode = COMPILATION_MODE_PIXEL;
-					entry.symbol = sym;
+					auto entry = entry_point_new(sym, COMPILATION_MODE_PIXEL);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
 				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
@@ -3578,9 +3580,7 @@ namespace sabre
 						unit_err(self.unit, err);
 					}
 
-					Entry_Point entry{};
-					entry.mode = COMPILATION_MODE_GEOMETRY;
-					entry.symbol = sym;
+					auto entry = entry_point_new(sym, COMPILATION_MODE_GEOMETRY);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
 			}
@@ -3593,12 +3593,12 @@ namespace sabre
 		// handle binding points
 		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
 		auto stack = mn::buf_with_allocator<Symbol*>(mn::memory::tmp());
-		for (const auto& entry: self.unit->entry_points)
+		for (auto entry: self.unit->entry_points)
 		{
 			mn::set_clear(visited);
 			mn::buf_clear(stack);
 
-			auto sym = entry.symbol;
+			auto sym = entry->symbol;
 			mn::set_insert(visited, sym);
 			mn::buf_push(stack, sym);
 			while (stack.count > 0)
@@ -3609,7 +3609,7 @@ namespace sabre
 				// process symbol here
 				if (sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform)
 				{
-					_typer_assign_bindings(self, sym);
+					_typer_assign_bindings(self, entry, sym);
 				}
 
 				for (auto d: sym->dependencies)
@@ -3624,7 +3624,7 @@ namespace sabre
 		}
 
 		for (auto sym: self.unit->parent_unit->all_uniforms)
-			_typer_assign_bindings(self, sym);
+			_typer_assign_bindings(self, nullptr, sym);
 	}
 
 	void
