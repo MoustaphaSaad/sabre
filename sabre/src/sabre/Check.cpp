@@ -3356,7 +3356,25 @@ namespace sabre
 	{
 		assert(sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform);
 		if (sym->var_sym.uniform_binding_processed)
+		{
+			if (entry)
+			{
+				if (sym->type->kind == Type::KIND_TEXTURE)
+				{
+					mn::buf_push(entry->textures, sym);
+				}
+				else if (type_is_sampler(sym->type))
+				{
+					mn::buf_push(entry->samplers, sym);
+				}
+				else
+				{
+					mn::buf_push(entry->uniforms, sym);
+				}
+			}
 			return;
+		}
+
 		sym->var_sym.uniform_binding_processed = true;
 		auto decl = symbol_decl(sym);
 		auto uniform_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM);
