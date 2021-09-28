@@ -19,6 +19,8 @@
 
 #include <chrono>
 
+#include <algorithm>
+
 namespace sabre
 {
 	inline static auto
@@ -474,6 +476,50 @@ namespace sabre
 
 			return unit_package_resolve_package(self->parent_package, absolute_path);
 		}
+	}
+
+	void
+	entry_point_calc_reachable_list(Entry_Point* entry)
+	{
+		// only calc it once
+		if (entry->reachable_symbols.count > 0)
+			return;
+
+		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
+		size_t score = 0;
+		entry->symbol->score = score;
+		mn::buf_push(entry->reachable_symbols, entry->symbol);
+		mn::set_insert(visited, entry->symbol);
+		for (size_t i = 0; i < entry->reachable_symbols.count; ++i)
+		{
+			auto sym = entry->reachable_symbols[i];
+			for (auto d: sym->dependencies)
+			{
+				if (mn::set_lookup(visited, d) == nullptr)
+				{
+					d->score = ++score;
+					mn::buf_push(entry->reachable_symbols, d);
+					mn::set_insert(visited, d);
+				}
+				else
+				{
+					if (sym->is_top_level ||
+						sym->kind == Symbol::KIND_FUNC ||
+						sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
+					{
+						d->score += sym->score;
+					}
+				}
+			}
+		}
+		std::stable_sort(begin(entry->reachable_symbols), end(entry->reachable_symbols), [](const auto& a, const auto& b){ return a->score > b->score; });
+		mn::buf_remove_if(entry->reachable_symbols, [](auto sym){
+			return (
+				sym->is_top_level == false &&
+				sym->kind != Symbol::KIND_FUNC &&
+				sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET
+			);
+		});
 	}
 
 	Unit_Package*

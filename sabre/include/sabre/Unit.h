@@ -162,6 +162,7 @@ namespace sabre
 	{
 		COMPILATION_MODE mode;
 		Symbol* symbol;
+		mn::Buf<Symbol*> reachable_symbols;
 		mn::Map<const char*, Type*> input_layout;
 		mn::Buf<Symbol*> uniforms;
 		mn::Buf<Symbol*> textures;
@@ -184,6 +185,7 @@ namespace sabre
 	{
 		if (self)
 		{
+			mn::buf_free(self->reachable_symbols);
 			mn::map_free(self->input_layout);
 			mn::buf_free(self->uniforms);
 			mn::buf_free(self->textures);
@@ -198,6 +200,10 @@ namespace sabre
 	{
 		entry_point_free(self);
 	}
+
+	// calculates the list of reachable symbols from this entry point, this is done before codegen
+	SABRE_EXPORT void
+	entry_point_calc_reachable_list(Entry_Point* entry);
 
 	// represents a package compilation unit
 	struct Unit_Package

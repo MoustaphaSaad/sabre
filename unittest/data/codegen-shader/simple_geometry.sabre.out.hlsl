@@ -1,9 +1,3 @@
-cbuffer points_camera: register(b0) {
-	column_major float4x4 points_camera_viewproj: packoffset(c0);
-	float3 points_camera_right: packoffset(c4);
-	float3 points_camera_up: packoffset(c5);
-	float2 points_camera_viewport: packoffset(c6);
-};
 struct points_PS_Input {
 	float4 position: SV_POSITION;
 	float4 v_color: TEXCOORD1;
@@ -22,6 +16,12 @@ void points_foo(points_PS_Input a, points_PS_Input b, points_PS_Input c, inout T
 	_tmp_1.Append(b);
 	_tmp_1.Append(c);
 }
+cbuffer points_camera: register(b0) {
+	column_major float4x4 points_camera_viewproj: packoffset(c0);
+	float3 points_camera_right: packoffset(c4);
+	float3 points_camera_up: packoffset(c5);
+	float2 points_camera_viewport: packoffset(c6);
+};
 struct points_GS_Input {
 	float3 center: TEXCOORD0;
 	float4 v_color: TEXCOORD1;
