@@ -1,3 +1,9 @@
+struct main_VS_Input {
+	float3 position: TEXCOORD0;
+};
+struct main_PS_Input {
+	float4 position: SV_POSITION;
+};
 struct main_Config {
 	float3 clip_pos;
 	int clip_enabled;
@@ -21,12 +27,6 @@ cbuffer main_config: register(b2) {
 	float main_config_window_width: packoffset(c3.w);
 	float3 main_config_slicing_dir: packoffset(c4);
 	float2 main_config_noise_tex_size: packoffset(c5);
-};
-struct main_PS_Input {
-	float4 position: SV_POSITION;
-};
-struct main_VS_Input {
-	float3 position: TEXCOORD0;
 };
 main_PS_Input main_main(main_VS_Input vs_input) {
 	main_config_clip_pos;

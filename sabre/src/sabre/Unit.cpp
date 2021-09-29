@@ -14,6 +14,7 @@
 #include <mn/Log.h>
 #include <mn/Defer.h>
 #include <mn/Json.h>
+#include <mn/Ring.h>
 
 #include <fmt/chrono.h>
 
@@ -332,6 +333,25 @@ namespace sabre
 		return json_tags;
 	}
 
+	inline static void
+	_entry_point_sym_sort(Entry_Point* entry, Symbol* sym)
+	{
+		if (sym->visited == (uintptr_t)sym)
+			return;
+
+		for (auto d: sym->dependencies)
+			_entry_point_sym_sort(entry, d);
+
+		sym->visited = (uintptr_t)sym;
+
+		if (sym->is_top_level ||
+			sym->kind == Symbol::KIND_FUNC ||
+			sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
+		{
+			mn::buf_push(entry->reachable_symbols, sym);
+		}
+	}
+
 
 	// API
 	Unit_File*
@@ -485,41 +505,7 @@ namespace sabre
 		if (entry->reachable_symbols.count > 0)
 			return;
 
-		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
-		size_t score = 0;
-		entry->symbol->score = score;
-		mn::buf_push(entry->reachable_symbols, entry->symbol);
-		mn::set_insert(visited, entry->symbol);
-		for (size_t i = 0; i < entry->reachable_symbols.count; ++i)
-		{
-			auto sym = entry->reachable_symbols[i];
-			for (auto d: sym->dependencies)
-			{
-				if (mn::set_lookup(visited, d) == nullptr)
-				{
-					d->score = ++score;
-					mn::buf_push(entry->reachable_symbols, d);
-					mn::set_insert(visited, d);
-				}
-				else
-				{
-					if (sym->is_top_level ||
-						sym->kind == Symbol::KIND_FUNC ||
-						sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET)
-					{
-						d->score += sym->score;
-					}
-				}
-			}
-		}
-		std::stable_sort(begin(entry->reachable_symbols), end(entry->reachable_symbols), [](const auto& a, const auto& b){ return a->score > b->score; });
-		mn::buf_remove_if(entry->reachable_symbols, [](auto sym){
-			return (
-				sym->is_top_level == false &&
-				sym->kind != Symbol::KIND_FUNC &&
-				sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET
-			);
-		});
+		_entry_point_sym_sort(entry, entry->symbol);
 	}
 
 	Unit_Package*

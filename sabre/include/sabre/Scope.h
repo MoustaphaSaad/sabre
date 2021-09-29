@@ -44,7 +44,7 @@ namespace sabre
 		mn::Set<Symbol*> dependencies;
 		bool is_top_level;
 		// this is used to construct entry point reachable list
-		size_t score;
+		uintptr_t visited;
 
 		union
 		{
