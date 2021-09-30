@@ -334,15 +334,15 @@ namespace sabre
 	}
 
 	inline static void
-	_entry_point_sym_sort(Entry_Point* entry, Symbol* sym)
+	_entry_point_sym_sort(Entry_Point* entry, Symbol* sym, mn::Set<Symbol*>& visited)
 	{
-		if (sym->visited == (uintptr_t)sym)
+		if (mn::set_lookup(visited, sym))
 			return;
 
 		for (auto d: sym->dependencies)
-			_entry_point_sym_sort(entry, d);
+			_entry_point_sym_sort(entry, d, visited);
 
-		sym->visited = (uintptr_t)sym;
+		mn::set_insert(visited, sym);
 
 		if (sym->is_top_level ||
 			sym->kind == Symbol::KIND_FUNC ||
@@ -505,7 +505,8 @@ namespace sabre
 		if (entry->reachable_symbols.count > 0)
 			return;
 
-		_entry_point_sym_sort(entry, entry->symbol);
+		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
+		_entry_point_sym_sort(entry, entry->symbol, visited);
 	}
 
 	Unit_Package*
