@@ -43,8 +43,6 @@ namespace sabre
 		const char* package_name;
 		mn::Set<Symbol*> dependencies;
 		bool is_top_level;
-		// this is used to construct entry point reachable list
-		uintptr_t visited;
 
 		union
 		{
