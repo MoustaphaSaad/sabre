@@ -852,6 +852,7 @@ namespace sabre
 			decl->loc.pos = tkn.loc.pos;
 			decl->loc.file = self.unit;
 			res = stmt_decl_new(self.unit->ast_arena, decl);
+			expect_semicolon = false;
 		}
 		else
 		{

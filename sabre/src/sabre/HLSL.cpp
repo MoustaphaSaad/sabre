@@ -1229,6 +1229,9 @@ namespace sabre
 			}
 			break;
 		}
+		case Decl::KIND_FUNC:
+			// ignore it, we'll rewrite complits when we generate the function itself
+			break;
 		default:
 			assert(false && "unreachable");
 			break;
@@ -1493,6 +1496,9 @@ namespace sabre
 			}
 			break;
 		}
+		case Decl::KIND_FUNC:
+			// internal/private functions (functions in functions) are generated on their own, here we ignore it
+			break;
 		default:
 			assert(false && "unreachable");
 			break;

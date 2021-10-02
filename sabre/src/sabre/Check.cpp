@@ -111,7 +111,7 @@ namespace sabre
 	_typer_add_symbol(Typer& self, Symbol* sym)
 	{
 		auto current_scope = _typer_current_scope(self);
-		if (auto old_sym = scope_shallow_find(current_scope, sym->name))
+		if (auto old_sym = scope_shallow_find(current_scope, sym->name); old_sym != nullptr && old_sym != sym)
 		{
 			auto old_loc = symbol_location(old_sym);
 			Err err{};
@@ -288,13 +288,11 @@ namespace sabre
 	inline static void
 	_typer_add_func_overload(Typer& self, Type* overload_set, Decl* decl)
 	{
-		Type_Overload_Entry overload_entry{};
-		overload_entry.loc = decl->loc;
-		overload_entry.type = _typer_resolve_func_decl(self, decl);
+		decl->type = _typer_resolve_func_decl(self, decl);
 
-		if (auto it = mn::map_lookup(overload_set->func_overload_set_type.overloads, overload_entry.type->as_func.sign.args))
+		if (auto it = mn::map_lookup(overload_set->func_overload_set_type.overloads, decl->type->as_func.sign.args))
 		{
-			auto old_loc = it->value.loc;
+			auto old_loc = it->value->loc;
 			Err err{};
 			err.loc = decl->loc;
 			err.msg = mn::strf("function overload already defined {}:{}:{}", old_loc.file->filepath, old_loc.pos.line, old_loc.pos.col);
@@ -302,7 +300,7 @@ namespace sabre
 		}
 		else
 		{
-			mn::map_insert(overload_set->func_overload_set_type.overloads, overload_entry.type->as_func.sign.args, overload_entry);
+			mn::map_insert(overload_set->func_overload_set_type.overloads, decl->type->as_func.sign.args, decl);
 		}
 	}
 
@@ -1385,10 +1383,10 @@ namespace sabre
 						msg,
 						"\n  {}. {} defined in {}:{}:{}",
 						overload_i++,
-						overload.type,
-						overload.loc.file->filepath,
-						overload.loc.pos.line,
-						overload.loc.pos.col
+						overload->type,
+						overload->loc.file->filepath,
+						overload->loc.pos.line,
+						overload->loc.pos.col
 					);
 				}
 

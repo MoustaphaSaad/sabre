@@ -1,10 +1,8 @@
 package main
 
-type Triangle_Stream struct<T: type> {}
-
-func emit<T: type>(stream: Triangle_Stream<T>, v: T) {
-}
-
-func koko(stream: Triangle_Stream<int>) {
-	emit(stream, :vec2{});
+func foo(x: int) {
+	func foo(x: int, y: int): int {
+		return x + y;
+	}
+	foo(x, x+1);
 }

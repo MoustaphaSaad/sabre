@@ -185,13 +185,13 @@ namespace sabre
 				if (overload_i > 0)
 					name = mn::strf(name, "\n");
 				name = mn::strf(name, "{}. func(", overload_i++);
-				for (size_t i = 0; i < overload.type->as_func.sign.args.types.count; ++i)
+				for (size_t i = 0; i < overload->type->as_func.sign.args.types.count; ++i)
 				{
 					if (i > 0)
 						name = mn::strf(name, ", ");
-					name = mn::strf(name, ":{}", overload.type->as_func.sign.args.types[i]);
+					name = mn::strf(name, ":{}", overload->type->as_func.sign.args.types[i]);
 				}
-				name = mn::strf(name, "):{}", overload.type->as_func.sign.return_type);
+				name = mn::strf(name, "):{}", overload->type->as_func.sign.return_type);
 			}
 			return name;
 		}
@@ -334,14 +334,17 @@ namespace sabre
 	}
 
 	inline static void
-	_entry_point_sym_sort(Entry_Point* entry, Symbol* sym, mn::Set<Symbol*>& visited)
+	_entry_point_sym_sort(Entry_Point* entry, Symbol* sym, mn::Set<Symbol*>& visited, mn::Set<Symbol*>& visiting)
 	{
-		if (mn::set_lookup(visited, sym))
+		if (mn::set_lookup(visited, sym) ||
+			mn::set_lookup(visiting, sym))
 			return;
 
+		mn::set_insert(visiting, sym);
 		for (auto d: sym->dependencies)
-			_entry_point_sym_sort(entry, d, visited);
+			_entry_point_sym_sort(entry, d, visited, visiting);
 
+		mn::set_remove(visiting, sym);
 		mn::set_insert(visited, sym);
 
 		if (sym->is_top_level ||
@@ -506,7 +509,8 @@ namespace sabre
 			return;
 
 		auto visited = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
-		_entry_point_sym_sort(entry, entry->symbol, visited);
+		auto visiting = mn::set_with_allocator<Symbol*>(mn::memory::tmp());
+		_entry_point_sym_sort(entry, entry->symbol, visited, visiting);
 	}
 
 	Unit_Package*

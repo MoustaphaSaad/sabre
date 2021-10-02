@@ -171,12 +171,6 @@ namespace sabre
 		Expr_Value value;
 	};
 
-	struct Type_Overload_Entry
-	{
-		Location loc;
-		Type* type;
-	};
-
 	enum TEXTURE_TYPE
 	{
 		TEXTURE_TYPE_1D,
@@ -253,7 +247,7 @@ namespace sabre
 			struct
 			{
 				Symbol* symbol;
-				mn::Map<Func_Args_Sign, Type_Overload_Entry, Func_Args_Sign_Hasher> overloads;
+				mn::Map<Func_Args_Sign, Decl*, Func_Args_Sign_Hasher> overloads;
 			} func_overload_set_type;
 
 			struct
@@ -1076,13 +1070,13 @@ namespace fmt
 					if (overload_i > 0)
 						format_to(ctx.out(), "\n");
 					format_to(ctx.out(), "{}. func(", overload_i++);
-					for (size_t i = 0; i < overload.type->as_func.sign.args.types.count; ++i)
+					for (size_t i = 0; i < overload->type->as_func.sign.args.types.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), ":{}", overload.type->as_func.sign.args.types[i]);
+						format_to(ctx.out(), ":{}", overload->type->as_func.sign.args.types[i]);
 					}
-					format_to(ctx.out(), "):{}", overload.type->as_func.sign.return_type);
+					format_to(ctx.out(), "):{}", overload->type->as_func.sign.return_type);
 				}
 				return ctx.out();
 			}
