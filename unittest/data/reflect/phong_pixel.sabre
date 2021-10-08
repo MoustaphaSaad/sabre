@@ -36,6 +36,23 @@ type Lighting struct {
 	dir_lights_count: int,
 }
 
+// camera
+type Camera struct {
+	view: mat4,
+	proj: mat4,
+	viewproj: mat4,
+	viewport: mat4,
+}
+
+// standard uniforms per frame
+type Per_Frame struct {
+	camera: Camera,
+	lighting: Lighting,
+}
+@standard_uniform {name = "per_frame"}
+@uniform
+var per_frame: Per_Frame;
+
 @uniform var lighting: Lighting;
 
 // dummy builtin functions for now
@@ -53,6 +70,7 @@ const draw_order = 2000;
 
 @pixel
 func main(input: PS_Input): PS_Output {
+	per_frame;
 	lighting.dir_lights[0];
 	var world_pos = model.model_matrix * :vec4{input.vertex_position, 1.0};
 	var normal = (model.model_inverse_transposed * :vec4{input.vertex_normal, 0.0}).xyz;

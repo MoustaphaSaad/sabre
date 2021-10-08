@@ -207,7 +207,7 @@ namespace sabre
 		};
 
 		KIND kind;
-		size_t size;
+		size_t unaligned_size;
 		size_t alignment;
 		union
 		{
@@ -274,6 +274,19 @@ namespace sabre
 			} typename_type;
 		};
 	};
+
+	inline static size_t
+	_round_up(size_t num, size_t factor)
+	{
+		if (num % factor == 0) return num;
+		return num + factor - 1 - (num + factor - 1) % factor;
+	}
+
+	inline static size_t
+	_type_aligned_size(Type* type)
+	{
+		return _round_up(type->unaligned_size, type->alignment);
+	}
 
 	// returns the underlying symbol which this type represents, it needs to be a user
 	// defined type though

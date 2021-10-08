@@ -1,8 +1,7 @@
 package main
 
-func foo(x: int) {
-	func foo(x: int, y: int): int {
-		return x + y;
-	}
-	foo(x, x+1);
+const x: int = 5.234;
+
+func foo(: int) {
+	// foo(x, x+1);
 }

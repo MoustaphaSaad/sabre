@@ -7,7 +7,7 @@ namespace sabre
 	{
 		Type self{};
 		self.kind = Type::KIND_VEC;
-		self.size = size;
+		self.unaligned_size = size;
 		self.alignment = alignment;
 		self.vec.base = base;
 		self.vec.width = width;
@@ -19,7 +19,7 @@ namespace sabre
 	{
 		Type self{};
 		self.kind = Type::KIND_MAT;
-		self.size = size;
+		self.unaligned_size = size;
 		self.alignment = alignment;
 		self.mat.base = base;
 		self.mat.width = width;
@@ -67,30 +67,23 @@ namespace sabre
 	static Type _type_texture_cube = _texture_builtin(TEXTURE_TYPE_CUBE);
 	static Type _type_sampler {Type::KIND_SAMPLER, 0, 0};
 
-	inline static size_t
-	_round_up(size_t num, size_t factor)
-	{
-		if (num % factor == 0) return num;
-		return num + factor - 1 - (num + factor - 1) % factor;
-	}
-
 	inline static void
 	_calc_struct_size(Type* type)
 	{
 		type->alignment = 1;
-		type->size = 0;
+		type->unaligned_size = 0;
 		for (auto& field: type->struct_type.fields)
 		{
 			if (field.type->alignment > type->alignment)
 				type->alignment = field.type->alignment;
 			if (field.type->alignment > 0)
-				if (type->size % field.type->alignment != 0)
-					type->size = _round_up(type->size, type_vec4->size);
-			field.offset = type->size;
-			type->size += field.type->size;
+				if (type->unaligned_size % field.type->alignment != 0)
+					type->unaligned_size = _round_up(type->unaligned_size, field.type->alignment);
+			field.offset = type->unaligned_size;
+			type->unaligned_size += field.type->unaligned_size;
 		}
-		type->alignment = _round_up(type->alignment, type_vec4->size);
-		type->size = _round_up(type->size, type_vec4->size);
+		type->alignment = _round_up(type->alignment, type_vec4->alignment);
+		// type->unaligned_size = _round_up(type->size, type_vec4->size);
 	}
 
 	// API
@@ -283,9 +276,9 @@ namespace sabre
 
 		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_ARRAY;
-		new_type->alignment = _round_up(sign.base->size, type_vec4->size);
+		new_type->alignment = _round_up(_type_aligned_size(sign.base), type_vec4->alignment);
 		if (sign.count >= 0)
-			new_type->size = _round_up(sign.base->size, type_vec4->size) * sign.count;
+			new_type->unaligned_size = _type_aligned_size(sign.base) * sign.count;
 		new_type->array.base = sign.base;
 		new_type->array.count = sign.count;
 		mn::map_insert(self->array_table, sign, new_type);
