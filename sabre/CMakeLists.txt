@@ -40,6 +40,7 @@ set(SOURCE_FILES
 	src/sabre/IR.cpp
 	src/sabre/SPIRV.cpp
 	src/sabre/IR_Text.cpp
+	src/sabre/AST.cpp
 )
 
 add_library(sabre)

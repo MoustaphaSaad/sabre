@@ -1,5 +1,6 @@
 #pragma once
 
+#include "sabre/Exports.h"
 #include "sabre/Tkn.h"
 #include "sabre/Expr_Value.h"
 
@@ -10,8 +11,9 @@ namespace sabre
 {
 	struct Expr;
 	struct Decl;
-
 	struct Type_Sign;
+	struct Type;
+	struct Symbol;
 
 	// represents a type signature atom
 	struct Type_Sign_Atom
@@ -50,36 +52,25 @@ namespace sabre
 	};
 
 	// creates a new type sign atom with the given token
-	inline static Type_Sign_Atom
-	type_sign_atom_named(Tkn type_name, Tkn package_name)
-	{
-		Type_Sign_Atom self{};
-		self.kind = Type_Sign_Atom::KIND_NAMED;
-		self.named.type_name = type_name;
-		self.named.package_name = package_name;
-		return self;
-	}
+	SABRE_EXPORT Type_Sign_Atom
+	type_sign_atom_named(Tkn type_name, Tkn package_name);
 
 	// creates a new type sign array with the given size tkn
-	inline static Type_Sign_Atom
-	type_sign_atom_array(Expr* static_size)
-	{
-		Type_Sign_Atom self{};
-		self.kind = Type_Sign_Atom::KIND_ARRAY;
-		self.array.static_size = static_size;
-		return self;
-	}
+	SABRE_EXPORT Type_Sign_Atom
+	type_sign_atom_array(Expr* static_size);
 
 	// creates a new templated type sign atom with the given name and arguments
+	SABRE_EXPORT Type_Sign_Atom
+	type_sign_atom_templated(Tkn type_name, Tkn package_name, mn::Buf<Type_Sign> args);
+
+	// copies the given type signature atom
+	SABRE_EXPORT Type_Sign_Atom
+	type_sign_atom_clone(const Type_Sign_Atom& other);
+
 	inline static Type_Sign_Atom
-	type_sign_atom_templated(Tkn type_name, Tkn package_name, mn::Buf<Type_Sign> args)
+	clone(const Type_Sign_Atom& other)
 	{
-		Type_Sign_Atom self{};
-		self.kind = Type_Sign_Atom::KIND_TEMPLATED;
-		self.templated.type_name = type_name;
-		self.templated.package_name = package_name;
-		self.templated.args = args;
-		return self;
+		return type_sign_atom_clone(other);
 	}
 
 	// represents a type signature
@@ -89,43 +80,27 @@ namespace sabre
 	};
 
 	// creates a new type signature
-	inline static Type_Sign
-	type_sign_new(mn::Allocator arena)
-	{
-		Type_Sign self{};
-		self.atoms = mn::buf_with_allocator<Type_Sign_Atom>(arena);
-		return self;
-	}
+	SABRE_EXPORT Type_Sign
+	type_sign_new(mn::Allocator arena);
 
 	// pushes a new type sign atom to a type signature
-	inline static void
-	type_sign_push(Type_Sign& self, Type_Sign_Atom atom)
-	{
-		mn::buf_push(self.atoms, atom);
-	}
+	SABRE_EXPORT void
+	type_sign_push(Type_Sign& self, Type_Sign_Atom atom);
 
 	// returns the location of the given type signature
-	inline static Location
-	type_sign_location(const Type_Sign& self)
-	{
-		Location res{};
-		for (auto atom: self.atoms)
-		{
-			assert(atom.kind == Type_Sign_Atom::KIND_NAMED);
-			if (res.file == nullptr)
-			{
-				res = atom.named.type_name.loc;
-			}
-			else
-			{
-				res.rng.end = atom.named.type_name.loc.rng.end;
-			}
-		}
-		return res;
-	}
+	SABRE_EXPORT Location
+	type_sign_location(const Type_Sign& self);
 
-	struct Type;
-	struct Symbol;
+	// copies the given type signature
+	SABRE_EXPORT Type_Sign
+	type_sign_clone(const Type_Sign& other, mn::Allocator arena);
+
+	// clone overload for type sign
+	inline static Type_Sign
+	clone(const Type_Sign& other)
+	{
+		return type_sign_clone(other, other.atoms.allocator);
+	}
 
 	// address mode of expressions which is used to check assignment statements, etc...
 	enum ADDRESS_MODE
@@ -150,6 +125,17 @@ namespace sabre
 		Expr* value;
 	};
 
+	// copies the given complit field
+	SABRE_EXPORT Complit_Field
+	complit_field_clone(const Complit_Field& other);
+
+	// clone overload for the complit field
+	inline static Complit_Field
+	clone(const Complit_Field& other)
+	{
+		return complit_field_clone(other);
+	}
+
 	// represents an expression
 	struct Expr
 	{
@@ -166,6 +152,8 @@ namespace sabre
 		};
 
 		KIND kind;
+		// arena used to allocate this expression
+		mn::Allocator arena;
 		Location loc;
 		Type* type;
 		bool in_parens;
@@ -234,92 +222,49 @@ namespace sabre
 	};
 
 	// creates a new binary expression
-	inline static Expr*
-	expr_binary_new(mn::Allocator arena, Expr* lhs, Tkn op, Expr* rhs)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_BINARY;
-		self->binary.left = lhs;
-		self->binary.op = op;
-		self->binary.right = rhs;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_binary_new(mn::Allocator arena, Expr* lhs, Tkn op, Expr* rhs);
 
 	// creates a new cast expression
-	inline static Expr*
-	expr_cast_new(mn::Allocator arena, Expr* base, Type_Sign type)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_CAST;
-		self->cast.base = base;
-		self->cast.type = type;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_cast_new(mn::Allocator arena, Expr* base, Type_Sign type);
 
 	// creates a new unary expression
-	inline static Expr*
-	expr_unary_new(mn::Allocator arena, Tkn op, Expr* base)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_UNARY;
-		self->unary.op = op;
-		self->unary.base = base;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_unary_new(mn::Allocator arena, Tkn op, Expr* base);
 
 	// creates a new call expression
-	inline static Expr*
-	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_CALL;
-		self->call.base = base;
-		self->call.args = args;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args);
 
 	// creates a new indexed expression
-	inline static Expr*
-	expr_indexed_new(mn::Allocator arena, Expr* base, Expr* index)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_INDEXED;
-		self->indexed.base = base;
-		self->indexed.index = index;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_indexed_new(mn::Allocator arena, Expr* base, Expr* index);
 
 	// creates new dot access expression
-	inline static Expr*
-	expr_dot_new(mn::Allocator arena, Expr* lhs, Expr* rhs)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_DOT;
-		self->dot.lhs = lhs;
-		self->dot.rhs = rhs;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_dot_new(mn::Allocator arena, Expr* lhs, Expr* rhs);
 
 	// creates a new atom expression
-	inline static Expr*
-	expr_atom_new(mn::Allocator arena, Tkn atom)
-	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_ATOM;
-		self->atom.tkn = atom;
-		return self;
-	}
+	SABRE_EXPORT Expr*
+	expr_atom_new(mn::Allocator arena, Tkn atom);
 
 	// creates a new compound literal expression
+	SABRE_EXPORT Expr*
+	expr_complit_new(mn::Allocator arena, Type_Sign type, mn::Buf<Complit_Field> fields);
+
+	// duplicates the given expr node
+	SABRE_EXPORT Expr*
+	expr_clone(const Expr* other, mn::Allocator arena);
+
+	// clone overload for the expression node
 	inline static Expr*
-	expr_complit_new(mn::Allocator arena, Type_Sign type, mn::Buf<Complit_Field> fields)
+	clone(const Expr* e)
 	{
-		auto self = mn::alloc_zerod_from<Expr>(arena);
-		self->kind = Expr::KIND_COMPLIT;
-		self->complit.type = type;
-		self->complit.fields = fields;
-		self->complit.referenced_fields = mn::map_with_allocator<size_t, size_t>(arena);
-		return self;
+		if (e == nullptr)
+			return nullptr;
+
+		return expr_clone(e, e->arena);
 	}
 
 	// Stmt
@@ -340,6 +285,7 @@ namespace sabre
 		};
 
 		KIND kind;
+		mn::Allocator arena;
 		Location loc;
 		union
 		{
@@ -382,110 +328,57 @@ namespace sabre
 	};
 
 	// creates a new break stmt
-	inline static Stmt*
-	stmt_break_new(mn::Allocator arena, Tkn tkn)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_BREAK;
-		self->break_stmt = tkn;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_break_new(mn::Allocator arena, Tkn tkn);
 
 	// creates a new continue stmt
-	inline static Stmt*
-	stmt_continue_new(mn::Allocator arena, Tkn tkn)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_CONTINUE;
-		self->continue_stmt = tkn;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_continue_new(mn::Allocator arena, Tkn tkn);
 
 	// creates a new discard stmt
-	inline static Stmt*
-	stmt_discard_new(mn::Allocator arena, Tkn tkn)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_DISCARD;
-		self->discard_stmt = tkn;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_discard_new(mn::Allocator arena, Tkn tkn);
 
 	// creates a new return stmt
-	inline static Stmt*
-	stmt_return_new(mn::Allocator arena, Expr* expr)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_RETURN;
-		self->return_stmt = expr;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_return_new(mn::Allocator arena, Expr* expr);
 
 	// creates a new block statement
-	inline static Stmt*
-	stmt_block_new(mn::Allocator arena, mn::Buf<Stmt*> stmts)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_BLOCK;
-		self->block_stmt = stmts;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_block_new(mn::Allocator arena, mn::Buf<Stmt*> stmts);
 
 	// creates a new if statement
-	inline static Stmt*
-	stmt_if_new(mn::Allocator arena, mn::Buf<Expr*> cond, mn::Buf<Stmt*> body, Stmt* else_body)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_IF;
-		self->if_stmt.cond = cond;
-		self->if_stmt.body = body;
-		self->if_stmt.else_body = else_body;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_if_new(mn::Allocator arena, mn::Buf<Expr*> cond, mn::Buf<Stmt*> body, Stmt* else_body);
 
 	// creates a new for statement
-	inline static Stmt*
-	stmt_for_new(mn::Allocator arena, Stmt* init, Expr* cond, Stmt* post, Stmt* body)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_FOR;
-		self->for_stmt.init = init;
-		self->for_stmt.cond = cond;
-		self->for_stmt.post = post;
-		self->for_stmt.body = body;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_for_new(mn::Allocator arena, Stmt* init, Expr* cond, Stmt* post, Stmt* body);
 
 	// creates a new assigment statement
-	inline static Stmt*
-	stmt_assign_new(mn::Allocator arena, mn::Buf<Expr*> lhs, Tkn op, mn::Buf<Expr*> rhs)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_ASSIGN;
-		self->assign_stmt.lhs = lhs;
-		self->assign_stmt.op = op;
-		self->assign_stmt.rhs = rhs;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_assign_new(mn::Allocator arena, mn::Buf<Expr*> lhs, Tkn op, mn::Buf<Expr*> rhs);
 
 	// creates a new expression statement
-	inline static Stmt*
-	stmt_expr_new(mn::Allocator arena, Expr* expr)
-	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_EXPR;
-		self->expr_stmt = expr;
-		return self;
-	}
+	SABRE_EXPORT Stmt*
+	stmt_expr_new(mn::Allocator arena, Expr* expr);
 
 	// creates a new declaration statement
+	SABRE_EXPORT Stmt*
+	stmt_decl_new(mn::Allocator arena, Decl* decl);
+
+	// copies the given stmt
+	SABRE_EXPORT Stmt*
+	stmt_clone(const Stmt* other, mn::Allocator arena);
+
+	// clone overload for the stmt clone
 	inline static Stmt*
-	stmt_decl_new(mn::Allocator arena, Decl* decl)
+	clone(const Stmt* other)
 	{
-		auto self = mn::alloc_zerod_from<Stmt>(arena);
-		self->kind = Stmt::KIND_DECL;
-		self->decl_stmt = decl;
-		return self;
+		if (other == nullptr)
+			return nullptr;
+
+		return stmt_clone(other, other->arena);
 	}
 
 	struct Tag_Key_Value
@@ -502,13 +395,8 @@ namespace sabre
 	};
 
 	// create a new tag
-	inline static Tag
-	tag_new(mn::Allocator arena)
-	{
-		Tag self{};
-		self.args = mn::map_with_allocator<const char*, Tag_Key_Value>(arena);
-		return self;
-	}
+	SABRE_EXPORT Tag
+	tag_new(mn::Allocator arena);
 
 	// represents a set of tags attached to a declaration
 	struct Tag_Table
@@ -517,13 +405,8 @@ namespace sabre
 	};
 
 	// creates a new tag table
-	inline static Tag_Table
-	tag_table_new(mn::Allocator arena)
-	{
-		Tag_Table self{};
-		self.table = mn::map_with_allocator<const char*, Tag>(arena);
-		return self;
-	}
+	SABRE_EXPORT Tag_Table
+	tag_table_new(mn::Allocator arena);
 
 	struct Arg
 	{
@@ -533,14 +416,18 @@ namespace sabre
 	};
 
 	// creates a new argument
+	SABRE_EXPORT Arg
+	arg_new(mn::Allocator arena);
+
+	// copies the arg
+	SABRE_EXPORT Arg
+	arg_clone(const Arg& other, mn::Allocator arena);
+
+	// clone overload for arg
 	inline static Arg
-	arg_new(mn::Allocator arena)
+	clone(const Arg& other)
 	{
-		Arg self{};
-		self.tags = tag_table_new(arena);
-		self.names = mn::buf_with_allocator<Tkn>(arena);
-		self.type = type_sign_new(arena);
-		return self;
+		return arg_clone(other, other.names.allocator);
 	}
 
 	struct Field
@@ -551,14 +438,19 @@ namespace sabre
 		Expr* default_value;
 	};
 
+	// creates a new empty field instance
+	SABRE_EXPORT Field
+	field_new(mn::Allocator arena);
+
+	// copies the given field
+	SABRE_EXPORT Field
+	field_clone(const Field& other, mn::Allocator arena);
+
+	// clone overload for field
 	inline static Field
-	field_new(mn::Allocator arena)
+	clone(const Field& other)
 	{
-		Field self{};
-		self.tags = tag_table_new(arena);
-		self.names = mn::buf_with_allocator<Tkn>(arena);
-		self.type = type_sign_new(arena);
-		return self;
+		return field_clone(other, other.names.allocator);
 	}
 
 	struct Enum_Field
@@ -566,6 +458,17 @@ namespace sabre
 		Tkn name;
 		Expr* value;
 	};
+
+	// copies the given enum field
+	SABRE_EXPORT Enum_Field
+	enum_field_clone(const Enum_Field& other);
+
+	// clone overload for enum field
+	inline static Enum_Field
+	clone(const Enum_Field& other)
+	{
+		return enum_field_clone(other);
+	}
 
 	struct Texture_Sample_Operand
 	{
@@ -595,6 +498,17 @@ namespace sabre
 		mn::Buf<Tkn> names;
 	};
 
+	// copies the template arguments list
+	SABRE_EXPORT Template_Arg
+	template_arg_clone(const Template_Arg& other, mn::Allocator arena);
+
+	// clone overload for template arg
+	inline static Template_Arg
+	clone(const Template_Arg& other)
+	{
+		return template_arg_clone(other, other.names.allocator);
+	}
+
 	// Decl
 	struct Decl
 	{
@@ -610,6 +524,7 @@ namespace sabre
 		};
 
 		KIND kind;
+		mn::Allocator arena;
 		Location loc;
 		Tkn name;
 		Tag_Table tags;
@@ -636,8 +551,6 @@ namespace sabre
 				mn::Buf<Arg> args;
 				Type_Sign return_type;
 				Stmt* body;
-				// texture sample operations within this function
-				mn::Buf<Texture_Sample_Op> sample_ops;
 				bool is_geometry;
 				// geometry shader manadory tags
 				Type* geometry_output;
@@ -675,88 +588,43 @@ namespace sabre
 	};
 
 	// creates a new variable declaration
-	inline static Decl*
-	decl_var_new(mn::Allocator arena, mn::Buf<Tkn> names, mn::Buf<Expr*> values, Type_Sign type)
-	{
-		auto self = mn::alloc_zerod_from<Decl>(arena);
-		self->kind = Decl::KIND_VAR;
-		self->var_decl.names = names;
-		self->var_decl.values = values;
-		self->var_decl.type = type;
-		return self;
-	}
+	SABRE_EXPORT Decl*
+	decl_var_new(mn::Allocator arena, mn::Buf<Tkn> names, mn::Buf<Expr*> values, Type_Sign type);
 
 	// converts a given variable declaration to constant
-	inline static Decl*
-	decl_convert_var_to_const(Decl* var)
-	{
-		auto self = var;
-		self->kind = Decl::KIND_CONST;
-		self->const_decl.names = var->var_decl.names;
-		self->const_decl.values = var->var_decl.values;
-		self->const_decl.type = var->var_decl.type;
-		return self;
-	}
+	SABRE_EXPORT Decl*
+	decl_convert_var_to_const(Decl* var);
 
 	// creates a new function declaration
-	inline static Decl*
-	decl_func_new(mn::Allocator arena, Tkn name, mn::Buf<Arg> args, Type_Sign ret, Stmt* body, mn::Buf<Template_Arg> template_args)
-	{
-		auto self = mn::alloc_zerod_from<Decl>(arena);
-		self->kind = Decl::KIND_FUNC;
-		self->name = name;
-		self->func_decl.template_args = template_args;
-		self->func_decl.args = args;
-		self->func_decl.return_type = ret;
-		self->func_decl.body = body;
-		self->func_decl.sample_ops = mn::buf_with_allocator<Texture_Sample_Op>(arena);
-		return self;
-	}
+	SABRE_EXPORT Decl*
+	decl_func_new(mn::Allocator arena, Tkn name, mn::Buf<Arg> args, Type_Sign ret, Stmt* body, mn::Buf<Template_Arg> template_args);
 
 	// creates a new struct declaration
-	inline static Decl*
-	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields, mn::Buf<Template_Arg> template_args)
-	{
-		auto self = mn::alloc_zerod_from<Decl>(arena);
-		self->kind = Decl::KIND_STRUCT;
-		self->name = name;
-		self->struct_decl.fields = fields;
-		self->struct_decl.template_args = template_args;
-		return self;
-	}
+	SABRE_EXPORT Decl*
+	decl_struct_new(mn::Allocator arena, Tkn name, mn::Buf<Field> fields, mn::Buf<Template_Arg> template_args);
 
 	// creates a new import declaration
-	inline static Decl*
-	decl_import_new(mn::Allocator arena, Tkn path, Tkn name)
-	{
-		auto self = mn::alloc_zerod_from<Decl>(arena);
-		self->kind = Decl::KIND_IMPORT;
-		self->name = name;
-		self->import_decl.path = path;
-		self->import_decl.name = name;
-		return self;
-	}
+	SABRE_EXPORT Decl*
+	decl_import_new(mn::Allocator arena, Tkn path, Tkn name);
 
 	// creates a new if delcaration
-	inline static Decl*
-	decl_if_new(mn::Allocator arena, mn::Buf<Expr*> cond, mn::Buf<mn::Buf<Decl*>> body, mn::Buf<Decl*> else_body)
-	{
-		auto self = mn::alloc_zerod_from<Decl>(arena);
-		self->kind = Decl::KIND_IF;
-		self->if_decl.cond = cond;
-		self->if_decl.body = body;
-		self->if_decl.else_body = else_body;
-		return self;
-	}
+	SABRE_EXPORT Decl*
+	decl_if_new(mn::Allocator arena, mn::Buf<Expr*> cond, mn::Buf<mn::Buf<Decl*>> body, mn::Buf<Decl*> else_body);
 
 	// creates a new enum declaration
+	SABRE_EXPORT Decl*
+	decl_enum_new(mn::Allocator arena, Tkn name, mn::Buf<Enum_Field> fields);
+
+	// copies the given declaration instance
+	SABRE_EXPORT Decl*
+	decl_clone(const Decl* other, mn::Allocator arena);
+
 	inline static Decl*
-	decl_enum_new(mn::Allocator arena, Tkn name, mn::Buf<Enum_Field> fields)
+	clone(const Decl* other)
 	{
-		auto self = mn::alloc_zerod_from<Decl>(arena);
-		self->kind = Decl::KIND_ENUM;
-		self->name = name;
-		self->enum_decl.fields = fields;
-		return self;
+		if (other == nullptr)
+			return nullptr;
+
+		return decl_clone(other, other->arena);
 	}
 }
