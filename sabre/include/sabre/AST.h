@@ -529,6 +529,7 @@ namespace sabre
 		Tkn name;
 		Tag_Table tags;
 		Type* type;
+		mn::Buf<Template_Arg> template_args;
 		union
 		{
 			struct
@@ -547,7 +548,6 @@ namespace sabre
 
 			struct
 			{
-				mn::Buf<Template_Arg> template_args;
 				mn::Buf<Arg> args;
 				Type_Sign return_type;
 				Stmt* body;
@@ -563,7 +563,6 @@ namespace sabre
 
 			struct
 			{
-				mn::Buf<Template_Arg> template_args;
 				mn::Buf<Field> fields;
 			} struct_decl;
 

@@ -1283,7 +1283,7 @@ namespace sabre
 				{
 					// push symbols for typenames but after actually resolving them
 					size_t i = 0;
-					for (auto template_arg: d->func_decl.template_args)
+					for (auto template_arg: d->template_args)
 					{
 						for (auto name: template_arg.names)
 						{
@@ -2222,7 +2222,7 @@ namespace sabre
 		{
 			auto type_interner = self.unit->parent_unit->type_interner;
 			auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
-			for (auto template_arg: d->func_decl.template_args)
+			for (auto template_arg: d->template_args)
 			{
 				for (auto name: template_arg.names)
 				{
@@ -2813,7 +2813,7 @@ namespace sabre
 			{
 				auto type_interner = self.unit->parent_unit->type_interner;
 				auto template_args = mn::buf_with_allocator<Type*>(type_interner->arena);
-				for (auto template_arg: d->struct_decl.template_args)
+				for (auto template_arg: d->template_args)
 				{
 					for (auto name: template_arg.names)
 					{

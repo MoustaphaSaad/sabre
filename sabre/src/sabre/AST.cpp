@@ -501,7 +501,7 @@ namespace sabre
 		self->kind = Decl::KIND_FUNC;
 		self->arena = arena;
 		self->name = name;
-		self->func_decl.template_args = template_args;
+		self->template_args = template_args;
 		self->func_decl.args = args;
 		self->func_decl.return_type = ret;
 		self->func_decl.body = body;
@@ -515,8 +515,8 @@ namespace sabre
 		self->kind = Decl::KIND_STRUCT;
 		self->arena = arena;
 		self->name = name;
+		self->template_args = template_args;
 		self->struct_decl.fields = fields;
-		self->struct_decl.template_args = template_args;
 		return self;
 	}
 
@@ -567,6 +567,7 @@ namespace sabre
 		self->loc = other->loc;
 		self->name = other->name;
 		self->tags = other->tags;
+		self->template_args = mn::buf_clone(other->template_args, arena);
 
 		switch (other->kind)
 		{
@@ -581,7 +582,6 @@ namespace sabre
 			self->var_decl.type = clone(other->var_decl.type);
 			break;
 		case Decl::KIND_FUNC:
-			self->func_decl.template_args = mn::buf_clone(other->func_decl.template_args, arena);
 			self->func_decl.args = mn::buf_clone(other->func_decl.args, arena);
 			self->func_decl.return_type = clone(other->func_decl.return_type);
 			self->func_decl.body = clone(other->func_decl.body);
@@ -593,7 +593,6 @@ namespace sabre
 			self->func_decl.has_emits = other->func_decl.has_emits;
 			break;
 		case Decl::KIND_STRUCT:
-			self->struct_decl.template_args = mn::buf_clone(other->struct_decl.template_args, arena);
 			self->struct_decl.fields = mn::buf_clone(other->struct_decl.fields, arena);
 			break;
 		case Decl::KIND_IMPORT:

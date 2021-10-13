@@ -1,7 +1,7 @@
+(template
+  (arg 'T')
+)
 (struct-decl
-  (template
-    (arg 'T')
-  )
   (field
     (field-name 'x')
     (field-name 'y')
