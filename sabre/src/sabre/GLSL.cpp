@@ -8,6 +8,7 @@
 
 #include <mn/Defer.h>
 #include <mn/Log.h>
+#include <mn/Assert.h>
 
 #include <algorithm>
 
@@ -258,14 +259,14 @@ namespace sabre
 	inline static void
 	_glsl_enter_scope(GLSL& self, Scope* scope)
 	{
-		assert(scope != nullptr);
+		mn_assert(scope != nullptr);
 		mn::buf_push(self.scope_stack, scope);
 	}
 
 	inline static void
 	_glsl_leave_scope(GLSL& self)
 	{
-		assert(self.scope_stack.count > 1);
+		mn_assert(self.scope_stack.count > 1);
 		mn::buf_pop(self.scope_stack);
 	}
 
@@ -406,7 +407,7 @@ namespace sabre
 					str = mn::strf(str, "bvec4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -424,7 +425,7 @@ namespace sabre
 					str = mn::strf(str, "ivec4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -442,7 +443,7 @@ namespace sabre
 					str = mn::strf(str, "uvec4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -460,7 +461,7 @@ namespace sabre
 					str = mn::strf(str, "vec4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -478,7 +479,7 @@ namespace sabre
 					str = mn::strf(str, "dvec4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -499,7 +500,7 @@ namespace sabre
 			}
 			else
 			{
-				assert(false && "unreachable");
+				mn_unreachable();
 			}
 			break;
 		case Type::KIND_STRUCT:
@@ -526,7 +527,7 @@ namespace sabre
 			}
 			else
 			{
-				assert(false && "unreachable");
+				mn_unreachable();
 			}
 			break;
 		case Type::KIND_ARRAY:
@@ -541,7 +542,7 @@ namespace sabre
 			str = mn::strf(str, "{}", _glsl_name(self, _glsl_symbol_name(type->enum_type.symbol)));
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
@@ -630,7 +631,7 @@ namespace sabre
 		case Type::KIND_PACKAGE:
 		case Type::KIND_FUNC_OVERLOAD_SET:
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -678,7 +679,7 @@ namespace sabre
 			case Tkn::KIND_GREATER_EQUAL: cmp_func = "greaterThanEqual"; break;
 			case Tkn::KIND_EQUAL_EQUAL: cmp_func = "equal"; break;
 			case Tkn::KIND_NOT_EQUAL: cmp_func = "notEqual"; break;
-			default: assert(false && "unreachable"); break;
+			default: mn_unreachable(); break;
 			}
 
 			mn::print_to(self.out, "{}(", cmp_func);
@@ -774,7 +775,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 		}
 	}
 
@@ -1138,7 +1139,7 @@ namespace sabre
 		for (auto field: d->enum_decl.fields)
 		{
 			auto field_type = t->enum_type.fields[i];
-			assert(field_type.value.type == type_int);
+			mn_assert(field_type.value.type == type_int);
 			_glsl_newline(self);
 			mn::print_to(self.out, "#define {}_{} {}", _glsl_symbol_name(sym), field.name.str, field_type.value.as_int);
 			++i;
@@ -1205,7 +1206,7 @@ namespace sabre
 			_glsl_enum_gen(self, sym);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1243,7 +1244,7 @@ namespace sabre
 			// internal/private functions (functions in functions) are generated on their own, here we ignore it
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1375,7 +1376,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 		}
 	}
 
@@ -1409,7 +1410,7 @@ namespace sabre
 			_glsl_rewrite_complits_in_complit_expr(self, e, is_const);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1495,7 +1496,7 @@ namespace sabre
 			// ignore it, we'll rewrite complits when we generate the function itself
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1532,7 +1533,7 @@ namespace sabre
 			_glsl_rewrite_complits_in_decl_stmt(self, s, is_const);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1565,7 +1566,7 @@ namespace sabre
 					}
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -1604,7 +1605,7 @@ namespace sabre
 				break;
 			}
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				break;
 			}
 		}
@@ -1659,7 +1660,7 @@ namespace sabre
 					break;
 				}
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -1698,7 +1699,7 @@ namespace sabre
 				break;
 			}
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				break;
 			}
 		}
@@ -1807,7 +1808,7 @@ namespace sabre
 
 		// push global scope as first entry in scope stack
 		auto global_scope = self.unit->global_scope;
-		assert(global_scope != nullptr);
+		mn_assert(global_scope != nullptr);
 		mn::buf_push(self.scope_stack, global_scope);
 
 		constexpr auto keywords_count = sizeof(GLSL_KEYWORDS) / sizeof(*GLSL_KEYWORDS);
@@ -1863,7 +1864,7 @@ namespace sabre
 			_glsl_gen_complit_expr(self, e);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
@@ -1911,7 +1912,7 @@ namespace sabre
 			_glsl_gen_decl_stmt(self, s);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1937,7 +1938,7 @@ namespace sabre
 		case COMPILATION_MODE_LIBRARY:
 			// library mode is not allowed
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 

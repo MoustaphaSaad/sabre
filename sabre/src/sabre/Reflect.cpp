@@ -2,6 +2,7 @@
 #include "sabre/Unit.h"
 
 #include <mn/Log.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -48,7 +49,7 @@ namespace sabre
 		case COMPILATION_MODE_LIBRARY:
 			// library mode is not allowed here
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}

@@ -5,6 +5,7 @@
 #include "sabre/Type_Interner.h"
 
 #include <mn/Defer.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -113,7 +114,7 @@ namespace sabre
 			break;
 		}
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
@@ -151,7 +152,7 @@ namespace sabre
 			return value_table_find(vt, expr->atom.tkn.str);
 		}
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return nullptr;
 		}
 	}
@@ -269,7 +270,7 @@ namespace sabre
 			_spirv_func_gen(self, sym);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -315,7 +316,7 @@ namespace sabre
 	void
 	value_table_add(Value_Table* self, const char* name, spirv::Value* value)
 	{
-		assert(value_table_shallow_find(self, name) == nullptr);
+		mn_assert(value_table_shallow_find(self, name) == nullptr);
 		mn::map_insert(self->table, name, value);
 	}
 
@@ -328,7 +329,7 @@ namespace sabre
 
 		// push global scope as first entry in scope stack
 		auto global_scope = self.unit->global_scope;
-		assert(global_scope != nullptr);
+		mn_assert(global_scope != nullptr);
 		mn::buf_push(self.scope_stack, global_scope);
 
 		return self;

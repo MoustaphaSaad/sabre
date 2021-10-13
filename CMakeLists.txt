@@ -30,7 +30,7 @@ include(CPM)
 CPMAddPackage(
 	NAME             mn
 	GIT_REPOSITORY   https://github.com/MoustaphaSaad/mn.git
-	GIT_TAG          v4.2.0
+	GIT_TAG          4a20fd307379b671c49fddd975c9270f49d7fcf6
 )
 
 add_subdirectory(std)

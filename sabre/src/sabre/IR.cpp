@@ -1,5 +1,7 @@
 #include "sabre/IR.h"
 
+#include <mn/Assert.h>
+
 namespace sabre::spirv
 {
 	inline static Value*
@@ -101,7 +103,7 @@ namespace sabre::spirv
 	void
 	module_type_func_arg(Type* func, Type* arg)
 	{
-		assert(func->kind == Type::KIND_FUNC);
+		mn_assert(func->kind == Type::KIND_FUNC);
 
 		mn::buf_push(func->as_func.args, arg);
 	}
@@ -109,7 +111,7 @@ namespace sabre::spirv
 	Func*
 	module_func_new(Module* self, Type* func_type)
 	{
-		assert(func_type->kind == Type::KIND_FUNC);
+		mn_assert(func_type->kind == Type::KIND_FUNC);
 
 		auto func = mn::alloc_zerod_from<Func>(self->arena);
 		func->module = self;

@@ -4,6 +4,7 @@
 #include "sabre/AST.h"
 
 #include <mn/Map.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -158,7 +159,7 @@ namespace sabre
 		case Symbol::KIND_TYPENAME:
 			return self->typename_sym.name.loc;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return Location{};
 		}
 	}
@@ -186,7 +187,7 @@ namespace sabre
 		case Symbol::KIND_TYPENAME:
 			return nullptr;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return nullptr;
 		}
 	}

@@ -1,5 +1,7 @@
 #include "sabre/AST.h"
 
+#include <mn/Assert.h>
+
 namespace sabre
 {
 	// API
@@ -49,7 +51,7 @@ namespace sabre
 			self.templated.args = clone(other.templated.args);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 		return self;
@@ -75,7 +77,7 @@ namespace sabre
 		Location res{};
 		for (auto atom: self.atoms)
 		{
-			assert(atom.kind == Type_Sign_Atom::KIND_NAMED);
+			mn_assert(atom.kind == Type_Sign_Atom::KIND_NAMED);
 			if (res.file == nullptr)
 			{
 				res = atom.named.type_name.loc;
@@ -230,7 +232,7 @@ namespace sabre
 			self->complit.fields = mn::buf_clone(other->complit.fields, arena);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 		return self;
@@ -393,7 +395,7 @@ namespace sabre
 			self->decl_stmt = clone(other->decl_stmt);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 		return self;
@@ -608,7 +610,7 @@ namespace sabre
 			self->enum_decl.fields = mn::buf_clone(other->enum_decl.fields, arena);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 		return self;

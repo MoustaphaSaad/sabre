@@ -5,6 +5,7 @@
 #include <mn/IO.h>
 #include <mn/Log.h>
 #include <mn/Defer.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -41,7 +42,7 @@ namespace sabre
 	inline static void
 	_typer_leave_symbol(Typer& self)
 	{
-		assert(self.unit->parent_unit->symbol_stack.count > 0);
+		mn_assert(self.unit->parent_unit->symbol_stack.count > 0);
 		mn::buf_pop(self.unit->parent_unit->symbol_stack);
 	}
 
@@ -64,14 +65,14 @@ namespace sabre
 	inline static void
 	_typer_enter_scope(Typer& self, Scope* scope)
 	{
-		assert(scope != nullptr);
+		mn_assert(scope != nullptr);
 		mn::buf_push(self.scope_stack, scope);
 	}
 
 	inline static void
 	_typer_leave_scope(Typer& self)
 	{
-		assert(self.scope_stack.count > 1);
+		mn_assert(self.scope_stack.count > 1);
 		mn::buf_pop(self.scope_stack);
 	}
 
@@ -92,7 +93,7 @@ namespace sabre
 	inline static void
 	_typer_leave_func(Typer& self)
 	{
-		assert(self.func_stack.count > 0);
+		mn_assert(self.func_stack.count > 0);
 		mn::buf_pop(self.func_stack);
 	}
 
@@ -307,7 +308,7 @@ namespace sabre
 	inline static Symbol*
 	_typer_add_func_symbol(Typer& self, Decl* decl)
 	{
-		assert(decl->kind == Decl::KIND_FUNC);
+		mn_assert(decl->kind == Decl::KIND_FUNC);
 
 		// try to find a symbol with the same name
 		auto sym = _typer_find_symbol(self, decl->name.str);
@@ -329,7 +330,7 @@ namespace sabre
 				return sym;
 		}
 
-		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
+		mn_assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 		// add the function declaration to overload set
 		auto decl_type = type_void;
 		if (sym->state == STATE_RESOLVED)
@@ -337,7 +338,7 @@ namespace sabre
 		mn::map_insert(sym->func_overload_set_sym.decls, decl, decl_type);
 		if (sym->state == STATE_RESOLVED)
 		{
-			assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
+			mn_assert(sym->type->kind == Type::KIND_FUNC_OVERLOAD_SET);
 			_typer_add_func_overload(self, sym->type, decl);
 			auto scope = unit_create_scope_for(self.unit, decl, _typer_current_scope(self), decl->name.str, decl_type->as_func.sign.return_type, Scope::FLAG_NONE);
 			_typer_resolve_func_body_internal(self, decl, decl_type, scope);
@@ -448,7 +449,7 @@ namespace sabre
 			break;
 		}
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -633,7 +634,7 @@ namespace sabre
 						}
 					}
 					// TODO: revisit later, you probably should issue an error here
-					assert(template_args_index < template_args_types.count);
+					mn_assert(template_args_index < template_args_types.count);
 					mn::buf_push(fields_types, template_args_types[template_args_index]);
 				}
 			}
@@ -690,7 +691,7 @@ namespace sabre
 							}
 						}
 						// TODO: revisit later, you probably should issue an error here
-						assert(template_args_index < template_args_types.count);
+						mn_assert(template_args_index < template_args_types.count);
 						mn::buf_push(func_args_types, template_args_types[template_args_index]);
 					}
 				}
@@ -709,14 +710,14 @@ namespace sabre
 					}
 				}
 				// TODO: revisit later, you probably should issue an error here
-				assert(template_args_index < template_args_types.count);
+				mn_assert(template_args_index < template_args_types.count);
 				return_type = template_args_types[template_args_index];
 			}
 
 			return type_interner_template_func_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, func_args_types, return_type);
 		}
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return type_void;
 		}
 	}
@@ -787,7 +788,7 @@ namespace sabre
 					for (const auto& arg_type_sign: atom.templated.args)
 					{
 						auto type = _typer_resolve_type_sign(self, arg_type_sign);
-						assert(type_is_template_incomplete(type) == false);
+						mn_assert(type_is_template_incomplete(type) == false);
 						mn::buf_push(args_types, type);
 					}
 					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc);
@@ -795,7 +796,7 @@ namespace sabre
 				break;
 			}
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				break;
 			}
 		}
@@ -864,7 +865,7 @@ namespace sabre
 			}
 		}
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return type_void;
 		}
 	}
@@ -1270,7 +1271,7 @@ namespace sabre
 							}
 						}
 						// TODO: you need to issue an error here later or something
-						assert(template_type_index < type->as_func.template_args.count);
+						mn_assert(template_type_index < type->as_func.template_args.count);
 						args_types[template_type_index] = arg_type;
 					}
 				}
@@ -1962,7 +1963,7 @@ namespace sabre
 				// while `var x = 1.0` is not a constant but it has a constant value, if we need to exploit
 				// such things we'll need to have data flow analysis to ensure that x is not being changed
 				// after the constant assignment and in this case we can treat it as const
-				// assert(false && "only constant arrays are handled now");
+				// mn_unreachable_msg("only constant arrays are handled now");
 			}
 		}
 
@@ -2002,7 +2003,7 @@ namespace sabre
 			e->type = _typer_resolve_complit_expr(self, e);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			e->type = type_void;
 			break;
 		}
@@ -2284,7 +2285,7 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_func_overload_set(Typer& self, Symbol* sym)
 	{
-		assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
+		mn_assert(sym->kind == Symbol::KIND_FUNC_OVERLOAD_SET);
 
 		auto type = type_interner_overload_set(self.unit->parent_unit->type_interner, sym);
 		for (auto& [decl, decl_type]: sym->func_overload_set_sym.decls)
@@ -2570,7 +2571,7 @@ namespace sabre
 			break;
 		}
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 		return type_void;
@@ -2615,7 +2616,7 @@ namespace sabre
 		case Stmt::KIND_BLOCK:
 			return _typer_resolve_block_stmt_with_scope(self, s);
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return type_void;
 		}
 	}
@@ -3062,7 +3063,7 @@ namespace sabre
 			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 		sym->state = STATE_RESOLVED;
@@ -3102,7 +3103,7 @@ namespace sabre
 			_typer_complete_type(self, sym, symbol_location(sym));
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
@@ -3352,7 +3353,7 @@ namespace sabre
 	inline static void
 	_typer_assign_bindings(Typer& self, Entry_Point* entry, Symbol* sym)
 	{
-		assert(sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform);
+		mn_assert(sym->kind == Symbol::KIND_VAR && sym->var_sym.is_uniform);
 		if (sym->var_sym.uniform_binding_processed)
 		{
 			if (entry)

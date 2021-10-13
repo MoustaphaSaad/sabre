@@ -15,6 +15,7 @@
 #include <mn/Defer.h>
 #include <mn/Json.h>
 #include <mn/Ring.h>
+#include <mn/Assert.h>
 
 #include <fmt/chrono.h>
 
@@ -208,7 +209,7 @@ namespace sabre
 			case TEXTURE_TYPE_CUBE:
 				return mn::str_lit("TextureCube");
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				return mn::str_lit("<UNKNOWN TYPE>");
 			}
 		}
@@ -235,7 +236,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 			return mn::str_lit("<UNKNOWN TYPE>");
 		}
 	}
@@ -296,7 +297,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 			return mn::str_lit("<UNKNOWN TYPE>");
 		}
 	}
@@ -322,7 +323,7 @@ namespace sabre
 						value = mn::json::value_string_new(arg_value.value.str);
 						break;
 					default:
-						assert(false && "unreachable");
+						mn_unreachable();
 						break;
 					}
 					mn::json::value_object_insert(json_tag, arg_name, value);
@@ -889,7 +890,7 @@ namespace sabre
 		auto json_uniforms = mn::json::value_array_new();
 		for (auto symbol: entry->uniforms)
 		{
-			assert(symbol->kind == Symbol::KIND_VAR);
+			mn_assert(symbol->kind == Symbol::KIND_VAR);
 			auto binding = symbol->var_sym.uniform_binding;
 
 			auto json_uniform = mn::json::value_object_new();
@@ -915,7 +916,7 @@ namespace sabre
 		auto json_textures = mn::json::value_array_new();
 		for (auto symbol: entry->textures)
 		{
-			assert(symbol->kind == Symbol::KIND_VAR);
+			mn_assert(symbol->kind == Symbol::KIND_VAR);
 			auto binding = symbol->var_sym.uniform_binding;
 
 			auto json_texture = mn::json::value_object_new();

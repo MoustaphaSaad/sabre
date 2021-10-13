@@ -2,6 +2,7 @@
 #include "sabre/Type_Interner.h"
 
 #include <mn/Defer.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -47,7 +48,7 @@ namespace sabre
 			else
 				return nullptr;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return nullptr;
 		}
 	}
@@ -73,7 +74,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unhandled expression value type");
+			mn_unreachable_msg("unhandled expression value type");
 			return Expr_Value{};
 		}
 	}
@@ -207,7 +208,7 @@ namespace sabre
 		case Tkn::KIND_NOT_EQUAL:
 			return expr_value_bool(r != 0);
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return Expr_Value{};
 		}
 	}
@@ -435,7 +436,7 @@ namespace sabre
 		case Tkn::KIND_BIT_SHIFT_RIGHT:
 			return expr_value_bit_right_shift(a, b);
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return Expr_Value{};
 		}
 	}
@@ -489,7 +490,7 @@ namespace sabre
 		case Tkn::KIND_BIT_NOT:
 			return expr_value_bit_not(a);
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return Expr_Value{};
 		}
 	}
@@ -566,7 +567,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 			return Expr_Value{};
 		}
 	}
@@ -644,7 +645,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 			return mn::json::Value{};
 		}
 	}

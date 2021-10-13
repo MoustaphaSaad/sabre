@@ -9,6 +9,7 @@
 #include <mn/Buf.h>
 #include <mn/Map.h>
 #include <mn/Fmt.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -657,7 +658,7 @@ namespace sabre
 			case 3: return type_vec3;
 			case 4: return type_vec4;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				return type_void;
 			}
 		}
@@ -669,7 +670,7 @@ namespace sabre
 			case 3: return type_bvec3;
 			case 4: return type_bvec4;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				return type_void;
 			}
 		}
@@ -681,7 +682,7 @@ namespace sabre
 			case 3: return type_ivec3;
 			case 4: return type_ivec4;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				return type_void;
 			}
 		}
@@ -693,7 +694,7 @@ namespace sabre
 			case 3: return type_uvec3;
 			case 4: return type_uvec4;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				return type_void;
 			}
 		}
@@ -705,7 +706,7 @@ namespace sabre
 			case 3: return type_dvec3;
 			case 4: return type_dvec4;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				return type_void;
 			}
 		}
@@ -749,7 +750,7 @@ namespace sabre
 				return type_int;
 			return nullptr;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return nullptr;
 		}
 	}
@@ -781,7 +782,7 @@ namespace sabre
 		case Type::KIND_ENUM:
 			return t->enum_type.fields.count;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return 0;
 		}
 	}
@@ -813,7 +814,7 @@ namespace sabre
 		case Type::KIND_ARRAY:
 			return t->array.count;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			return 0;
 		}
 	}
@@ -1106,7 +1107,7 @@ namespace fmt
 				case sabre::TEXTURE_TYPE_CUBE:
 					return format_to(ctx.out(), "TextureCube");
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					return format_to(ctx.out(), "<UNKNOWN TYPE>");
 				}
 			}
@@ -1131,7 +1132,7 @@ namespace fmt
 			}
 			else
 			{
-				assert(false && "unreachable");
+				mn_unreachable();
 				return format_to(ctx.out(), "<UNKNOWN TYPE>");
 			}
 		}

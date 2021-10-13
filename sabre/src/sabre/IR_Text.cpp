@@ -2,6 +2,7 @@
 #include "sabre/IR.h"
 
 #include <mn/IO.h>
+#include <mn/Assert.h>
 
 namespace sabre::spirv
 {
@@ -122,7 +123,7 @@ namespace sabre::spirv
 			_ir_text_func_gen(self, e.as_func);
 			break;
 		default:
-			// assert(false && "unreachable");
+			// mn_unreachable();
 			break;
 		}
 	}

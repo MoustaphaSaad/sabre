@@ -2,8 +2,7 @@
 #include "sabre/AST.h"
 
 #include <mn/IO.h>
-
-#include <assert.h>
+#include <mn/Assert.h>
 
 namespace sabre
 {
@@ -53,7 +52,7 @@ namespace sabre
 				}
 				break;
 			default:
-				assert(false && "unsupported type sign atom type");
+				mn_unreachable_msg("unsupported type sign atom type");
 				break;
 			}
 		}
@@ -213,7 +212,7 @@ namespace sabre
 			mn::print_to(self.out, ")");
 			break;
 		default:
-			assert(false && "expression type is not handled");
+			mn_unreachable_msg("expression type is not handled");
 			break;
 		}
 	}
@@ -437,7 +436,7 @@ namespace sabre
 			mn::print_to(self.out, ")");
 			break;
 		default:
-			assert(false && "statement type is not handled");
+			mn_unreachable_msg("statement type is not handled");
 			break;
 		}
 	}
@@ -711,7 +710,7 @@ namespace sabre
 			mn::print_to(self.out, ")");
 			break;
 		default:
-			assert(false && "declaration type is not handled");
+			mn_unreachable_msg("declaration type is not handled");
 			break;
 		}
 	}

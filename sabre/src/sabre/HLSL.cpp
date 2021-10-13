@@ -3,6 +3,8 @@
 #include "sabre/Type_Interner.h"
 #include "sabre/Unit.h"
 
+#include <mn/Assert.h>
+
 namespace sabre
 {
 	inline static const char* HLSL_KEYWORDS[] = {
@@ -365,14 +367,14 @@ namespace sabre
 	inline static void
 	_hlsl_enter_scope(HLSL& self, Scope* scope)
 	{
-		assert(scope != nullptr);
+		mn_assert(scope != nullptr);
 		mn::buf_push(self.scope_stack, scope);
 	}
 
 	inline static void
 	_hlsl_leave_scope(HLSL& self)
 	{
-		assert(self.scope_stack.count > 1);
+		mn_assert(self.scope_stack.count > 1);
 		mn::buf_pop(self.scope_stack);
 	}
 
@@ -512,7 +514,7 @@ namespace sabre
 					str = mn::strf(str, "bool4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -530,7 +532,7 @@ namespace sabre
 					str = mn::strf(str, "int4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -548,7 +550,7 @@ namespace sabre
 					str = mn::strf(str, "uint4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -566,7 +568,7 @@ namespace sabre
 					str = mn::strf(str, "float4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -584,7 +586,7 @@ namespace sabre
 					str = mn::strf(str, "double4");
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -605,7 +607,7 @@ namespace sabre
 			}
 			else
 			{
-				assert(false && "unreachable");
+				mn_unreachable();
 			}
 			break;
 		case Type::KIND_STRUCT:
@@ -632,7 +634,7 @@ namespace sabre
 			}
 			else
 			{
-				assert(false && "unreachable");
+				mn_unreachable();
 			}
 			break;
 		case Type::KIND_ARRAY:
@@ -651,7 +653,7 @@ namespace sabre
 			str = mn::strf(str, "SamplerState");
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
@@ -693,7 +695,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 		}
 	}
 
@@ -765,7 +767,7 @@ namespace sabre
 		case Type::KIND_PACKAGE:
 		case Type::KIND_FUNC_OVERLOAD_SET:
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -961,7 +963,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 		}
 	}
 
@@ -1113,7 +1115,7 @@ namespace sabre
 		}
 		else
 		{
-			assert(false && "unreachable");
+			mn_unreachable();
 		}
 	}
 
@@ -1147,7 +1149,7 @@ namespace sabre
 			_hlsl_rewrite_complits_in_complit_expr(self, e, is_const);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1233,7 +1235,7 @@ namespace sabre
 			// ignore it, we'll rewrite complits when we generate the function itself
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1270,7 +1272,7 @@ namespace sabre
 			_hlsl_rewrite_complits_in_decl_stmt(self, s, is_const);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1500,7 +1502,7 @@ namespace sabre
 			// internal/private functions (functions in functions) are generated on their own, here we ignore it
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1624,7 +1626,7 @@ namespace sabre
 							}
 							else
 							{
-								assert(false && "unreachable");
+								mn_unreachable();
 							}
 							mn::print_to(self.out, ";");
 						}
@@ -1737,7 +1739,7 @@ namespace sabre
 		for (auto field: d->enum_decl.fields)
 		{
 			auto field_type = t->enum_type.fields[i];
-			assert(field_type.value.type == type_int);
+			mn_assert(field_type.value.type == type_int);
 			_hlsl_newline(self);
 			mn::print_to(self.out, "#define {}_{} {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
 			++i;
@@ -1755,7 +1757,7 @@ namespace sabre
 		// 	if (i > 0)
 		// 		mn::print_to(self.out, ", ");
 		// 	auto field_type = t->enum_type.fields[i];
-		// 	assert(field_type.value.type == type_int);
+		// 	mn_assert(field_type.value.type == type_int);
 		// 	_hlsl_newline(self);
 		// 	mn::print_to(self.out, "{}_{} = {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
 		// 	++i;
@@ -1825,7 +1827,7 @@ namespace sabre
 			_hlsl_enum_gen(self, sym);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -1851,7 +1853,7 @@ namespace sabre
 					mn::map_insert(self.io_structs, arg_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -1868,7 +1870,7 @@ namespace sabre
 				mn::map_insert(self.io_structs, ret_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
 				break;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				break;
 			}
 		}
@@ -1898,7 +1900,7 @@ namespace sabre
 					mn::map_insert(self.io_structs, arg_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -1915,7 +1917,7 @@ namespace sabre
 				mn::map_insert(self.io_structs, ret_type->struct_type.symbol, ENTRY_IO_FLAG_PIXEL_OUT);
 				break;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				break;
 			}
 		}
@@ -1953,7 +1955,7 @@ namespace sabre
 					mn::map_insert(self.io_structs, arg_type->array.base->struct_type.symbol, ENTRY_IO_FLAG_NONE);
 					break;
 				default:
-					assert(false && "unreachable");
+					mn_unreachable();
 					break;
 				}
 			}
@@ -1970,7 +1972,7 @@ namespace sabre
 				mn::map_insert(self.io_structs, ret_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
 				break;
 			default:
-				assert(false && "unreachable");
+				mn_unreachable();
 				break;
 			}
 		}
@@ -1982,7 +1984,7 @@ namespace sabre
 	inline static void
 	_hlsl_generate_main_func(HLSL& self, Symbol* entry)
 	{
-		assert(entry->kind == Symbol::KIND_FUNC);
+		mn_assert(entry->kind == Symbol::KIND_FUNC);
 
 		auto d = entry->func_sym.decl;
 		auto t = entry->type;
@@ -2105,7 +2107,7 @@ namespace sabre
 
 		// push global scope as first entry in scope stack
 		auto global_scope = self.unit->global_scope;
-		assert(global_scope != nullptr);
+		mn_assert(global_scope != nullptr);
 		mn::buf_push(self.scope_stack, global_scope);
 
 		constexpr auto keywords_count = sizeof(HLSL_KEYWORDS) / sizeof(*HLSL_KEYWORDS);
@@ -2161,7 +2163,7 @@ namespace sabre
 			_hlsl_gen_complit_expr(self, e);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
@@ -2209,7 +2211,7 @@ namespace sabre
 			_hlsl_gen_decl_stmt(self, s);
 			break;
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 	}
@@ -2235,7 +2237,7 @@ namespace sabre
 		case COMPILATION_MODE_LIBRARY:
 			// library mode is not allowed
 		default:
-			assert(false && "unreachable");
+			mn_unreachable();
 			break;
 		}
 
