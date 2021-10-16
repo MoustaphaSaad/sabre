@@ -12,3 +12,8 @@ type Bar struct<T: type> {
 var v: Bar<int> = {
 	foo = { x = 1, z = 1.5 },
 };
+
+var v2: Foo<int, float> = {
+	y = 1,
+	w = 1.5,
+};

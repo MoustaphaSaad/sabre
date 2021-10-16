@@ -154,8 +154,8 @@ namespace sabre
 			auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 			new_type->kind = Type::KIND_FUNC;
 			new_type->as_func.sign = sign;
+			new_type->template_args = template_args;
 			new_type->as_func.template_func_decl = decl;
-			new_type->as_func.template_args = template_args;
 			mn::buf_push(self->template_func_sign_list, sign);
 			return new_type;
 		}
@@ -208,35 +208,84 @@ namespace sabre
 	{
 		mn_assert(type->kind == Type::KIND_COMPLETING);
 		type->kind = Type::KIND_STRUCT;
+		type->template_args = template_args;
 		type->struct_type.fields = fields;
 		type->struct_type.fields_by_name = fields_table;
-		type->struct_type.template_args = template_args;
 		_calc_struct_size(type);
 	}
 
 	Type*
-	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& fields_types)
+	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args)
 	{
 		Template_Instantiation_Sign sign{};
-		sign.template_type = struct_type;
-		sign.args = template_args_types;
+		sign.template_type = base_type;
+		sign.args = args;
 		if (auto it = mn::map_lookup(self->instantiation_table, sign))
 			return it->value;
 
-		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
-		new_type->kind = Type::KIND_STRUCT;
-		new_type->struct_type.symbol = struct_type->struct_type.symbol;
-		new_type->struct_type.fields = mn::buf_memcpy_clone(struct_type->struct_type.fields, self->arena);
-		new_type->struct_type.fields_by_name = mn::map_memcpy_clone(struct_type->struct_type.fields_by_name, self->arena);
+		mn_assert(base_type->template_args.count == args.count);
 
-		for (size_t i = 0; i < new_type->struct_type.fields.count; ++i)
-			new_type->struct_type.fields[i].type = fields_types[i];
+		switch (base_type->kind)
+		{
+		case Type::KIND_STRUCT:
+		{
+			auto new_type = mn::alloc_zerod_from<Type>(self->arena);
+			new_type->kind = Type::KIND_STRUCT;
 
-		_calc_struct_size(new_type);
-		sign.args = mn::buf_memcpy_clone(template_args_types);
-		mn::map_insert(self->instantiation_table, sign, new_type);
+			new_type->template_args = mn::buf_with_allocator<Type*>(self->arena);
+			mn::buf_reserve(new_type->template_args, args.count);
+			for (size_t i = 0; i < base_type->template_args.count; ++i)
+				if (type_is_typename(args[i]))
+					mn::buf_push(new_type->template_args, args[i]);
 
-		return new_type;
+			new_type->struct_type.symbol = base_type->struct_type.symbol;
+			new_type->struct_type.fields = mn::buf_memcpy_clone(base_type->struct_type.fields, self->arena);
+			new_type->struct_type.fields_by_name = mn::map_memcpy_clone(base_type->struct_type.fields_by_name, self->arena);
+
+			for (auto& field: new_type->struct_type.fields)
+			{
+				if (type_is_typename(field.type))
+				{
+					size_t index = base_type->template_args.count;
+					for (size_t i = 0; i < base_type->template_args.count; ++i)
+					{
+						if (base_type->template_args[i] == field.type)
+						{
+							index = i;
+							break;
+						}
+					}
+					field.type = args[index];
+				}
+				else if (type_is_templated(field.type))
+				{
+					// we should provide the template type here
+					auto field_args = mn::buf_clone(field.type->template_args, mn::memory::tmp());
+					for (auto& field_arg: field_args)
+					{
+						for (size_t i = 0; i < base_type->template_args.count; ++i)
+						{
+							const auto& base_arg = base_type->template_args[i];
+							if (field_arg == base_arg)
+							{
+								field_arg = args[i];
+								break;
+							}
+						}
+					}
+					field.type = type_interner_template_instantiate(self, field.type, field_args);
+				}
+			}
+
+			_calc_struct_size(new_type);
+			sign.args = mn::buf_memcpy_clone(args);
+			mn::map_insert(self->instantiation_table, sign, new_type);
+			return new_type;
+		}
+		default:
+			mn_unreachable();
+			return nullptr;
+		}
 	}
 
 	void

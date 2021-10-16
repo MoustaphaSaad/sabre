@@ -582,139 +582,113 @@ namespace sabre
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
 
 	inline static Type*
-	_typer_template_instantiate(Typer& self, Type* template_type, const mn::Buf<Type*>& template_args_types, Location instantiation_loc)
+	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc)
 	{
-		switch (template_type->kind)
+		switch (base_type->kind)
 		{
 		case Type::KIND_STRUCT:
 		{
-			if (template_type->struct_type.template_args.count == 0)
+			if (base_type->template_args.count == 0)
 			{
 				Err err{};
 				err.loc = instantiation_loc;
 				err.msg = mn::strf(
 					"type '{}' is not a template type",
-					template_type
+					base_type
 				);
 				unit_err(self.unit, err);
-				return template_type;
+				return base_type;
 			}
 
-			if (template_args_types.count != template_type->struct_type.template_args.count)
+			if (args.count != base_type->template_args.count)
 			{
 				Err err{};
 				err.loc = instantiation_loc;
 				err.msg = mn::strf(
 					"template type expected #{} arguments, but #{} only was provided",
-					template_type->struct_type.template_args.count,
-					template_args_types.count
+					base_type->template_args.count,
+					args.count
 				);
 				unit_err(self.unit, err);
-				return template_type;
+				return base_type;
 			}
 
-			auto fields_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-			mn::buf_reserve(fields_types, template_type->struct_type.fields.count);
-
-			for (auto& field: template_type->struct_type.fields)
-			{
-				if (type_is_template_incomplete(field.type) == false)
-				{
-					mn::buf_push(fields_types, field.type);
-				}
-				else
-				{
-					size_t template_args_index = template_type->struct_type.template_args.count;
-					for (size_t i = 0; i < template_type->struct_type.template_args.count; ++i)
-					{
-						if (type_is_equal(field.type, template_type->struct_type.template_args[i]))
-						{
-							template_args_index = i;
-							break;
-						}
-					}
-					// TODO: revisit later, you probably should issue an error here
-					mn_assert(template_args_index < template_args_types.count);
-					mn::buf_push(fields_types, template_args_types[template_args_index]);
-				}
-			}
-
-			return type_interner_template_struct_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, fields_types);
+			return type_interner_template_instantiate(self.unit->parent_unit->type_interner, base_type, args);
 		}
 		case Type::KIND_FUNC:
 		{
-			if (template_type->as_func.template_args.count == 0)
+			if (base_type->template_args.count == 0)
 			{
 				Err err{};
 				err.loc = instantiation_loc;
 				err.msg = mn::strf(
 					"type '{}' is not a template type",
-					template_type
+					base_type
 				);
 				unit_err(self.unit, err);
-				return template_type;
+				return base_type;
 			}
 
-			if (template_args_types.count != template_type->as_func.template_args.count)
+			if (args.count != base_type->template_args.count)
 			{
 				Err err{};
 				err.loc = instantiation_loc;
 				err.msg = mn::strf(
 					"template type expected #{} arguments, but #{} only was provided",
-					template_type->as_func.template_args.count,
-					template_args_types.count
+					base_type->template_args.count,
+					args.count
 				);
 				unit_err(self.unit, err);
-				return template_type;
+				return base_type;
 			}
 
-			auto scope = unit_scope_find(self.unit->parent_unit, template_type->as_func.template_func_decl);
+			auto scope = unit_scope_find(self.unit->parent_unit, base_type->as_func.template_func_decl);
 
 			auto func_args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
 			for (auto symbol: scope->symbols)
 			{
 				if (symbol->kind == Symbol::KIND_VAR)
 				{
-					if (type_is_template_incomplete(symbol->type) == false)
+					if (type_is_typename(symbol->type) == false)
 					{
 						mn::buf_push(func_args_types, symbol->type);
 					}
 					else
 					{
-						size_t template_args_index = template_type->as_func.template_args.count;
-						for (size_t i = 0; i < template_type->as_func.template_args.count; ++i)
+						size_t template_args_index = base_type->template_args.count;
+						for (size_t i = 0; i < base_type->template_args.count; ++i)
 						{
-							if (type_is_equal(symbol->type, template_type->as_func.template_args[i]))
+							if (type_is_equal(symbol->type, base_type->template_args[i]))
 							{
 								template_args_index = i;
 								break;
 							}
 						}
 						// TODO: revisit later, you probably should issue an error here
-						mn_assert(template_args_index < template_args_types.count);
-						mn::buf_push(func_args_types, template_args_types[template_args_index]);
+						mn_assert(template_args_index < args.count);
+						mn::buf_push(func_args_types, args[template_args_index]);
 					}
 				}
 			}
 
-			auto return_type = template_type->as_func.sign.return_type;
-			if (type_is_template_incomplete(return_type))
+			auto return_type = base_type->as_func.sign.return_type;
+			if (type_is_typename(return_type))
 			{
-				size_t template_args_index = template_type->struct_type.template_args.count;
-				for (size_t i = 0; i < template_type->struct_type.template_args.count; ++i)
+				size_t template_args_index = base_type->template_args.count;
+				for (size_t i = 0; i < base_type->template_args.count; ++i)
 				{
-					if (type_is_equal(return_type, template_type->struct_type.template_args[i]))
+					if (type_is_equal(return_type, base_type->template_args[i]))
 					{
 						template_args_index = i;
 						break;
 					}
 				}
 				// TODO: revisit later, you probably should issue an error here
-				mn_assert(template_args_index < template_args_types.count);
-				return_type = template_args_types[template_args_index];
+				mn_assert(template_args_index < args.count);
+				return_type = args[template_args_index];
 			}
 
-			return type_interner_template_func_instantiate(self.unit->parent_unit->type_interner, template_type, template_args_types, func_args_types, return_type);
+			return type_interner_template_func_instantiate(self.unit->parent_unit->type_interner, base_type, args, func_args_types, return_type);
 		}
 		default:
 			mn_unreachable();
@@ -788,7 +762,7 @@ namespace sabre
 					for (const auto& arg_type_sign: atom.templated.args)
 					{
 						auto type = _typer_resolve_type_sign(self, arg_type_sign);
-						mn_assert(type_is_template_incomplete(type) == false);
+						// mn_assert(type_is_typename(type) == false);
 						mn::buf_push(args_types, type);
 					}
 					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc);
@@ -1254,24 +1228,24 @@ namespace sabre
 			{
 				// instantiate the function before actually calling it
 				auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-				mn::buf_resize_fill(args_types, type->as_func.template_args.count, type_void);
+				mn::buf_resize_fill(args_types, type->template_args.count, type_void);
 				for (size_t i = 0; i < e->call.args.count; ++i)
 				{
 					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
 					auto expected_type = type->as_func.sign.args.types[i];
-					if (type_is_template_incomplete(expected_type))
+					if (type_is_typename(expected_type))
 					{
-						size_t template_type_index = type->as_func.template_args.count;
-						for (size_t j = 0; j < type->as_func.template_args.count; ++j)
+						size_t template_type_index = type->template_args.count;
+						for (size_t j = 0; j < type->template_args.count; ++j)
 						{
-							if (type->as_func.template_args[j] == expected_type)
+							if (type->template_args[j] == expected_type)
 							{
 								template_type_index = j;
 								break;
 							}
 						}
 						// TODO: you need to issue an error here later or something
-						mn_assert(template_type_index < type->as_func.template_args.count);
+						mn_assert(template_type_index < type->template_args.count);
 						args_types[template_type_index] = arg_type;
 					}
 				}
@@ -2856,6 +2830,7 @@ namespace sabre
 							unit_err(self.unit, err);
 						}
 					}
+
 					for (auto name: field.names)
 					{
 						Struct_Field_Type struct_field{};

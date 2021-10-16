@@ -210,13 +210,13 @@ namespace sabre
 		KIND kind;
 		size_t unaligned_size;
 		size_t alignment;
+		mn::Buf<Type*> template_args;
 		union
 		{
 			struct
 			{
 				Func_Sign sign;
 				Decl* template_func_decl;
-				mn::Buf<Type*> template_args;
 			} as_func;
 
 			struct
@@ -237,7 +237,6 @@ namespace sabre
 				Symbol* symbol;
 				mn::Buf<Struct_Field_Type> fields;
 				mn::Map<const char*, size_t> fields_by_name;
-				mn::Buf<Type*> template_args;
 			} struct_type;
 
 			struct
@@ -614,7 +613,7 @@ namespace sabre
 
 	// returns whether the type is template incomplete
 	inline static bool
-	type_is_template_incomplete(Type* t)
+	type_is_typename(Type* t)
 	{
 		return (
 			t->kind == Type::KIND_TYPENAME
@@ -625,10 +624,7 @@ namespace sabre
 	inline static bool
 	type_is_templated(Type* t)
 	{
-		return (
-			(t->kind == Type::KIND_STRUCT && t->struct_type.template_args.count > 0) ||
-			(t->kind == Type::KIND_FUNC && t->as_func.template_args.count > 0)
-		);
+		return t->template_args.count > 0;
 	}
 
 	// returns whether the type can be used in a bit operation
@@ -916,7 +912,7 @@ namespace sabre
 
 	// instantiates a template struct type with the given field types
 	SABRE_EXPORT Type*
-	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& fields_types);
+	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args);
 
 	// completes an enum type
 	SABRE_EXPORT void
@@ -1059,14 +1055,14 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_STRUCT)
 			{
 				format_to(ctx.out(), "struct {}", t->struct_type.symbol->name);
-				if (t->struct_type.template_args.count > 0)
+				if (t->template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->struct_type.template_args.count; ++i)
+					for (size_t i = 0; i < t->template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->struct_type.template_args[i]);
+						format_to(ctx.out(), "{}", t->template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
