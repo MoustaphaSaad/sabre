@@ -12,3 +12,14 @@ type Bar struct<T: type> {
 var v: Bar<int> = {
 	foo = { x = 1, z = 1.5 },
 };
+
+type TriangleStream struct<T: type> {};
+
+func emit_foo<T: type>(:TriangleStream<T>, :T)
+
+type PSInput struct {}
+
+func baz(stream: TriangleStream<PSInput>) {
+	var v: Bar<int>;
+	emit_foo(stream, v);
+}
