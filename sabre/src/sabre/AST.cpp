@@ -48,7 +48,7 @@ namespace sabre
 			self.array.static_size = clone(other.array.static_size);
 			break;
 		case Type_Sign_Atom::KIND_TEMPLATED:
-			self.templated.args = clone(other.templated.args);
+			self.templated.args = mn::buf_clone(other.templated.args, other.templated.args.allocator);
 			break;
 		default:
 			mn_unreachable();

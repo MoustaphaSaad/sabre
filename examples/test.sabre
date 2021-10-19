@@ -1,5 +1,6 @@
 package main
 
+// template variables
 type Foo struct<T, R: type> {
 	x, y: T,
 	z, w: R,
@@ -13,13 +14,31 @@ var v: Bar<int> = {
 	foo = { x = 1, z = 1.5 },
 };
 
-type TriangleStream struct<T: type> {};
+// push back function
+type Element struct {}
 
-func emit_foo<T: type>(:TriangleStream<T>, :T)
+type Vector struct<T: type> {}
 
-type PSInput struct {}
+func push_back<T: type>(:Vector<T>, :T)
 
-func baz(stream: TriangleStream<PSInput>) {
-	var v: Bar<int>;
-	emit_foo(stream, v);
+func baz(vector: Vector<Element>) {
+	push_back(vector, :Element{});
+	var v: int;
+	// push_back(vector, v);
+}
+
+// function with body
+type Point struct<T: type> {
+	x, y: T,
+}
+
+func add<T, R: type>(a: Point<T>, b: Point<R>): Point<T> {
+	return {
+		x = a.x + b.x,
+		y = a.y + b.y,
+	};
+}
+
+func add_usage(a: Point<int>, b: Point<float>): Point<int> {
+	return add(a, b);
 }

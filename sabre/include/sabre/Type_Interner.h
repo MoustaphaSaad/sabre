@@ -180,6 +180,15 @@ namespace sabre
 		TEXTURE_TYPE_CUBE,
 	};
 
+	// template type arguments is a type along with its index in the parent template type
+	struct Template_Type_Arg
+	{
+		Type* arg;
+		// template type arguments need to idenify their position in the parent arguments
+		// list, so that we can track their corresponding arg
+		size_t index_in_parent_args;
+	};
+
 	// represents a data type
 	struct Type
 	{
@@ -211,6 +220,13 @@ namespace sabre
 		size_t unaligned_size;
 		size_t alignment;
 		mn::Buf<Type*> template_args;
+		mn::Buf<size_t> template_args_index;
+
+		// type specialization data
+		// base template data which this type is a specialization of
+		Type* template_base_type;
+		// args to the above template base type which produced this type
+		mn::Buf<Type*> template_base_args;
 		union
 		{
 			struct
@@ -830,8 +846,14 @@ namespace sabre
 				return false;
 
 			for (size_t i = 0; i < args.count; ++i)
+			{
+				// typename args is considered equal
+				// if (type_is_typename(args[i]) && type_is_typename(other.args[i]))
+				// 	continue;
+
 				if (args[i] != other.args[i])
 					return false;
+			}
 
 			return true;
 		}
@@ -859,6 +881,9 @@ namespace sabre
 			auto res = type_hasher(sign.template_type);
 			for (auto t: sign.args)
 			{
+				// we skip typename arguments
+				// if (type_is_typename(t))
+				// 	continue;
 				res = mn::hash_mix(res, type_hasher(t));
 			}
 			return res;
@@ -876,6 +901,7 @@ namespace sabre
 		mn::Map<Array_Sign, Type*, Array_Sign_Hasher> array_table;
 		mn::Map<Symbol*, Type*> typename_table;
 		mn::Map<Template_Instantiation_Sign, Type*, Template_Instantiation_Hasher> instantiation_table;
+		mn::Map<Template_Instantiation_Sign, Decl*, Template_Instantiation_Hasher> func_instantiation_decls;
 	};
 
 	// creates a new type interner
@@ -912,7 +938,7 @@ namespace sabre
 
 	// instantiates a template struct type with the given field types
 	SABRE_EXPORT Type*
-	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args);
+	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl);
 
 	// completes an enum type
 	SABRE_EXPORT void
@@ -933,6 +959,14 @@ namespace sabre
 	// creates a new typename type
 	SABRE_EXPORT Type*
 	type_interner_typename(Type_Interner* self, Symbol* symbol);
+
+	// associates a declaration with the given template type instantiation
+	SABRE_EXPORT void
+	type_interner_add_func_instantiation_decl(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl);
+
+	// finds the func declaration associated with the template instantiation
+	SABRE_EXPORT Decl*
+	type_interner_find_func_instantiation_decl(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args);
 }
 
 namespace fmt
@@ -1066,6 +1100,17 @@ namespace fmt
 					}
 					format_to(ctx.out(), ">");
 				}
+				else if (t->template_base_args.count)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_base_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_base_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
 				return ctx.out();
 			}
 			else if (t->kind == sabre::Type::KIND_PACKAGE)
@@ -1124,7 +1169,7 @@ namespace fmt
 			}
 			else if (t->kind == sabre::Type::KIND_TYPENAME)
 			{
-				return format_to(ctx.out(), "typename");
+				return format_to(ctx.out(), "typename {}", t->typename_type.symbol->name);
 			}
 			else
 			{
