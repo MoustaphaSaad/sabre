@@ -11,6 +11,10 @@ namespace sabre
 		if (mn::stream_cursor_pos(out) > 0)
 			mn::print_to(out, "\n");
 
+		const char* msg_kind = "Error";
+		if (err.is_note)
+			msg_kind = "Note";
+
 		if (err.loc.pos.line > 0)
 		{
 			auto l = err.loc.file->lines[err.loc.pos.line - 1];
@@ -40,19 +44,19 @@ namespace sabre
 					}
 				}
 				mn::print_to(out, "\n");
-				mn::print_to(out, "Error[{}:{}:{}]: {}", err.loc.file->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
+				mn::print_to(out, "{}[{}:{}:{}]: {}", msg_kind, err.loc.file->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
 			}
 			else
 			{
-				mn::print_to(out, "Error[{}:{}:{}]: {}", err.loc.file->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
+				mn::print_to(out, "{}[{}:{}:{}]: {}", msg_kind, err.loc.file->filepath, err.loc.pos.line, err.loc.pos.col, err.msg);
 			}
 		}
 		else
 		{
 			if (err.loc.file != nullptr)
-				mn::print_to(out, "Error[{}]: {}", err.loc.file->filepath, err.msg);
+				mn::print_to(out, "{}[{}]: {}", msg_kind, err.loc.file->filepath, err.msg);
 			else
-				mn::print_to(out, "Error: {}", err.msg);
+				mn::print_to(out, "{}: {}", msg_kind, err.msg);
 		}
 	}
 }

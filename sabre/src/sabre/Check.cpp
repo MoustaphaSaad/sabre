@@ -1278,7 +1278,23 @@ namespace sabre
 						}
 					}
 					_typer_leave_scope(self);
+
+					auto err_count = self.unit->errs.count;
 					_typer_resolve_func_body_internal(self, instantiated_decl, instantiated_type, instantiated_scope);
+					if (self.unit->errs.count > err_count)
+					{
+						Err err{};
+						err.is_note = true;
+						err.loc = e->loc;
+						err.msg = mn::strf("call to template function '{}' has errors, it was instantiated with the following template arguments:\n", templated_decl->name.str);
+						for (size_t i = 0; i < instantiated_type->template_base_args.count; ++i)
+						{
+							if (i > 0)
+								err.msg = mn::strf(err.msg, "\n");
+							err.msg = mn::strf(err.msg, "  - {} = {}", instantiated_type->template_base_type->template_args[i], instantiated_type->template_base_args[i]);
+						}
+						unit_err(self.unit, err);
+					}
 				}
 				type = instantiated_type;
 			}

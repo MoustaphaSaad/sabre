@@ -1076,7 +1076,19 @@ namespace fmt
 			}
 			else if (t->kind == sabre::Type::KIND_FUNC)
 			{
-				format_to(ctx.out(), "func(");
+				format_to(ctx.out(), "func");
+				if (t->template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				format_to(ctx.out(), "(");
 				for (size_t i = 0; i < t->as_func.sign.args.types.count; ++i)
 				{
 					if (i > 0)
