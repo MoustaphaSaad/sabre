@@ -1,0 +1,11 @@
+>> 		x = a.x + b.x,
+>> 		    ^^^^^^^^^ 
+Error[template_func_body_error.sabre:9:7]: type mismatch in binary expression, lhs is 'int' and rhs is 'float'
+>> 		y = a.y + b.y,
+>> 		    ^^^^^^^^^ 
+Error[template_func_body_error.sabre:10:7]: type mismatch in binary expression, lhs is 'int' and rhs is 'float'
+>> 	return add(a, b);
+>> 	       ^^^^^^^^^ 
+Note[template_func_body_error.sabre:15:9]: call to template function 'add' has errors, it was instantiated with the following template arguments:
+  - typename T = int
+  - typename R = float
