@@ -470,7 +470,7 @@ namespace sabre
 
 		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 		new_type->kind = Type::KIND_ARRAY;
-		new_type->alignment = _round_up(_type_aligned_size(sign.base), type_vec4->alignment);
+		new_type->alignment = _round_up(sign.base->alignment, type_vec4->alignment);
 		if (sign.count >= 0)
 			new_type->unaligned_size = _type_aligned_size(sign.base) * sign.count;
 		new_type->array.base = sign.base;
