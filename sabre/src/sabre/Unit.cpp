@@ -979,7 +979,7 @@ namespace sabre
 			{
 				mn::json::value_object_insert(json_type, "array_base_type", mn::json::value_string_new(_type_to_reflect_json(type->array.base, false)));
 				mn::json::value_object_insert(json_type, "array_count", mn::json::value_number_new(type->array.count));
-				mn::json::value_object_insert(json_type, "array_stride", mn::json::value_number_new(type->alignment));
+				mn::json::value_object_insert(json_type, "array_stride", mn::json::value_number_new(type->unaligned_size / type->array.count));
 				break;
 			}
 			default:

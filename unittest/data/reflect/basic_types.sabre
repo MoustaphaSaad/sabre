@@ -1,0 +1,36 @@
+package main
+
+type TwoInts struct {
+	x, y: int,
+}
+@uniform var twoints: TwoInts;
+
+const DIR_LIGHTS_MAX = 4;
+
+type Dir_Light struct {
+	dir: vec3,
+	color: vec3,
+}
+@uniform var dir_lights: Dir_Light;
+
+const AMBIENT_LIGHTS_MAX = 1;
+
+type Ambient_Light struct {
+	color: vec3,
+}
+
+type Lighting struct {
+	dir_lights_count: int,
+	ambient_lights_count: int,
+	dir_lights: [DIR_LIGHTS_MAX]Dir_Light,
+	ambient_lights: [AMBIENT_LIGHTS_MAX]Ambient_Light,
+}
+
+@uniform var lighting: Lighting;
+
+@vertex
+func main() {
+	twoints;
+	dir_lights;
+	lighting;
+}
