@@ -503,6 +503,20 @@ namespace sabre
 		case Symbol::KIND_STRUCT_INSTANTIATION:
 			res = _hlsl_templated_type_name(self, sym->type);
 			break;
+		case Symbol::KIND_FUNC_INSTANTIATION:
+		{
+			if (auto it = mn::map_lookup(self.template_mangled_names, (Type*)sym))
+			{
+				res = it->value;
+				break;
+			}
+			auto str = mn::str_tmpf("{}", _hlsl_name(self, _hlsl_symbol_name(self, sym->as_func_instantiation.template_symbol)));
+			for (auto t: sym->type->template_base_args)
+				str = mn::strf(str, "_{}", _hlsl_templated_type_name(self, t));
+			res = _hlsl_name(self, str.ptr);
+			mn::map_insert(self.template_mangled_names, (Type*)sym, res);
+			break;
+		}
 		// in case the function is a builtin function we don't use it's package name
 		case Symbol::KIND_FUNC:
 			if (auto tag = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN))
@@ -1673,6 +1687,12 @@ namespace sabre
 	}
 
 	inline static void
+	_hlsl_func_instantiation_gen(HLSL& self, Symbol* sym)
+	{
+		_hlsl_func_gen_internal(self, sym->as_func_instantiation.decl, sym->type, _hlsl_symbol_name(self, sym));
+	}
+
+	inline static void
 	_hlsl_var_gen(HLSL& self, Symbol* sym, bool in_stmt)
 	{
 		if (sym->var_sym.value && in_stmt == false)
@@ -1950,6 +1970,9 @@ namespace sabre
 			break;
 		case Symbol::KIND_STRUCT_INSTANTIATION:
 			_hlsl_struct_instantiation_gen(self, sym);
+			break;
+		case Symbol::KIND_FUNC_INSTANTIATION:
+			_hlsl_func_instantiation_gen(self, sym);
 			break;
 		default:
 			mn_unreachable();

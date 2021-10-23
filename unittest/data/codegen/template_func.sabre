@@ -1,0 +1,16 @@
+package main
+
+type Point struct<T: type> {
+	x, y: T,
+}
+
+func add<T: type>(a, b: Point<T>): Point<T> {
+	return {
+		x = a.x + b.x,
+		y = a.y + b.y,
+	};
+}
+
+func add_usage(a, b: Point<int>): Point<int> {
+	return add(a, b);
+}

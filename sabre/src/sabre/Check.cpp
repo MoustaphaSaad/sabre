@@ -582,7 +582,7 @@ namespace sabre
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
 
 	inline static Type*
-	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc, Decl* decl)
+	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc, Decl* base_decl)
 	{
 		if (base_type->template_args.count == 0)
 		{
@@ -614,7 +614,7 @@ namespace sabre
 			self.unit->parent_unit->type_interner,
 			base_type,
 			args,
-			decl,
+			base_decl,
 			&instantiated_types
 		);
 
@@ -1218,7 +1218,7 @@ namespace sabre
 					mn::buf_push(arg_types, it->value);
 				}
 
-				auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, nullptr);
+				auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, e->call.func);
 				if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
 				{
 					// do nothing we have already instantiated this function
@@ -1229,6 +1229,13 @@ namespace sabre
 					auto instantiated_decl = decl_clone(templated_decl, templated_decl->arena);
 					instantiated_decl->type = instantiated_type;
 					type_interner_add_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types, instantiated_decl);
+
+					auto instantiation_sym = symbol_func_instantiation_new(self.unit->symbols_arena, symbol, instantiated_type, instantiated_decl);
+					_typer_add_dependency(self, instantiation_sym);
+					mn::buf_push(self.unit->reachable_symbols, instantiation_sym);
+
+					e->call.func = instantiated_decl;
+					e->call.base->symbol = instantiation_sym;
 					auto templated_scope = unit_scope_find(self.unit->parent_unit, templated_decl);
 					auto instantiated_scope = unit_create_scope_for(self.unit, instantiated_decl, templated_scope->parent, instantiated_decl->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
 					_typer_enter_scope(self, instantiated_scope);

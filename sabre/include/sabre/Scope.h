@@ -34,6 +34,7 @@ namespace sabre
 			KIND_ENUM,
 			KIND_TYPENAME,
 			KIND_STRUCT_INSTANTIATION,
+			KIND_FUNC_INSTANTIATION,
 		};
 
 		KIND kind;
@@ -109,6 +110,12 @@ namespace sabre
 			{
 				Symbol* template_symbol;
 			} as_struct_instantiation;
+
+			struct
+			{
+				Symbol* template_symbol;
+				Decl* decl;
+			} as_func_instantiation;
 		};
 	};
 
@@ -147,6 +154,10 @@ namespace sabre
 	// creates a new symbol for a struct instantiation
 	SABRE_EXPORT Symbol*
 	symbol_struct_instantiation_new(mn::Allocator arena, Symbol* template_symbol, Type* type);
+
+	// creates a new symbol for a func instantiation
+	SABRE_EXPORT Symbol*
+	symbol_func_instantiation_new(mn::Allocator arena, Symbol* template_symbol, Type* type, Decl* decl);
 
 	// given a symbols it will return its location in compilation unit
 	inline static Location
