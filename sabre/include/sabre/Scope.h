@@ -33,6 +33,7 @@ namespace sabre
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ENUM,
 			KIND_TYPENAME,
+			KIND_STRUCT_INSTANTIATION,
 		};
 
 		KIND kind;
@@ -103,6 +104,11 @@ namespace sabre
 			{
 				Tkn name;
 			} typename_sym;
+
+			struct
+			{
+				Symbol* template_symbol;
+			} as_struct_instantiation;
 		};
 	};
 
@@ -138,6 +144,10 @@ namespace sabre
 	SABRE_EXPORT Symbol*
 	symbol_typename_new(mn::Allocator arena, Tkn name);
 
+	// creates a new symbol for a struct instantiation
+	SABRE_EXPORT Symbol*
+	symbol_struct_instantiation_new(mn::Allocator arena, Symbol* template_symbol, Type* type);
+
 	// given a symbols it will return its location in compilation unit
 	inline static Location
 	symbol_location(const Symbol* self)
@@ -158,6 +168,8 @@ namespace sabre
 			return self->enum_sym.decl->loc;
 		case Symbol::KIND_TYPENAME:
 			return self->typename_sym.name.loc;
+		case Symbol::KIND_STRUCT_INSTANTIATION:
+			return symbol_location(self->as_struct_instantiation.template_symbol);
 		default:
 			mn_unreachable();
 			return Location{};
@@ -186,6 +198,8 @@ namespace sabre
 			return self->enum_sym.decl;
 		case Symbol::KIND_TYPENAME:
 			return nullptr;
+		case Symbol::KIND_STRUCT_INSTANTIATION:
+			return symbol_decl(self->as_struct_instantiation.template_symbol);
 		default:
 			mn_unreachable();
 			return nullptr;

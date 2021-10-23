@@ -201,26 +201,6 @@ namespace sabre
 	}
 
 	Type*
-	type_interner_template_func_instantiate(Type_Interner* self, Type* func_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& args_types, Type* return_type)
-	{
-		Template_Instantiation_Sign sign{};
-		sign.template_type = func_type;
-		sign.args = template_args_types;
-		if (auto it = mn::map_lookup(self->instantiation_table, sign))
-			return it->value;
-
-		auto func_sign = func_sign_new();
-		mn::buf_concat(func_sign.args.types, args_types);
-		func_sign.return_type = return_type;
-		auto new_type = type_interner_func(self, func_sign, nullptr, {});
-
-		sign.args = mn::buf_memcpy_clone(template_args_types);
-		mn::map_insert(self->instantiation_table, sign, new_type);
-
-		return new_type;
-	}
-
-	Type*
 	type_interner_incomplete(Type_Interner* self, Symbol* symbol)
 	{
 		auto new_type = mn::alloc_zerod_from<Type>(self->arena);
@@ -253,7 +233,7 @@ namespace sabre
 	}
 
 	Type*
-	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl)
+	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl, mn::Buf<Type*>* instantiated_types)
 	{
 		auto sign = _generate_template_instantiation_sign(base_type, args);
 
@@ -319,15 +299,15 @@ namespace sabre
 							}
 						}
 					}
-					field.type = type_interner_template_instantiate(self, field.type, field_args, nullptr);
+					field.type = type_interner_template_instantiate(self, field.type, field_args, decl, instantiated_types);
 				}
 			}
 
 			_calc_struct_size(new_type);
-			// sign.args = mn::buf_memcpy_clone(args);
 			new_type->template_base_type = base_type;
 			new_type->template_base_args = sign.args;
 			mn::map_insert(self->instantiation_table, sign, new_type);
+			if (instantiated_types) mn::buf_push(*instantiated_types, new_type);
 			return new_type;
 		}
 		case Type::KIND_FUNC:
@@ -363,7 +343,7 @@ namespace sabre
 							}
 						}
 					}
-					auto resolved_arg_type = type_interner_template_instantiate(self, arg_type, instantiation_args, nullptr);
+					auto resolved_arg_type = type_interner_template_instantiate(self, arg_type, instantiation_args, decl, instantiated_types);
 					mn::buf_push(func_sign.args.types, resolved_arg_type);
 				}
 			}
@@ -398,7 +378,7 @@ namespace sabre
 						}
 					}
 				}
-				auto resolved_arg_type = type_interner_template_instantiate(self, base_return_type, instantiation_args, nullptr);
+				auto resolved_arg_type = type_interner_template_instantiate(self, base_return_type, instantiation_args, decl, instantiated_types);
 				func_sign.return_type = resolved_arg_type;
 			}
 			else
@@ -419,10 +399,10 @@ namespace sabre
 				if (type_is_typename(args[i]))
 					mn::buf_push(new_type->template_args_index, args[i]);
 
-			// sign.args = mn::buf_memcpy_clone(args);
 			new_type->template_base_type = base_type;
 			new_type->template_base_args = sign.args;
 			mn::map_insert(self->instantiation_table, sign, new_type);
+			if (instantiated_types) mn::buf_push(*instantiated_types, new_type);
 			return new_type;
 		}
 		default:

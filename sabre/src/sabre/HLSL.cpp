@@ -392,13 +392,117 @@ namespace sabre
 	}
 
 	inline static const char*
-	_hlsl_symbol_name(Symbol* sym, Decl* decl = nullptr)
+	_hlsl_name(HLSL& self, const char* name)
+	{
+		if (auto it = mn::map_lookup(self.reserved_to_alternative, name))
+		{
+			if (it->value != nullptr)
+				return it->value;
+
+			mn::log_debug("reserved name collision: {}", name);
+			auto str = mn::str_tmpf("RESERVED_{}", name);
+			it->value = unit_intern(self.unit->parent_unit, str.ptr);
+			return it->value;
+		}
+
+		return name;
+	}
+
+	inline static const char*
+	_hlsl_symbol_name(HLSL& self, Symbol* sym, Decl* decl = nullptr);
+
+	inline static const char*
+	_hlsl_templated_type_name(HLSL& self, Type* type)
+	{
+		if (auto it = mn::map_lookup(self.template_mangled_names, type))
+			return it->value;
+
+		if (type->template_base_type)
+		{
+			auto res_str = mn::str_tmpf("{}", _hlsl_templated_type_name(self, type->template_base_type));
+			if (type_is_templated(type) == false)
+			{
+				for (auto arg: type->template_base_args)
+					res_str = mn::strf(res_str, "_{}", _hlsl_templated_type_name(self, arg));
+			}
+			auto res = _hlsl_name(self, res_str.ptr);
+			mn::map_insert(self.template_mangled_names, type, res);
+			return res;
+		}
+
+		auto res_str = mn::str_new();
+		switch (type->kind)
+		{
+		case Type::KIND_VOID: res_str = mn::str_lit("void"); break;
+		case Type::KIND_BOOL: res_str = mn::str_lit("bool"); break;
+		case Type::KIND_INT: res_str = mn::str_lit("int"); break;
+		case Type::KIND_UINT: res_str = mn::str_lit("uint"); break;
+		case Type::KIND_FLOAT: res_str = mn::str_lit("float"); break;
+		case Type::KIND_DOUBLE: res_str = mn::str_lit("double"); break;
+		case Type::KIND_VEC:
+			res_str = mn::strf(res_str, "{}{}", _hlsl_templated_type_name(self, type->vec.base), type->vec.width);
+			break;
+		case Type::KIND_MAT:
+			res_str = mn::strf(res_str, "float{}x{}", _hlsl_templated_type_name(self, type->vec.base), type->mat.width);
+			break;
+		case Type::KIND_STRUCT:
+			res_str = mn::str_lit(_hlsl_name(self, _hlsl_symbol_name(self, type->struct_type.symbol)));
+			break;
+		case Type::KIND_TEXTURE:
+			if (type == type_texture1d)
+			{
+				res_str = mn::str_lit("Texture1D_float4");
+			}
+			else if (type == type_texture2d)
+			{
+				res_str = mn::str_lit("Texture2D_float4");
+			}
+			else if (type == type_texture3d)
+			{
+				res_str = mn::str_lit("Texture3D_float4");
+			}
+			else if (type == type_texture_cube)
+			{
+				res_str = mn::str_lit("TextureCube_float4");
+			}
+			else
+			{
+				mn_unreachable();
+			}
+			break;
+		case Type::KIND_ARRAY:
+			res_str = mn::strf(res_str, "array{}_{}", type->array.count, _hlsl_templated_type_name(self, type->array.base));
+			break;
+		case Type::KIND_ENUM:
+			res_str = mn::str_lit(_hlsl_name(self, _hlsl_symbol_name(self, type->struct_type.symbol)));
+			break;
+		case Type::KIND_SAMPLER:
+			res_str = mn::str_lit("sampler");
+			break;
+		case Type::KIND_TYPENAME:
+			mn_unreachable_msg("codegen for typename types is not supported");
+			break;
+		default:
+			mn_unreachable();
+			break;
+		}
+
+		auto res = _hlsl_name(self, res_str.ptr);
+		mn::map_insert(self.template_mangled_names, type, res);
+		return res;
+	}
+
+	inline static const char*
+	_hlsl_symbol_name(HLSL& self, Symbol* sym, Decl* decl)
 	{
 		bool use_raw_name = false;
 
 		const char* res = sym->package_name;
 		switch (sym->kind)
 		{
+		case Symbol::KIND_STRUCT_INSTANTIATION:
+			res = _hlsl_templated_type_name(self, sym->type);
+			break;
 		// in case the function is a builtin function we don't use it's package name
 		case Symbol::KIND_FUNC:
 			if (auto tag = mn::map_lookup(sym->func_sym.decl->tags.table, KEYWORD_BUILTIN))
@@ -455,23 +559,6 @@ namespace sabre
 		return res;
 	}
 
-	inline static const char*
-	_hlsl_name(HLSL& self, const char* name)
-	{
-		if (auto it = mn::map_lookup(self.reserved_to_alternative, name))
-		{
-			if (it->value != nullptr)
-				return it->value;
-
-			mn::log_debug("reserved name collision: {}", name);
-			auto str = mn::str_tmpf("RESERVED_{}", name);
-			it->value = unit_intern(self.unit->parent_unit, str.ptr);
-			return it->value;
-		}
-
-		return name;
-	}
-
 	inline static mn::Str
 	_hlsl_write_field(HLSL& self, mn::Str str, Type* type, const char* name)
 	{
@@ -489,6 +576,10 @@ namespace sabre
 		case Type::KIND_INT:
 			can_write_name = true;
 			str = mn::strf(str, "int");
+			break;
+		case Type::KIND_UINT:
+			can_write_name = true;
+			str = mn::strf(str, "uint");
 			break;
 		case Type::KIND_FLOAT:
 			can_write_name = true;
@@ -611,9 +702,14 @@ namespace sabre
 			}
 			break;
 		case Type::KIND_STRUCT:
+		{
 			can_write_name = true;
-			str = mn::strf(str, "{}", _hlsl_name(self, _hlsl_symbol_name(type->struct_type.symbol)));
+			const char* type_name = _hlsl_name(self, _hlsl_symbol_name(self, type->struct_type.symbol));
+			if (type->template_base_type)
+				type_name = _hlsl_templated_type_name(self, type);
+			str = mn::strf(str, "{}", type_name);
 			break;
+		}
 		case Type::KIND_TEXTURE:
 			can_write_name = true;
 			if (type == type_texture1d)
@@ -646,11 +742,14 @@ namespace sabre
 		}
 		case Type::KIND_ENUM:
 			can_write_name = true;
-			str = mn::strf(str, "{}", _hlsl_name(self, _hlsl_symbol_name(type->enum_type.symbol)));
+			str = mn::strf(str, "{}", _hlsl_name(self, _hlsl_symbol_name(self, type->enum_type.symbol)));
 			break;
 		case Type::KIND_SAMPLER:
 			can_write_name = true;
 			str = mn::strf(str, "SamplerState");
+			break;
+		case Type::KIND_TYPENAME:
+			mn_unreachable_msg("codegen for typename types is not supported");
 			break;
 		default:
 			mn_unreachable();
@@ -779,7 +878,7 @@ namespace sabre
 		{
 			if (e->symbol)
 			{
-				auto package_name = mn::str_lit(_hlsl_symbol_name(e->symbol, e->atom.decl));
+				auto package_name = mn::str_lit(_hlsl_symbol_name(self, e->symbol, e->atom.decl));
 				if (package_name.count > 0)
 				{
 					mn::print_to(self.out, "{}", _hlsl_name(self, package_name.ptr));
@@ -843,7 +942,7 @@ namespace sabre
 		else if (is_lhs_enum)
 		{
 			// glslang hlsl implementation doesn't work with enums so for now we generate them as macros an integers
-			auto enum_name = _hlsl_symbol_name(e->type->enum_type.symbol);
+			auto enum_name = _hlsl_symbol_name(self, e->type->enum_type.symbol);
 			mn::print_to(self.out, "{}_", enum_name);
 			hlsl_expr_gen(self, e->dot.rhs);
 		}
@@ -1510,6 +1609,10 @@ namespace sabre
 	inline static void
 	_hlsl_func_gen_internal(HLSL& self, Decl* d, Type* t, const char* name)
 	{
+		// don't generate templated functions
+		if (type_is_templated(t))
+			return;
+
 		bool is_builtin = false;
 
 		if (mn::map_lookup(d->tags.table, KEYWORD_BUILTIN))
@@ -1566,7 +1669,7 @@ namespace sabre
 	inline static void
 	_hlsl_func_gen(HLSL& self, Symbol* sym)
 	{
-		_hlsl_func_gen_internal(self, sym->func_sym.decl, sym->type, _hlsl_symbol_name(sym));
+		_hlsl_func_gen_internal(self, sym->func_sym.decl, sym->type, _hlsl_symbol_name(self, sym));
 	}
 
 	inline static void
@@ -1577,7 +1680,7 @@ namespace sabre
 
 		if (sym->var_sym.is_uniform)
 		{
-			auto uniform_name = _hlsl_name(self, _hlsl_symbol_name(sym));
+			auto uniform_name = _hlsl_name(self, _hlsl_symbol_name(self, sym));
 			auto uniform_block_name = uniform_name;
 			if (sym->type->kind != Type::KIND_STRUCT)
 			{
@@ -1644,7 +1747,7 @@ namespace sabre
 		}
 		else
 		{
-			mn::print_to(self.out, "{}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(sym)));
+			mn::print_to(self.out, "{}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(self, sym)));
 			if (sym->var_sym.value != nullptr)
 			{
 				mn::print_to(self.out, " = ");
@@ -1664,7 +1767,7 @@ namespace sabre
 		if (sym->const_sym.value && in_stmt == false)
 			_hlsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
 
-		mn::print_to(self.out, "static const {}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(sym)));
+		mn::print_to(self.out, "static const {}", _hlsl_write_field(self, sym->type, _hlsl_symbol_name(self, sym)));
 		if (sym->const_sym.value != nullptr)
 		{
 			mn::print_to(self.out, " = ");
@@ -1679,18 +1782,17 @@ namespace sabre
 	}
 
 	inline static void
-	_hlsl_struct_gen(HLSL& self, Symbol* sym)
+	_hlsl_struct_gen_internal(HLSL& self, Symbol* sym, Decl* decl)
 	{
-		mn::print_to(self.out, "struct {} {{", _hlsl_name(self, _hlsl_symbol_name(sym)));
+		mn::print_to(self.out, "struct {} {{", _hlsl_name(self, _hlsl_symbol_name(self, sym)));
 		++self.indent;
 
-		auto d = sym->struct_sym.decl;
 		auto t = sym->type;
 
 		auto io_flags_it = mn::map_lookup(self.io_structs, sym);
 
 		size_t i = 0;
-		for (auto field: d->struct_decl.fields)
+		for (auto field: decl->struct_decl.fields)
 		{
 			auto field_type = t->struct_type.fields[i];
 			for (auto name: field.names)
@@ -1727,10 +1829,30 @@ namespace sabre
 	}
 
 	inline static void
+	_hlsl_struct_gen(HLSL& self, Symbol* sym)
+	{
+		// don't generate templated structs
+		if (type_is_templated(sym->type))
+			return;
+
+		_hlsl_struct_gen_internal(self, sym, sym->struct_sym.decl);
+	}
+
+	inline static void
+	_hlsl_struct_instantiation_gen(HLSL& self, Symbol* sym)
+	{
+		// don't generate templated structs
+		if (type_is_templated(sym->type))
+			return;
+
+		_hlsl_struct_gen_internal(self, sym, sym->as_struct_instantiation.template_symbol->struct_sym.decl);
+	}
+
+	inline static void
 	_hlsl_enum_gen(HLSL& self, Symbol* sym)
 	{
 		// glslang hlsl implementation doesn't work with enums so for now we generate them as macros an integers
-		mn::print_to(self.out, "#define {} int", _hlsl_symbol_name(sym));
+		mn::print_to(self.out, "#define {} int", _hlsl_symbol_name(self, sym));
 
 		auto d = sym->enum_sym.decl;
 		auto t = sym->type;
@@ -1741,11 +1863,11 @@ namespace sabre
 			auto field_type = t->enum_type.fields[i];
 			mn_assert(field_type.value.type == type_int);
 			_hlsl_newline(self);
-			mn::print_to(self.out, "#define {}_{} {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
+			mn::print_to(self.out, "#define {}_{} {}", _hlsl_symbol_name(self, sym), field.name.str, field_type.value.as_int);
 			++i;
 		}
 
-		// mn::print_to(self.out, "enum {} {{", _hlsl_name(self, _hlsl_symbol_name(sym)));
+		// mn::print_to(self.out, "enum {} {{", _hlsl_name(self, _hlsl_symbol_name(self, sym)));
 		// ++self.indent;
 
 		// auto d = sym->enum_sym.decl;
@@ -1759,7 +1881,7 @@ namespace sabre
 		// 	auto field_type = t->enum_type.fields[i];
 		// 	mn_assert(field_type.value.type == type_int);
 		// 	_hlsl_newline(self);
-		// 	mn::print_to(self.out, "{}_{} = {}", _hlsl_symbol_name(sym), field.name.str, field_type.value.as_int);
+		// 	mn::print_to(self.out, "{}_{} = {}", _hlsl_symbol_name(self, sym), field.name.str, field_type.value.as_int);
 		// 	++i;
 		// }
 
@@ -1795,7 +1917,7 @@ namespace sabre
 					_hlsl_newline(self);
 
 				auto pos = _hlsl_buffer_position(self);
-				_hlsl_func_gen_internal(self, decl, type, _hlsl_symbol_name(sym, decl));
+				_hlsl_func_gen_internal(self, decl, type, _hlsl_symbol_name(self, sym, decl));
 				was_last_symbol_generated = _hlsl_code_generated_after(self, pos);
 			}
 			break;
@@ -1825,6 +1947,9 @@ namespace sabre
 		}
 		case Symbol::KIND_ENUM:
 			_hlsl_enum_gen(self, sym);
+			break;
+		case Symbol::KIND_STRUCT_INSTANTIATION:
+			_hlsl_struct_instantiation_gen(self, sym);
 			break;
 		default:
 			mn_unreachable();
@@ -2049,7 +2174,7 @@ namespace sabre
 		if (is_geometry)
 		{
 			_hlsl_newline(self);
-			mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(entry)));
+			mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(self, entry)));
 			size_t i = 0;
 			for (auto arg: d->func_decl.args)
 			{
@@ -2075,7 +2200,7 @@ namespace sabre
 				mn::print_to(self.out, "return ");
 			}
 
-			mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(entry)));
+			mn::print_to(self.out, "{}(", _hlsl_name(self, _hlsl_symbol_name(self, entry)));
 			size_t i = 0;
 			for (auto arg: d->func_decl.args)
 			{
@@ -2128,6 +2253,7 @@ namespace sabre
 		mn::map_free(self.symbol_to_names);
 		mn::set_free(self.io_structs);
 		mn::str_free(self.geometry_stream_name);
+		destruct(self.template_mangled_names);
 	}
 
 	void

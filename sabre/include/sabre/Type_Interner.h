@@ -924,10 +924,6 @@ namespace sabre
 	SABRE_EXPORT Type*
 	type_interner_func(Type_Interner* self, Func_Sign sign, Decl* decl, mn::Buf<Type*> template_args);
 
-	// instantiates a template func type with the given field types
-	SABRE_EXPORT Type*
-	type_interner_template_func_instantiate(Type_Interner* self, Type* func_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& args_types, Type* return_type);
-
 	// creates a new incomplete type for the given symbol
 	SABRE_EXPORT Type*
 	type_interner_incomplete(Type_Interner* self, Symbol* symbol);
@@ -938,7 +934,7 @@ namespace sabre
 
 	// instantiates a template struct type with the given field types
 	SABRE_EXPORT Type*
-	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl);
+	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl, mn::Buf<Type*>* instantiated_types);
 
 	// completes an enum type
 	SABRE_EXPORT void

@@ -582,72 +582,57 @@ namespace sabre
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
 
 	inline static Type*
-	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc)
+	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc, Decl* decl)
 	{
-		switch (base_type->kind)
+		if (base_type->template_args.count == 0)
 		{
-		case Type::KIND_STRUCT:
+			Err err{};
+			err.loc = instantiation_loc;
+			err.msg = mn::strf(
+				"type '{}' is not a template type",
+				base_type
+			);
+			unit_err(self.unit, err);
+			return base_type;
+		}
+
+		if (args.count != base_type->template_args.count)
 		{
-			if (base_type->template_args.count == 0)
-			{
-				Err err{};
-				err.loc = instantiation_loc;
-				err.msg = mn::strf(
-					"type '{}' is not a template type",
-					base_type
-				);
-				unit_err(self.unit, err);
-				return base_type;
-			}
-
-			if (args.count != base_type->template_args.count)
-			{
-				Err err{};
-				err.loc = instantiation_loc;
-				err.msg = mn::strf(
-					"template type expected #{} arguments, but #{} only was provided",
-					base_type->template_args.count,
-					args.count
-				);
-				unit_err(self.unit, err);
-				return base_type;
-			}
-
-			return type_interner_template_instantiate(self.unit->parent_unit->type_interner, base_type, args, nullptr);
+			Err err{};
+			err.loc = instantiation_loc;
+			err.msg = mn::strf(
+				"template type expected #{} arguments, but #{} only was provided",
+				base_type->template_args.count,
+				args.count
+			);
+			unit_err(self.unit, err);
+			return base_type;
 		}
-		case Type::KIND_FUNC:
+
+		auto instantiated_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+		auto res = type_interner_template_instantiate(
+			self.unit->parent_unit->type_interner,
+			base_type,
+			args,
+			decl,
+			&instantiated_types
+		);
+
+		for (auto t: instantiated_types)
 		{
-			if (base_type->template_args.count == 0)
-			{
-				Err err{};
-				err.loc = instantiation_loc;
-				err.msg = mn::strf(
-					"type '{}' is not a template type",
-					base_type
-				);
-				unit_err(self.unit, err);
-				return base_type;
-			}
+			if (type_is_templated(t))
+				continue;
 
-			if (args.count != base_type->template_args.count)
+			if (type_is_struct(t))
 			{
-				Err err{};
-				err.loc = instantiation_loc;
-				err.msg = mn::strf(
-					"template type expected #{} arguments, but #{} only was provided",
-					base_type->template_args.count,
-					args.count
-				);
-				unit_err(self.unit, err);
-				return base_type;
+				auto instantiation_sym = symbol_struct_instantiation_new(self.unit->symbols_arena, t->struct_type.symbol, t);
+				_typer_add_dependency(self, instantiation_sym);
+				if (instantiation_sym->is_top_level)
+					mn::buf_push(self.unit->reachable_symbols, instantiation_sym);
 			}
+		}
 
-			return type_interner_template_instantiate(self.unit->parent_unit->type_interner, base_type, args, nullptr);
-		}
-		default:
-			mn_unreachable();
-			return type_void;
-		}
+		return res;
 	}
 
 	inline static Type*
@@ -716,10 +701,9 @@ namespace sabre
 					for (const auto& arg_type_sign: atom.templated.args)
 					{
 						auto type = _typer_resolve_type_sign(self, arg_type_sign);
-						// mn_assert(type_is_typename(type) == false);
 						mn::buf_push(args_types, type);
 					}
-					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc);
+					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc, nullptr);
 				}
 				break;
 			}
@@ -1234,7 +1218,7 @@ namespace sabre
 					mn::buf_push(arg_types, it->value);
 				}
 
-				auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc);
+				auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, nullptr);
 				if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
 				{
 					// do nothing we have already instantiated this function
