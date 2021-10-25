@@ -10,6 +10,7 @@ namespace sabre
 	struct Scope;
 	struct Type;
 	struct Entry_Point;
+	struct Decl;
 
 	// type checker state
 	struct Typer

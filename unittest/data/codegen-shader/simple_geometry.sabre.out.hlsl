@@ -22,12 +22,12 @@ cbuffer points_camera: register(b0) {
 	float3 points_camera_up: packoffset(c5);
 	float2 points_camera_viewport: packoffset(c6);
 };
-void points_foo(points_PS_Input a, points_PS_Input b, points_PS_Input c, inout TriangleStream<points_PS_Input> _tmp_1) {
-	_tmp_1.Append(a);
-	_tmp_1.Append(b);
-	_tmp_1.Append(c);
+void points_foo(points_PS_Input a, points_PS_Input b, points_PS_Input c, inout TriangleStream<points_PS_Input> stream) {
+	stream.Append(a);
+	stream.Append(b);
+	stream.Append(c);
 }
-void points_main(points_GS_Input input[1], inout TriangleStream<points_PS_Input> _tmp_1) {
+void points_main(point points_GS_Input input[1], inout TriangleStream<points_PS_Input> stream) {
 	float3 a = input[0].center + input[0].v_radius * points_camera_right + input[0].v_radius * points_camera_up;
 	float3 b = input[0].center + input[0].v_radius * points_camera_right - input[0].v_radius * points_camera_up;
 	float3 c = input[0].center - input[0].v_radius * points_camera_right + input[0].v_radius * points_camera_up;
@@ -67,17 +67,18 @@ void points_main(points_GS_Input input[1], inout TriangleStream<points_PS_Input>
 	v2.pos_viewport = 0.5 * (v2.position.xy + _tmp_10) * points_camera_viewport;
 	float2 _tmp_11 = float2(1, 1);
 	v3.pos_viewport = 0.5 * (v3.position.xy + _tmp_11) * points_camera_viewport;
-	_tmp_1.Append(v0);
-	_tmp_1.Append(v3);
-	_tmp_1.Append(v1);
-	_tmp_1.Append(v0);
-	_tmp_1.Append(v2);
-	_tmp_1.Append(v3);
-	points_foo(v0, v3, v1, _tmp_1);
-	_tmp_1.RestartStrip();
+	stream.Append(v0);
+	stream.Append(v3);
+	stream.Append(v1);
+	stream.Append(v0);
+	stream.Append(v2);
+	stream.Append(v3);
+	points_foo(v0, v3, v1, stream);
+	stream.RestartStrip();
 }
 
-[maxvertexcount(6)] void main(point points_GS_Input input[1], inout TriangleStream<points_PS_Input> _tmp_1)
+[maxvertexcount(6)]
+void main(point points_GS_Input input[1], inout TriangleStream<points_PS_Input> stream)
 {
-	points_main(input, _tmp_1);
+	points_main(input, stream);
 }

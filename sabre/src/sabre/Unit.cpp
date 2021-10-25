@@ -749,11 +749,10 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SAMPLER_STATE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SAMPLE_FUNC));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GEOMETRY));
-		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GEOMETRY_EMIT_FUNC));
-		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GEOMETRY_END_PRIMITIVE_FUNC));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_MAX_VERTEX_COUNT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_IN));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_OUT));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_INOUT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_POINT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_LINE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_TRIANGLE));

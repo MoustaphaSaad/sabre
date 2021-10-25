@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sabre/Exports.h"
+#include "sabre/Tkn.h"
 
 #include <mn/Buf.h>
 #include <mn/Json.h>

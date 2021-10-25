@@ -551,14 +551,6 @@ namespace sabre
 				mn::Buf<Arg> args;
 				Type_Sign return_type;
 				Stmt* body;
-				bool is_geometry;
-				// geometry shader manadory tags
-				Type* geometry_output;
-				Tkn geometry_max_vertex_count;
-				Tkn geometry_in;
-				Tkn geometry_out;
-				// indicates whether this function emits vertices in a geometry shader or not
-				bool has_emits;
 			} func_decl;
 
 			struct

@@ -1,5 +1,6 @@
 #include "sabre/Reflect.h"
 #include "sabre/Unit.h"
+#include "sabre/Type_Interner.h"
 
 #include <mn/Log.h>
 #include <mn/Assert.h>
