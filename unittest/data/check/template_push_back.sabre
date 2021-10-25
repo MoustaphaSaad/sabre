@@ -1,0 +1,12 @@
+package main
+
+type Element struct {}
+
+type Vector struct<T: type> {}
+
+func push_back<T: type>(:Vector<T>, :T)
+
+func foo(v: Vector<Element>) {
+	push_back(v, :Element{});
+	push_back(v, 1);
+}

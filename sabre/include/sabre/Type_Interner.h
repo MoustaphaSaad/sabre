@@ -180,6 +180,15 @@ namespace sabre
 		TEXTURE_TYPE_CUBE,
 	};
 
+	// template type arguments is a type along with its index in the parent template type
+	struct Template_Type_Arg
+	{
+		Type* arg;
+		// template type arguments need to idenify their position in the parent arguments
+		// list, so that we can track their corresponding arg
+		size_t index_in_parent_args;
+	};
+
 	// represents a data type
 	struct Type
 	{
@@ -210,13 +219,20 @@ namespace sabre
 		KIND kind;
 		size_t unaligned_size;
 		size_t alignment;
+		mn::Buf<Type*> template_args;
+		mn::Buf<size_t> template_args_index;
+
+		// type specialization data
+		// base template data which this type is a specialization of
+		Type* template_base_type;
+		// args to the above template base type which produced this type
+		mn::Buf<Type*> template_base_args;
 		union
 		{
 			struct
 			{
 				Func_Sign sign;
 				Decl* template_func_decl;
-				mn::Buf<Type*> template_args;
 			} as_func;
 
 			struct
@@ -237,7 +253,6 @@ namespace sabre
 				Symbol* symbol;
 				mn::Buf<Struct_Field_Type> fields;
 				mn::Map<const char*, size_t> fields_by_name;
-				mn::Buf<Type*> template_args;
 			} struct_type;
 
 			struct
@@ -614,7 +629,7 @@ namespace sabre
 
 	// returns whether the type is template incomplete
 	inline static bool
-	type_is_template_incomplete(Type* t)
+	type_is_typename(Type* t)
 	{
 		return (
 			t->kind == Type::KIND_TYPENAME
@@ -625,10 +640,7 @@ namespace sabre
 	inline static bool
 	type_is_templated(Type* t)
 	{
-		return (
-			(t->kind == Type::KIND_STRUCT && t->struct_type.template_args.count > 0) ||
-			(t->kind == Type::KIND_FUNC && t->as_func.template_args.count > 0)
-		);
+		return t->template_args.count > 0;
 	}
 
 	// returns whether the type can be used in a bit operation
@@ -834,8 +846,14 @@ namespace sabre
 				return false;
 
 			for (size_t i = 0; i < args.count; ++i)
+			{
+				// typename args is considered equal
+				// if (type_is_typename(args[i]) && type_is_typename(other.args[i]))
+				// 	continue;
+
 				if (args[i] != other.args[i])
 					return false;
+			}
 
 			return true;
 		}
@@ -863,6 +881,9 @@ namespace sabre
 			auto res = type_hasher(sign.template_type);
 			for (auto t: sign.args)
 			{
+				// we skip typename arguments
+				// if (type_is_typename(t))
+				// 	continue;
 				res = mn::hash_mix(res, type_hasher(t));
 			}
 			return res;
@@ -880,6 +901,7 @@ namespace sabre
 		mn::Map<Array_Sign, Type*, Array_Sign_Hasher> array_table;
 		mn::Map<Symbol*, Type*> typename_table;
 		mn::Map<Template_Instantiation_Sign, Type*, Template_Instantiation_Hasher> instantiation_table;
+		mn::Map<Template_Instantiation_Sign, Decl*, Template_Instantiation_Hasher> func_instantiation_decls;
 	};
 
 	// creates a new type interner
@@ -902,10 +924,6 @@ namespace sabre
 	SABRE_EXPORT Type*
 	type_interner_func(Type_Interner* self, Func_Sign sign, Decl* decl, mn::Buf<Type*> template_args);
 
-	// instantiates a template func type with the given field types
-	SABRE_EXPORT Type*
-	type_interner_template_func_instantiate(Type_Interner* self, Type* func_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& args_types, Type* return_type);
-
 	// creates a new incomplete type for the given symbol
 	SABRE_EXPORT Type*
 	type_interner_incomplete(Type_Interner* self, Symbol* symbol);
@@ -916,7 +934,7 @@ namespace sabre
 
 	// instantiates a template struct type with the given field types
 	SABRE_EXPORT Type*
-	type_interner_template_struct_instantiate(Type_Interner* self, Type* struct_type, const mn::Buf<Type*>& template_args_types, const mn::Buf<Type*>& fields_types);
+	type_interner_template_instantiate(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl, mn::Buf<Type*>* instantiated_types);
 
 	// completes an enum type
 	SABRE_EXPORT void
@@ -937,6 +955,14 @@ namespace sabre
 	// creates a new typename type
 	SABRE_EXPORT Type*
 	type_interner_typename(Type_Interner* self, Symbol* symbol);
+
+	// associates a declaration with the given template type instantiation
+	SABRE_EXPORT void
+	type_interner_add_func_instantiation_decl(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args, Decl* decl);
+
+	// finds the func declaration associated with the template instantiation
+	SABRE_EXPORT Decl*
+	type_interner_find_func_instantiation_decl(Type_Interner* self, Type* base_type, const mn::Buf<Type*>& args);
 }
 
 namespace fmt
@@ -1046,7 +1072,19 @@ namespace fmt
 			}
 			else if (t->kind == sabre::Type::KIND_FUNC)
 			{
-				format_to(ctx.out(), "func(");
+				format_to(ctx.out(), "func");
+				if (t->template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				format_to(ctx.out(), "(");
 				for (size_t i = 0; i < t->as_func.sign.args.types.count; ++i)
 				{
 					if (i > 0)
@@ -1059,14 +1097,25 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_STRUCT)
 			{
 				format_to(ctx.out(), "struct {}", t->struct_type.symbol->name);
-				if (t->struct_type.template_args.count > 0)
+				if (t->template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->struct_type.template_args.count; ++i)
+					for (size_t i = 0; i < t->template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->struct_type.template_args[i]);
+						format_to(ctx.out(), "{}", t->template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				else if (t->template_base_args.count)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_base_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_base_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1128,7 +1177,7 @@ namespace fmt
 			}
 			else if (t->kind == sabre::Type::KIND_TYPENAME)
 			{
-				return format_to(ctx.out(), "typename");
+				return format_to(ctx.out(), "typename {}", t->typename_type.symbol->name);
 			}
 			else
 			{

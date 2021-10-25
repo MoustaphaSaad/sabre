@@ -1,0 +1,6 @@
+>> 	push_back(v, 1);
+>> 	             ^  
+Error[template_push_back.sabre:11:15]: type 'typename T' is ambigious, we already deduced it to be 'struct Element' but we have another guess which is 'int'
+>> 	push_back(v, 1);
+>> 	             ^  
+Error[template_push_back.sabre:11:15]: function argument #1 type mismatch, expected 'struct Element' but found 'int'

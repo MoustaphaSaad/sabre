@@ -12,6 +12,7 @@ namespace sabre
 	{
 		Location loc;
 		mn::Str msg;
+		bool is_note;
 	};
 
 	inline static Err

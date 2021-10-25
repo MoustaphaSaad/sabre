@@ -129,6 +129,37 @@ namespace sabre
 		return self;
 	}
 
+	Symbol*
+	symbol_struct_instantiation_new(mn::Allocator arena, Symbol* template_symbol, Type* type)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_STRUCT_INSTANTIATION;
+		self->state = STATE_RESOLVED;
+		self->type = type;
+		self->name = template_symbol->name;
+		self->package_name = template_symbol->package_name;
+		self->is_top_level = template_symbol->is_top_level;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
+		self->as_struct_instantiation.template_symbol = template_symbol;
+		return self;
+	}
+
+	Symbol*
+	symbol_func_instantiation_new(mn::Allocator arena, Symbol* template_symbol, Type* type, Decl* decl)
+	{
+		auto self = mn::alloc_zerod_from<Symbol>(arena);
+		self->kind = Symbol::KIND_FUNC_INSTANTIATION;
+		self->state = STATE_RESOLVED;
+		self->type = type;
+		self->name = template_symbol->name;
+		self->package_name = template_symbol->package_name;
+		self->is_top_level = template_symbol->is_top_level;
+		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
+		self->as_func_instantiation.template_symbol = template_symbol;
+		self->as_func_instantiation.decl = decl;
+		return self;
+	}
+
 	Scope*
 	scope_new(Scope* parent, const char* name, Type* expected_type, Scope::FLAG flags)
 	{

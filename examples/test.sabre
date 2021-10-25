@@ -1,5 +1,6 @@
 package main
 
+// template variables
 type Foo struct<T, R: type> {
 	x, y: T,
 	z, w: R,
@@ -10,5 +11,34 @@ type Bar struct<T: type> {
 }
 
 var v: Bar<int> = {
-	foo = { x = 1.2, z = 1.5 },
+	foo = { x = 1, z = 1.5 },
 };
+
+// push back function
+type Element struct {}
+
+type Vector struct<T: type> {}
+
+func push_back<T: type>(:Vector<T>, :T)
+
+func baz(vector: Vector<Element>) {
+	push_back(vector, :Element{});
+	var v: int;
+	// push_back(vector, v);
+}
+
+// function with body
+type Point struct<T: type> {
+	x, y: T,
+}
+
+func add<T, R: type>(a: Point<T>, b: Point<R>): Point<T> {
+	return {
+		x = a.x + b.x,
+		y = a.y + b.y,
+	};
+}
+
+func add_usage(a: Point<int>, b: Point<float>): Point<int> {
+	return add(a, b);
+}

@@ -1,0 +1,22 @@
+package main
+
+type Foo struct<T, R: type> {
+	x, y: T,
+	z, w: R,
+}
+
+type Bar struct<T: type> {
+	foo: Foo<T, float>,
+}
+
+var v: Bar<int> = {
+	foo = { x = 1, z = 1.5 },
+};
+
+var v2: Bar<int> = {
+	foo = { x = 1, z = 1.5 },
+};
+
+var v3: Bar<uint> = {
+	foo = { x = 1: uint, z = 1.5 },
+};
