@@ -9,7 +9,7 @@ sabrec command [options] INPUT...
 COMMANDS:
   help: prints this message
   scan: scans the given input files and prints a token stream
-  parse-expr: scans the given input files and prints a token stream
+  parse-expr: parses a single expression from the given files and prints it's AST representation
   parse-stmt: parses a single statement from the given files and prints it's AST representation
   parse-decl: parses a single declaration from the given files and prints it's AST representation
   check: performs type checking on the given files
@@ -19,7 +19,8 @@ COMMANDS:
   spirv-gen: generated SPIRV code from the given files
 
 OPTIONS:
-  -entry: specifies the entry point function of the given program)""";
+  -entry: specifies the entry point function of the given program
+  -collection: specifies a library collection in this format <collection name>:<collection path>)""";
 
 inline static void
 print_help()
