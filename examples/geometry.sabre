@@ -24,18 +24,14 @@ type Camera struct {
 }
 @uniform{binding = 0} var camera: Camera;
 
-func foo(a, b, c: PS_Input) {
-	std.emit(a);
-	std.emit(b);
-	std.emit(c);
+func foo(a, b, c: PS_Input, @inout stream: TriangleStream<PS_Input>) {
+	std.emit(stream, a);
+	std.emit(stream, b);
+	std.emit(stream, c);
 }
 
-@geometry {
-	max_vertex_count = 6,
-	out = "triangle",
-	in = "point",
-}
-func main(input: [1]GS_Input): PS_Input {
+@geometry { max_vertex_count = 6 }
+func main(@point input: [1]GS_Input, @inout stream: TriangleStream<PS_Input>) {
 	var a = input[0].center + input[0].v_radius * camera.right + input[0].v_radius * camera.up;
 	var b = input[0].center + input[0].v_radius * camera.right - input[0].v_radius * camera.up;
 	var c = input[0].center - input[0].v_radius * camera.right + input[0].v_radius * camera.up;
@@ -68,15 +64,15 @@ func main(input: [1]GS_Input): PS_Input {
 	v2.pos_viewport = 0.5 * (v2.position.xy + :vec2{1, 1}) * camera.viewport;
 	v3.pos_viewport = 0.5 * (v3.position.xy + :vec2{1, 1}) * camera.viewport;
 
-	std.emit(v0);
-	std.emit(v3);
-	std.emit(v1);
+	std.emit(stream, v0);
+	std.emit(stream, v3);
+	std.emit(stream, v1);
 
-	std.emit(v0);
-	std.emit(v2);
-	std.emit(v3);
+	std.emit(stream, v0);
+	std.emit(stream, v2);
+	std.emit(stream, v3);
 
-	foo(v0, v3, v1);
+	foo(v0, v3, v1, stream);
 
-	std.end_primitive();
+	std.end_primitive(stream);
 }

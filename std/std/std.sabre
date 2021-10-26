@@ -24,15 +24,17 @@ func texture_sample(:Texture2D, :Sampler, :vec2): vec4
 }
 func texture_sample(:Texture3D, :Sampler, :vec3): vec4
 
-// add builtin tag just to not generate the function
-@builtin
-@geometry_emit_func
-func emit()
+@hlsl_method
+@builtin {
+	hlsl = "Append"
+}
+func emit<T: type>(:TriangleStream<T>, :T)
 
-// add builtin tag just to not generate the function
-@builtin
-@geometry_end_primitive_func
-func end_primitive()
+@hlsl_method
+@builtin {
+	hlsl = "RestartStrip"
+}
+func end_primitive<T: type>(:TriangleStream<T>)
 
 @builtin
 func normalize(:vec4): vec4

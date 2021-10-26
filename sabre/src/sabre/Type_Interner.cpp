@@ -37,6 +37,19 @@ namespace sabre
 		return self;
 	}
 
+	inline static Type
+	_stream_type(Type::KIND kind, Type* type_arg)
+	{
+		Type self{};
+		self.kind = kind;
+		// leak the buffers intentionally
+		self.template_args = mn::buf_with_allocator<Type*>(mn::memory::clib());
+		self.template_args_index = mn::buf_with_allocator<size_t>(mn::memory::clib());
+		mn::buf_push(self.template_args, type_arg);
+		mn::buf_push(self.template_args_index, 0);
+		return self;
+	}
+
 	static Type _type_void { Type::KIND_VOID, 0, 0 };
 	static Type _type_bool { Type::KIND_BOOL, 1, 4 };
 	static Type _type_int { Type::KIND_INT, 4, 4 };
@@ -68,6 +81,12 @@ namespace sabre
 	static Type _type_texture3d = _texture_builtin(TEXTURE_TYPE_3D);
 	static Type _type_texture_cube = _texture_builtin(TEXTURE_TYPE_CUBE);
 	static Type _type_sampler {Type::KIND_SAMPLER, 0, 0};
+	static Type _type_triangle_stream_type_arg {Type::KIND_TYPENAME, 0, 0};
+	static Type _type_triangle_stream = _stream_type(Type::KIND_TRIANGLE_STREAM, &_type_triangle_stream_type_arg);
+	static Type _type_line_stream_type_arg {Type::KIND_TYPENAME, 0, 0};
+	static Type _type_line_stream = _stream_type(Type::KIND_LINE_STREAM, &_type_line_stream_type_arg);
+	static Type _type_point_stream_type_arg {Type::KIND_TYPENAME, 0, 0};
+	static Type _type_point_stream = _stream_type(Type::KIND_POINT_STREAM, &_type_point_stream_type_arg);
 
 	inline static void
 	_calc_struct_size(Type* type)
@@ -140,6 +159,9 @@ namespace sabre
 	Type* type_texture3d = &_type_texture3d;
 	Type* type_texture_cube = &_type_texture_cube;
 	Type* type_sampler = &_type_sampler;
+	Type* type_triangle_stream = &_type_triangle_stream;
+	Type* type_line_stream = &_type_line_stream;
+	Type* type_point_stream = &_type_point_stream;
 
 	Type_Interner*
 	type_interner_new()
@@ -247,6 +269,31 @@ namespace sabre
 
 		switch (base_type->kind)
 		{
+		case Type::KIND_TRIANGLE_STREAM:
+		case Type::KIND_LINE_STREAM:
+		case Type::KIND_POINT_STREAM:
+		{
+			auto new_type = mn::alloc_zerod_from<Type>(self->arena);
+			new_type->kind = base_type->kind;
+
+			new_type->template_args = mn::buf_with_allocator<Type*>(self->arena);
+			new_type->template_args_index = mn::buf_with_allocator<size_t>(self->arena);
+			mn::buf_reserve(new_type->template_args, args.count);
+			for (size_t i = 0; i < base_type->template_args.count; ++i)
+			{
+				if (type_is_typename(args[i]))
+				{
+					mn::buf_push(new_type->template_args, args[i]);
+					mn::buf_push(new_type->template_args_index, i);
+				}
+			}
+
+			new_type->template_base_type = base_type;
+			new_type->template_base_args = sign.args;
+			mn::map_insert(self->instantiation_table, sign, new_type);
+			if (instantiated_types) mn::buf_push(*instantiated_types, new_type);
+			return new_type;
+		}
 		case Type::KIND_STRUCT:
 		{
 			auto new_type = mn::alloc_zerod_from<Type>(self->arena);

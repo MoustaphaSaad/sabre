@@ -50,12 +50,6 @@ target_sources(sabre
 	PRIVATE ${HEADER_FILES}
 			${SOURCE_FILES})
 
-if (SABRE_UNITY_BUILD)
-	set_target_properties(sabre
-		PROPERTIES UNITY_BUILD_BATCH_SIZE 0
-				   UNITY_BUILD true)
-endif()
-
 target_link_libraries(sabre
 	PUBLIC
 		MoustaphaSaad::mn

@@ -1082,18 +1082,6 @@ namespace sabre
 		return type;
 	}
 
-	inline static Decl*
-	_typer_get_geometry_func_decl(Typer& self)
-	{
-		for (size_t i = 0; i < self.func_stack.count; ++i)
-		{
-			auto decl = self.func_stack[self.func_stack.count - i - 1];
-			if (decl->func_decl.is_geometry)
-				return decl;
-		}
-		return nullptr;
-	}
-
 	inline static void
 	_typer_resolve_expected_type_from_arg_type(Typer& self, Type* expected_type, Type* arg_type, Location arg_loc, mn::Map<Type*, Type*>& resolved_types)
 	{
@@ -1160,43 +1148,6 @@ namespace sabre
 			auto symbol = e->call.base->symbol;
 			if (symbol)
 				e->call.func = symbol->func_sym.decl;
-
-			// special case emit function
-			if (auto decl = symbol_decl(symbol))
-			{
-				if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY_EMIT_FUNC) != nullptr)
-				{
-					if (auto current_func = _typer_current_func(self))
-						current_func->func_decl.has_emits = true;
-
-					if (e->call.args.count != 1)
-					{
-						Err err{};
-						err.loc = e->loc;
-						err.msg = mn::strf("function expected {} arguments, but {} were provided", type->as_func.sign.args.types.count, e->call.args.count);
-						unit_err(self.unit, err);
-						return type->as_func.sign.return_type;
-					}
-
-					auto arg_type = _typer_resolve_expr(self, e->call.args[0]);
-					if (auto geometry_decl = _typer_get_geometry_func_decl(self))
-					{
-						if (type_is_equal(geometry_decl->func_decl.geometry_output, arg_type) == false)
-						{
-							Err err{};
-							err.loc = e->call.args[0]->loc;
-							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", 1, geometry_decl->func_decl.geometry_output, arg_type);
-							unit_err(self.unit, err);
-						}
-					}
-					return type->as_func.sign.return_type;
-				}
-				else
-				{
-					if (auto current_func = _typer_current_func(self))
-						current_func->func_decl.has_emits |= decl->func_decl.has_emits;
-				}
-			}
 
 			if (e->call.args.count != type->as_func.sign.args.types.count)
 			{
@@ -2246,8 +2197,6 @@ namespace sabre
 		}
 		_typer_leave_scope(self);
 
-		if (d->func_decl.is_geometry)
-			d->func_decl.geometry_output = d->type->as_func.sign.return_type;
 		return d->type;
 	}
 
@@ -2716,25 +2665,12 @@ namespace sabre
 					auto is_geometry = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY) != nullptr;
 
 					auto return_info = _typer_stmt_will_terminate(self, d->func_decl.body);
-					if (is_geometry)
+					if (return_info.will_return == false)
 					{
-						if (return_info.will_return)
-						{
-							Err err{};
-							err.loc = return_info.loc;
-							err.msg = mn::strf("you cannot return from a geometry shader, use std.emit function");
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						if (return_info.will_return == false)
-						{
-							Err err{};
-							err.loc = return_info.loc;
-							err.msg = mn::strf("missing return at the end of the function because {}", return_info.msg);
-							unit_err(self.unit, err);
-						}
+						Err err{};
+						err.loc = return_info.loc;
+						err.msg = mn::strf("missing return at the end of the function because {}", return_info.msg);
+						unit_err(self.unit, err);
 					}
 				}
 			}
@@ -3196,7 +3132,7 @@ namespace sabre
 		{
 			const auto& struct_field = type->struct_type.fields[struct_type_index];
 
-			if (type_is_shader_input(struct_field.type) == false)
+			if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
 			{
 				Err err{};
 				err.loc = struct_field.name.loc;
@@ -3212,6 +3148,17 @@ namespace sabre
 	{
 		auto decl = symbol_decl(entry->symbol);
 		auto type = entry->symbol->type;
+
+		if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
+		{
+			if (mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT) == nullptr)
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{{max_vertex_count = 6, ...}}'");
+				unit_err(self.unit, err);
+			}
+		}
 
 		size_t type_index = 0;
 		for (auto arg: decl->func_decl.args)
@@ -3240,7 +3187,11 @@ namespace sabre
 			else if (arg.names.count > 0)
 				err_loc = arg.names[0].loc;
 
-			if (type_is_shader_input(arg_type) == false)
+			int api_config = SHADER_API_DEFAULT;
+			if (entry->mode == COMPILATION_MODE_GEOMETRY)
+				api_config |= SHADER_API_ALLOW_STREAMS;
+
+			if (type_is_shader_api(arg_type, api_config) == false)
 			{
 				Err err{};
 				err.loc = err_loc;
@@ -3250,78 +3201,77 @@ namespace sabre
 			type_index += arg.names.count;
 		}
 
-		// handle return type
 		auto return_type = type->as_func.sign.return_type;
+
 		// special case geometry shaders
 		if (entry->mode == COMPILATION_MODE_GEOMETRY)
 		{
-			if (type_is_struct(return_type) == false)
+			if (return_type != type_void)
 			{
-				Location err_loc{};
-				if (decl->func_decl.return_type.atoms.count > 0)
-					err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
-
 				Err err{};
-				err.loc = err_loc;
-				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
+				err.loc = decl->loc;
+				err.msg = mn::strf("geometry shader return type should be void, but found '{}'", return_type);
 				unit_err(self.unit, err);
+			}
+		}
+
+		// handle return type
+		if (return_type->kind == Type::KIND_STRUCT)
+		{
+			auto struct_decl = symbol_decl(return_type->struct_type.symbol);
+			size_t struct_type_index = 0;
+			for (const auto& field: struct_decl->struct_decl.fields)
+			{
+				const auto& struct_field = return_type->struct_type.fields[struct_type_index];
+
+				if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+				{
+					if (struct_field.type != type_vec4)
+					{
+						Err err{};
+						err.loc = struct_field.name.loc;
+						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
+						unit_err(self.unit, err);
+					}
+				}
+
+				if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
+				{
+					if (struct_field.type != type_float)
+					{
+						Err err{};
+						err.loc = struct_field.name.loc;
+						err.msg = mn::strf("system depth type is '{}', but it should be 'float'", struct_field.type);
+						unit_err(self.unit, err);
+					}
+				}
+
+				if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
+					unit_err(self.unit, err);
+				}
+				struct_type_index += field.names.count;
 			}
 		}
 		else
 		{
-			if (return_type->kind == Type::KIND_STRUCT)
+			Location err_loc{};
+			if (decl->func_decl.return_type.atoms.count > 0)
+				err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
+
+			int api_config = SHADER_API_DEFAULT;
+			if (entry->mode == COMPILATION_MODE_GEOMETRY)
+				api_config |= SHADER_API_ALLOW_VOID;
+
+			if (type_is_shader_api(return_type, api_config) == false)
 			{
-				auto struct_decl = symbol_decl(return_type->struct_type.symbol);
-				size_t struct_type_index = 0;
-				for (const auto& field: struct_decl->struct_decl.fields)
-				{
-					const auto& struct_field = return_type->struct_type.fields[struct_type_index];
-
-					if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
-					{
-						if (struct_field.type != type_vec4)
-						{
-							Err err{};
-							err.loc = struct_field.name.loc;
-							err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
-							unit_err(self.unit, err);
-						}
-					}
-
-					if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
-					{
-						if (struct_field.type != type_float)
-						{
-							Err err{};
-							err.loc = struct_field.name.loc;
-							err.msg = mn::strf("system depth type is '{}', but it should be 'float'", struct_field.type);
-							unit_err(self.unit, err);
-						}
-					}
-
-					if (type_is_shader_input(struct_field.type) == false)
-					{
-						Err err{};
-						err.loc = struct_field.name.loc;
-						err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
-						unit_err(self.unit, err);
-					}
-					struct_type_index += field.names.count;
-				}
-			}
-			else
-			{
-				Location err_loc{};
-				if (decl->func_decl.return_type.atoms.count > 0)
-					err_loc = mn::buf_top(decl->func_decl.return_type.atoms).named.type_name.loc;
-
-				if (type_is_shader_input(return_type) == false)
-				{
-					Err err{};
-					err.loc = err_loc;
-					err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
-					unit_err(self.unit, err);
-				}
+				Err err{};
+				err.loc = err_loc;
+				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
+				unit_err(self.unit, err);
 			}
 		}
 	}
@@ -3514,65 +3464,6 @@ namespace sabre
 				}
 				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
-					decl->func_decl.is_geometry = true;
-					decl->func_decl.geometry_output = sym->type->as_func.sign.return_type;
-
-					if (auto max_vertex_count = mn::map_lookup(tag_it->value.args, KEYWORD_MAX_VERTEX_COUNT))
-					{
-						decl->func_decl.geometry_max_vertex_count = max_vertex_count->value.value;
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have max vertex count tag argument '@geometry{max_vertex_count = 6, ...}'");
-						unit_err(self.unit, err);
-					}
-
-					if (auto geometry_in = mn::map_lookup(tag_it->value.args, KEYWORD_IN))
-					{
-						decl->func_decl.geometry_in = geometry_in->value.value;
-
-						if (decl->func_decl.geometry_in.str != KEYWORD_POINT &&
-							decl->func_decl.geometry_in.str != KEYWORD_LINE &&
-							decl->func_decl.geometry_in.str != KEYWORD_TRIANGLE)
-						{
-							Err err{};
-							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader in tag argument '{}', possible values are point, line, and triangle", decl->func_decl.geometry_in.str);
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have in tag argument '@geometry{in = \"point\", ...}'");
-						unit_err(self.unit, err);
-					}
-
-					if (auto geometry_out = mn::map_lookup(tag_it->value.args, KEYWORD_OUT))
-					{
-						decl->func_decl.geometry_out = geometry_out->value.value;
-
-						if (decl->func_decl.geometry_out.str != KEYWORD_POINT &&
-							decl->func_decl.geometry_out.str != KEYWORD_LINE &&
-							decl->func_decl.geometry_out.str != KEYWORD_TRIANGLE)
-						{
-							Err err{};
-							err.loc = decl->loc;
-							err.msg = mn::strf("invalid geometry shader out tag argument '{}', possible values are point, line, and triangle", decl->func_decl.geometry_out.str);
-							unit_err(self.unit, err);
-						}
-					}
-					else
-					{
-						Err err{};
-						err.loc = decl->loc;
-						err.msg = mn::strf("geometry shader should have out tag argument '@geometry{in = \"point\", ...}'");
-						unit_err(self.unit, err);
-					}
-
 					auto entry = entry_point_new(sym, COMPILATION_MODE_GEOMETRY);
 					mn::buf_push(self.unit->entry_points, entry);
 				}

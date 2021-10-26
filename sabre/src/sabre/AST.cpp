@@ -587,12 +587,6 @@ namespace sabre
 			self->func_decl.args = mn::buf_clone(other->func_decl.args, arena);
 			self->func_decl.return_type = clone(other->func_decl.return_type);
 			self->func_decl.body = clone(other->func_decl.body);
-			self->func_decl.is_geometry = other->func_decl.is_geometry;
-			self->func_decl.geometry_output = other->func_decl.geometry_output;
-			self->func_decl.geometry_max_vertex_count = other->func_decl.geometry_max_vertex_count;
-			self->func_decl.geometry_in = other->func_decl.geometry_in;
-			self->func_decl.geometry_out = other->func_decl.geometry_out;
-			self->func_decl.has_emits = other->func_decl.has_emits;
 			break;
 		case Decl::KIND_STRUCT:
 			self->struct_decl.fields = mn::buf_clone(other->struct_decl.fields, arena);

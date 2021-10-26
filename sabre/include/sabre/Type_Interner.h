@@ -214,6 +214,9 @@ namespace sabre
 			KIND_ENUM,
 			KIND_SAMPLER,
 			KIND_TYPENAME,
+			KIND_TRIANGLE_STREAM,
+			KIND_LINE_STREAM,
+			KIND_POINT_STREAM,
 		};
 
 		KIND kind;
@@ -351,6 +354,9 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_texture3d;
 	SABRE_EXPORT extern Type* type_texture_cube;
 	SABRE_EXPORT extern Type* type_sampler;
+	SABRE_EXPORT extern Type* type_triangle_stream;
+	SABRE_EXPORT extern Type* type_line_stream;
+	SABRE_EXPORT extern Type* type_point_stream;
 
 	// given a type name it will return a type
 	inline static Type*
@@ -416,6 +422,12 @@ namespace sabre
 			return type_texture_cube;
 		else if (str == "Sampler")
 			return type_sampler;
+		else if (str == "TriangleStream")
+			return type_triangle_stream;
+		else if (str == "LineStream")
+			return type_line_stream;
+		else if (str == "PointStream")
+			return type_point_stream;
 		else
 			return type_void;
 	}
@@ -515,10 +527,32 @@ namespace sabre
 		return false;
 	}
 
-	// returns whether the type can be used in shader input
+	// returns whether the type is a stream type
 	inline static bool
-	type_is_shader_input(Type* a)
+	type_is_stream(Type* t)
 	{
+		return (
+			t->kind == Type::KIND_TRIANGLE_STREAM
+		);
+	}
+
+	enum SHADER_API
+	{
+		SHADER_API_DEFAULT = 0,
+		SHADER_API_ALLOW_VOID = 1 << 0,
+		SHADER_API_ALLOW_STREAMS = 1 << 1,
+	};
+
+	// returns whether the type can be used in shader api
+	inline static bool
+	type_is_shader_api(Type* a, int api)
+	{
+		if ((api & SHADER_API_ALLOW_VOID) && a == type_void)
+			return true;
+
+		if ((api & SHADER_API_ALLOW_STREAMS) && type_is_stream(a))
+			return true;
+
 		return (
 			a == type_int ||
 			a == type_uint ||
@@ -1178,6 +1212,87 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_TYPENAME)
 			{
 				return format_to(ctx.out(), "typename {}", t->typename_type.symbol->name);
+			}
+			else if (t->kind == sabre::Type::KIND_TRIANGLE_STREAM)
+			{
+				format_to(ctx.out(), "TriangleStream");
+				if (t->template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				else if (t->template_base_args.count)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_base_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_base_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				return ctx.out();
+			}
+			else if (t->kind == sabre::Type::KIND_LINE_STREAM)
+			{
+				format_to(ctx.out(), "LineStream");
+				if (t->template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				else if (t->template_base_args.count)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_base_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_base_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				return ctx.out();
+			}
+			else if (t->kind == sabre::Type::KIND_POINT_STREAM)
+			{
+				format_to(ctx.out(), "PointStream");
+				if (t->template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				else if (t->template_base_args.count)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->template_base_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", t->template_base_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+				return ctx.out();
 			}
 			else
 			{

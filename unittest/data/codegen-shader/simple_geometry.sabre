@@ -1,14 +1,16 @@
 package points
 
-// add builtin tag just to not generate the function
-@builtin
-@geometry_emit_func
-func emit()
+@hlsl_method
+@builtin {
+	hlsl = "Append"
+}
+func emit<T: type>(:TriangleStream<T>, :T)
 
-// add builtin tag just to not generate the function
-@builtin
-@geometry_end_primitive_func
-func end_primitive()
+@hlsl_method
+@builtin {
+	hlsl = "RestartStrip"
+}
+func end_primitive<T: type>(:TriangleStream<T>)
 
 type GS_Input struct {
 	center: vec3,
@@ -32,18 +34,14 @@ type Camera struct {
 }
 @uniform{binding = 0} var camera: Camera;
 
-func foo(a, b, c: PS_Input) {
-	emit(a);
-	emit(b);
-	emit(c);
+func foo(a, b, c: PS_Input, @inout stream: TriangleStream<PS_Input>) {
+	emit(stream, a);
+	emit(stream, b);
+	emit(stream, c);
 }
 
-@geometry {
-	max_vertex_count = 6,
-	out = "triangle",
-	in = "point",
-}
-func main(input: [1]GS_Input): PS_Input {
+@geometry { max_vertex_count = 6 }
+func main(@point input: [1]GS_Input, @inout stream: TriangleStream<PS_Input>) {
 	var a = input[0].center + input[0].v_radius * camera.right + input[0].v_radius * camera.up;
 	var b = input[0].center + input[0].v_radius * camera.right - input[0].v_radius * camera.up;
 	var c = input[0].center - input[0].v_radius * camera.right + input[0].v_radius * camera.up;
@@ -76,15 +74,15 @@ func main(input: [1]GS_Input): PS_Input {
 	v2.pos_viewport = 0.5 * (v2.position.xy + :vec2{1, 1}) * camera.viewport;
 	v3.pos_viewport = 0.5 * (v3.position.xy + :vec2{1, 1}) * camera.viewport;
 
-	emit(v0);
-	emit(v3);
-	emit(v1);
+	emit(stream, v0);
+	emit(stream, v3);
+	emit(stream, v1);
 
-	emit(v0);
-	emit(v2);
-	emit(v3);
+	emit(stream, v0);
+	emit(stream, v2);
+	emit(stream, v3);
 
-	foo(v0, v3, v1);
+	foo(v0, v3, v1, stream);
 
-	end_primitive();
+	end_primitive(stream);
 }
