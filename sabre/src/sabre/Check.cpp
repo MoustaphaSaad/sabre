@@ -1093,7 +1093,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = arg_loc;
-					err.msg = mn::strf("type '{}' is ambigious, we already deduced it to be '{}' but we have another guess which is '{}'", expected_type, it->value, arg_type);
+					err.msg = mn::strf("type '{}' is ambiguous, we already deduced it to be '{}' but we have another guess which is '{}'", expected_type, it->value, arg_type);
 					unit_err(self.unit, err);
 				}
 			}

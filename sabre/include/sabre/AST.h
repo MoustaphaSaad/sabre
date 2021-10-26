@@ -355,7 +355,7 @@ namespace sabre
 	SABRE_EXPORT Stmt*
 	stmt_for_new(mn::Allocator arena, Stmt* init, Expr* cond, Stmt* post, Stmt* body);
 
-	// creates a new assigment statement
+	// creates a new assignment statement
 	SABRE_EXPORT Stmt*
 	stmt_assign_new(mn::Allocator arena, mn::Buf<Expr*> lhs, Tkn op, mn::Buf<Expr*> rhs);
 

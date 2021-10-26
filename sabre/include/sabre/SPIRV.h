@@ -68,7 +68,7 @@ namespace sabre
 	SABRE_EXPORT SPIRV
 	spirv_new(Unit_Package* unit);
 
-	// freew the given SPRIV generator
+	// free the given SPRIV generator
 	SABRE_EXPORT void
 	spirv_free(SPIRV& self);
 

@@ -184,7 +184,7 @@ namespace sabre
 	struct Template_Type_Arg
 	{
 		Type* arg;
-		// template type arguments need to idenify their position in the parent arguments
+		// template type arguments need to identify their position in the parent arguments
 		// list, so that we can track their corresponding arg
 		size_t index_in_parent_args;
 	};

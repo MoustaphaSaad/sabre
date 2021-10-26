@@ -78,7 +78,7 @@ namespace sabre::spirv
 		return self;
 	}
 
-	// reperesents a SPIRV type
+	// represents a SPIRV type
 	struct Type
 	{
 		enum KIND

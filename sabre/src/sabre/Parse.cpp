@@ -195,7 +195,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = expr->loc;
-					err.msg = mn::strf("composite literal key should be a member identifer expression");
+					err.msg = mn::strf("composite literal key should be a member identifier expression");
 					unit_err(self.unit, err);
 				}
 
