@@ -27,10 +27,14 @@ type Lighting struct {
 }
 
 @uniform var lighting: Lighting;
+@uniform var texture: Texture2D;
+@uniform var sampler: Sampler;
 
 @vertex
 func main() {
 	twoints;
 	dir_lights;
 	lighting;
+	texture;
+	sampler;
 }

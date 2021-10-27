@@ -297,6 +297,7 @@ namespace sabre
 	inline static size_t
 	_round_up(size_t num, size_t factor)
 	{
+		if (factor == 0) return 0;
 		if (num % factor == 0) return num;
 		return num + factor - 1 - (num + factor - 1) % factor;
 	}
