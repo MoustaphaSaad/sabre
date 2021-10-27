@@ -532,7 +532,9 @@ namespace sabre
 	type_is_stream(Type* t)
 	{
 		return (
-			t->kind == Type::KIND_TRIANGLE_STREAM
+			t->kind == Type::KIND_TRIANGLE_STREAM ||
+			t->kind == Type::KIND_LINE_STREAM ||
+			t->kind == Type::KIND_POINT_STREAM
 		);
 	}
 
