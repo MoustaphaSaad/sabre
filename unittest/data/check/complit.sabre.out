@@ -1,3 +1,3 @@
 >> 		x.sdwert = a.x + b.x,
 >> 		^^^^^^^^             
-Error[complit.sabre:17:3]: composite literal key should be a member identifer expression
+Error[complit.sabre:17:3]: composite literal key should be a member identifier expression

@@ -1,26 +1,26 @@
 (complit (type-sign vec4)
-  (field 
+  (field
     (atom 'x')
     (atom '1')
   )
-  (field 
+  (field
     (atom 'y')
     (atom '2')
   )
-  (field 
+  (field
     (atom 'z')
     (atom '3')
   )
-  (field 
+  (field
     (atom 'x')
     (complit (type-sign )
-      (field 
+      (field
         (atom 'y')
         (complit (type-sign )
-          (field 
+          (field
             (atom 'w')
             (complit (type-sign )
-              (field 
+              (field
                 (atom 'qwqre')
                 (atom '324')
               )

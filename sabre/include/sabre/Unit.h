@@ -26,7 +26,7 @@ namespace sabre
 	struct Scope;
 
 	// this is a list of constant strings that's used across stages
-	// it's placed here so that when we use them as map keyes we don't
+	// it's placed here so that when we use them as map keys we don't
 	// need to intern them before doing the search instead we use
 	// these global variables directly because the string interner itself
 	// uses these pointers to represent these string values

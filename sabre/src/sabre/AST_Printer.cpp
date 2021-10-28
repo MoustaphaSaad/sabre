@@ -191,7 +191,7 @@ namespace sabre
 				for (auto field: expr->complit.fields)
 				{
 					_ast_printer_newline(self);
-					mn::print_to(self.out, "(field ");
+					mn::print_to(self.out, "(field");
 					_ast_printer_enter_scope(self);
 					{
 						if (field.selector_name)
@@ -558,7 +558,7 @@ namespace sabre
 				if (decl->func_decl.return_type.atoms.count > 0)
 				{
 					_ast_printer_newline(self);
-					mn::print_to(self.out, "(return-type ");
+					mn::print_to(self.out, "(return-type");
 					_ast_printer_enter_scope(self);
 					{
 						_ast_printer_newline(self);

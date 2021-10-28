@@ -46,7 +46,7 @@ namespace sabre
 	SABRE_EXPORT Expr*
 	parser_parse_expr(Parser& self);
 
-	// parses a statment
+	// parses a statement
 	SABRE_EXPORT Stmt*
 	parser_parse_stmt(Parser& self);
 
