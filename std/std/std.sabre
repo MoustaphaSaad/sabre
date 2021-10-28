@@ -32,9 +32,33 @@ func emit<T: type>(:TriangleStream<T>, :T)
 
 @hlsl_method
 @builtin {
+	hlsl = "Append"
+}
+func emit<T: type>(:LineStream<T>, :T)
+
+@hlsl_method
+@builtin {
+	hlsl = "Append"
+}
+func emit<T: type>(:PointStream<T>, :T)
+
+@hlsl_method
+@builtin {
 	hlsl = "RestartStrip"
 }
 func end_primitive<T: type>(:TriangleStream<T>)
+
+@hlsl_method
+@builtin {
+	hlsl = "RestartStrip"
+}
+func end_primitive<T: type>(:LineStream<T>)
+
+@hlsl_method
+@builtin {
+	hlsl = "RestartStrip"
+}
+func end_primitive<T: type>(:PointStream<T>)
 
 @builtin
 func normalize(:vec4): vec4
