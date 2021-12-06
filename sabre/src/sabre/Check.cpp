@@ -590,7 +590,7 @@ namespace sabre
 			err.loc = instantiation_loc;
 			err.msg = mn::strf(
 				"type '{}' is not a template type",
-				base_type
+				*base_type
 			);
 			unit_err(self.unit, err);
 			return base_type;
@@ -660,7 +660,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = atom.array.static_size->loc;
-						err.msg = mn::strf("array count should be integer but found '{}'", array_count_type);
+						err.msg = mn::strf("array count should be integer but found '{}'", *array_count_type);
 						unit_err(self.unit, err);
 					}
 
@@ -810,7 +810,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->loc;
-					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
+					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 					failed = true;
 				}
@@ -825,7 +825,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->loc;
-					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
+					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 					failed = true;
 				}
@@ -849,7 +849,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->loc;
-					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
+					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 					failed = true;
 				}
@@ -864,7 +864,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->loc;
-					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
+					err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 					failed = true;
 				}
@@ -879,7 +879,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->binary.left->loc;
-				err.msg = mn::strf("type '{}' doesn't support bitwise operations", lhs_type);
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", *lhs_type);
 				unit_err(self.unit, err);
 			}
 
@@ -887,7 +887,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->binary.right->loc;
-				err.msg = mn::strf("type '{}' doesn't support bitwise operations", rhs_type);
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", *rhs_type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -898,7 +898,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->binary.left->loc;
-				err.msg = mn::strf("type '{}' doesn't support bitwise operations", lhs_type);
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", *lhs_type);
 				unit_err(self.unit, err);
 			}
 
@@ -906,7 +906,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->binary.right->loc;
-				err.msg = mn::strf("type '{}' doesn't support bitwise operations", rhs_type);
+				err.msg = mn::strf("type '{}' doesn't support bitwise operations", *rhs_type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -926,14 +926,14 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->binary.right->loc;
-					err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", rhs_type);
+					err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", *rhs_type);
 					unit_err(self.unit, err);
 				}
 				else if (type_width(lhs_type) != type_width(rhs_type))
 				{
 					Err err{};
 					err.loc = e->binary.right->loc;
-					err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", lhs_type, rhs_type);
+					err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -941,7 +941,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->loc;
-				err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", lhs_type, rhs_type);
+				err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", *lhs_type, *rhs_type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -953,7 +953,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->binary.left->loc;
-				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", lhs_type);
+				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", *lhs_type);
 				unit_err(self.unit, err);
 			}
 
@@ -961,7 +961,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->binary.right->loc;
-				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", rhs_type);
+				err.msg = mn::strf("logical operators only work on boolean types, but found '{}'", *rhs_type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -1027,7 +1027,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->unary.base->loc;
-				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, type);
+				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, *type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -1038,7 +1038,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->unary.base->loc;
-				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, type);
+				err.msg = mn::strf("'{}' is only allowed for numeric types, but expression type is '{}'", e->unary.op.str, *type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -1048,7 +1048,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->unary.base->loc;
-				err.msg = mn::strf("logical not operator is only allowed for boolean types, but expression type is '{}'", e->unary.op.str, type);
+				err.msg = mn::strf("logical not operator is only allowed for boolean types, but expression type is '{}'", e->unary.op.str, *type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -1058,7 +1058,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = e->unary.base->loc;
-				err.msg = mn::strf("type '{}' cannot be used in a bit not operation", type);
+				err.msg = mn::strf("type '{}' cannot be used in a bit not operation", *type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -1093,7 +1093,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = arg_loc;
-					err.msg = mn::strf("type '{}' is ambiguous, we already deduced it to be '{}' but we have another guess which is '{}'", expected_type, it->value, arg_type);
+					err.msg = mn::strf("type '{}' is ambiguous, we already deduced it to be '{}' but we have another guess which is '{}'", *expected_type, *it->value, *arg_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -1233,7 +1233,7 @@ namespace sabre
 						{
 							if (i > 0)
 								err.msg = mn::strf(err.msg, "\n");
-							err.msg = mn::strf(err.msg, "  - {} = {}", instantiated_type->template_base_type->template_args[i], instantiated_type->template_base_args[i]);
+							err.msg = mn::strf(err.msg, "  - {} = {}", *instantiated_type->template_base_type->template_args[i], *instantiated_type->template_base_args[i]);
 						}
 						unit_err(self.unit, err);
 					}
@@ -1248,7 +1248,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->call.args[i]->loc;
-					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, type->as_func.sign.args.types[i], arg_type);
+					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, *type->as_func.sign.args.types[i], *arg_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -1299,7 +1299,7 @@ namespace sabre
 						msg = mn::strf(msg, ", ");
 
 					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-					msg = mn::strf(msg, ":{}", arg_type);
+					msg = mn::strf(msg, ":{}", *arg_type);
 				}
 				msg = mn::strf(msg, ")' in the overload set:");
 
@@ -1310,7 +1310,7 @@ namespace sabre
 						msg,
 						"\n  {}. {} defined in {}:{}:{}",
 						overload_i++,
-						overload->type,
+						*overload->type,
 						overload->loc.file->filepath,
 						overload->loc.pos.line,
 						overload->loc.pos.col
@@ -1362,7 +1362,7 @@ namespace sabre
 		{
 			Err err{};
 			err.loc = e->loc;
-			err.msg = mn::strf("cannot cast '{}' to '{}'", from_type, to_type);
+			err.msg = mn::strf("cannot cast '{}' to '{}'", *from_type, *to_type);
 			unit_err(self.unit, err);
 		}
 
@@ -1560,7 +1560,7 @@ namespace sabre
 		{
 			Err err{};
 			err.loc = e->loc;
-			err.msg = mn::strf("type '{}' is not array", base_type);
+			err.msg = mn::strf("type '{}' is not array", *base_type);
 			unit_err(self.unit, err);
 			return base_type;
 		}
@@ -1571,7 +1571,7 @@ namespace sabre
 		{
 			Err err{};
 			err.loc = e->indexed.index->loc;
-			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", index_type);
+			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", *index_type);
 			unit_err(self.unit, err);
 			return base_type->array.base;
 		}
@@ -1669,7 +1669,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = field.selector_name->loc;
-						err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, field.selector_name->atom.tkn.str);
+						err.msg = mn::strf("type '{}' doesn't have field '{}'", *type_it, field.selector_name->atom.tkn.str);
 						unit_err(self.unit, err);
 						failed = true;
 						break;
@@ -1682,7 +1682,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = field.selector_name->loc;
-						err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, field.selector_name->atom.tkn.str);
+						err.msg = mn::strf("type '{}' doesn't have field '{}'", *type_it, field.selector_name->atom.tkn.str);
 						unit_err(self.unit, err);
 						failed = true;
 						break;
@@ -1694,7 +1694,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = field.selector_name->loc;
-					err.msg = mn::strf("type '{}' doesn't have field '{}'", type_it, field.selector_name->atom.tkn.str);
+					err.msg = mn::strf("type '{}' doesn't have field '{}'", *type_it, field.selector_name->atom.tkn.str);
 					unit_err(self.unit, err);
 					failed = true;
 					break;
@@ -1714,7 +1714,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = field.value->loc;
-						err.msg = mn::strf("type '{}' contains only {} fields", type_it, type_it->vec.width);
+						err.msg = mn::strf("type '{}' contains only {} fields", *type_it, type_it->vec.width);
 						unit_err(self.unit, err);
 						failed = true;
 					}
@@ -1731,7 +1731,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = field.value->loc;
-						err.msg = mn::strf("type '{}' contains only {} fields", type_it, type_it->struct_type.fields.count);
+						err.msg = mn::strf("type '{}' contains only {} fields", *type_it, type_it->struct_type.fields.count);
 						unit_err(self.unit, err);
 						failed = true;
 					}
@@ -1749,7 +1749,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = field.value->loc;
-						err.msg = mn::strf("array '{}' contains only {} elements", type_it, type_it->array.count);
+						err.msg = mn::strf("array '{}' contains only {} elements", *type_it, type_it->array.count);
 						unit_err(self.unit, err);
 						failed = true;
 					}
@@ -1758,7 +1758,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = field.value->loc;
-					err.msg = mn::strf("type '{}' doesn't have fields", type_it);
+					err.msg = mn::strf("type '{}' doesn't have fields", *type_it);
 					unit_err(self.unit, err);
 					failed = true;
 				}
@@ -1810,7 +1810,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = field.value->loc;
-						err.msg = mn::strf("type mismatch in compound literal value, type '{}' cannot be constructed from '{}'", type, value_type);
+						err.msg = mn::strf("type mismatch in compound literal value, type '{}' cannot be constructed from '{}'", *type, *value_type);
 						unit_err(self.unit, err);
 						break;
 					}
@@ -1828,7 +1828,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = field.value->loc;
-					err.msg = mn::strf("type mismatch in compound literal value, selector type '{}' but expression type is '{}'", type_it, value_type);
+					err.msg = mn::strf("type mismatch in compound literal value, selector type '{}' but expression type is '{}'", *type_it, *value_type);
 					unit_err(self.unit, err);
 					break;
 				}
@@ -1990,7 +1990,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->loc;
-					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", res, expr_type);
+					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", *res, *expr_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -2031,7 +2031,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = field.name.loc;
-					err.msg = mn::strf("field type '{}' cannot be used for uniform", field.type);
+					err.msg = mn::strf("field type '{}' cannot be used for uniform", *field.type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -2040,7 +2040,7 @@ namespace sabre
 		else if (type_is_unbounded_array(type))
 		{
 			Err err{};
-			err.msg = mn::strf("'{}' unbounded arrays cannot be used in uniforms", type);
+			err.msg = mn::strf("'{}' unbounded arrays cannot be used in uniforms", *type);
 			unit_err(self.unit, err);
 			return false;
 		}
@@ -2107,7 +2107,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = e->loc;
-					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", res, expr_type);
+					err.msg = mn::strf("type mismatch expected '{}' but found '{}'", *res, *expr_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -2122,7 +2122,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = symbol_location(sym);
-				err.msg = mn::strf("uniform variable type '{}' contains types which cannot be used in a uniform", res);
+				err.msg = mn::strf("uniform variable type '{}' contains types which cannot be used in a uniform", *res);
 				unit_err(self.unit, err);
 			}
 			else
@@ -2285,7 +2285,7 @@ namespace sabre
 		{
 			Err err{};
 			err.loc = s->return_stmt->loc;
-			err.msg = mn::strf("incorrect return type '{}' expected '{}'", ret, expected);
+			err.msg = mn::strf("incorrect return type '{}' expected '{}'", *ret, *expected);
 			unit_err(self.unit, err);
 		}
 
@@ -2311,7 +2311,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = s->if_stmt.cond[i]->loc;
-				err.msg = mn::strf("if condition type '{}' is not a boolean", cond_type);
+				err.msg = mn::strf("if condition type '{}' is not a boolean", *cond_type);
 				unit_err(self.unit, err);
 			}
 			_typer_resolve_stmt(self, s->if_stmt.body[i]);
@@ -2338,7 +2338,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = s->for_stmt.cond->loc;
-					err.msg = mn::strf("for loop condition type '{}' is not a boolean", cond_type);
+					err.msg = mn::strf("for loop condition type '{}' is not a boolean", *cond_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -2387,7 +2387,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = s->loc;
-					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", lhs_type, rhs_type);
+					err.msg = mn::strf("width mismatch in multiply operation '{}' * '{}'", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -2402,14 +2402,14 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = s->assign_stmt.rhs[i]->loc;
-						err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", rhs_type);
+						err.msg = mn::strf("type '{}' cannot be used in a bitwise shift operation", *rhs_type);
 						unit_err(self.unit, err);
 					}
 					else if (type_width(lhs_type) != type_width(rhs_type))
 					{
 						Err err{};
 						err.loc = s->assign_stmt.rhs[i]->loc;
-						err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", lhs_type, rhs_type);
+						err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", *lhs_type, *rhs_type);
 						unit_err(self.unit, err);
 					}
 				}
@@ -2417,7 +2417,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = s->assign_stmt.rhs[i]->loc;
-					err.msg = mn::strf("type mismatch in assignment statement, expected '{}' but found '{}'", lhs_type, rhs_type);
+					err.msg = mn::strf("type mismatch in assignment statement, expected '{}' but found '{}'", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
 				}
 			}
@@ -2755,7 +2755,7 @@ namespace sabre
 						{
 							Err err{};
 							err.loc = field.default_value->loc;
-							err.msg = mn::strf("type mismatch in default value which has type '{}' but field type is '{}'", default_value_type, field_type);
+							err.msg = mn::strf("type mismatch in default value which has type '{}' but field type is '{}'", *default_value_type, *field_type);
 							unit_err(self.unit, err);
 						}
 
@@ -2838,7 +2838,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = decl_field.value->loc;
-						err.msg = mn::strf("enum type should be integer, but instead we found '{}'", value_type);
+						err.msg = mn::strf("enum type should be integer, but instead we found '{}'", *value_type);
 						unit_err(self.unit, err);
 						continue;
 					}
@@ -3069,7 +3069,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = cond_expr->loc;
-					err.msg = mn::strf("if condition type '{}' is not a boolean", cond_type);
+					err.msg = mn::strf("if condition type '{}' is not a boolean", *cond_type);
 					unit_err(self.unit, err);
 				}
 
@@ -3136,7 +3136,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = struct_field.name.loc;
-				err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
+				err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
 				unit_err(self.unit, err);
 			}
 			struct_type_index += field.names.count;
@@ -3195,7 +3195,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = err_loc;
-				err.msg = mn::strf("type '{}' cannot be used as shader input", arg_type);
+				err.msg = mn::strf("type '{}' cannot be used as shader input", *arg_type);
 				unit_err(self.unit, err);
 			}
 			type_index += arg.names.count;
@@ -3210,7 +3210,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = decl->loc;
-				err.msg = mn::strf("geometry shader return type should be void, but found '{}'", return_type);
+				err.msg = mn::strf("geometry shader return type should be void, but found '{}'", *return_type);
 				unit_err(self.unit, err);
 			}
 		}
@@ -3230,7 +3230,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = struct_field.name.loc;
-						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", struct_field.type);
+						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", *struct_field.type);
 						unit_err(self.unit, err);
 					}
 				}
@@ -3241,7 +3241,7 @@ namespace sabre
 					{
 						Err err{};
 						err.loc = struct_field.name.loc;
-						err.msg = mn::strf("system depth type is '{}', but it should be 'float'", struct_field.type);
+						err.msg = mn::strf("system depth type is '{}', but it should be 'float'", *struct_field.type);
 						unit_err(self.unit, err);
 					}
 				}
@@ -3250,7 +3250,7 @@ namespace sabre
 				{
 					Err err{};
 					err.loc = struct_field.name.loc;
-					err.msg = mn::strf("type '{}' cannot be used as shader input", struct_field.type);
+					err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
 					unit_err(self.unit, err);
 				}
 				struct_type_index += field.names.count;
@@ -3270,7 +3270,7 @@ namespace sabre
 			{
 				Err err{};
 				err.loc = err_loc;
-				err.msg = mn::strf("type '{}' cannot be used as shader output", return_type);
+				err.msg = mn::strf("type '{}' cannot be used as shader output", *return_type);
 				unit_err(self.unit, err);
 			}
 		}

@@ -161,9 +161,9 @@ namespace sabre
 			{
 				if (i > 0)
 					name = mn::strf(name, ", ");
-				name = mn::strf(name, ":{}", t->as_func.sign.args.types[i]);
+				name = mn::strf(name, ":{}", *(t->as_func.sign.args.types[i]));
 			}
-			name = mn::strf(name, "):{}", t->as_func.sign.return_type);
+			name = mn::strf(name, "):{}", *t->as_func.sign.return_type);
 			return name;
 		}
 		else if (t->kind == Type::KIND_STRUCT)
@@ -190,9 +190,9 @@ namespace sabre
 				{
 					if (i > 0)
 						name = mn::strf(name, ", ");
-					name = mn::strf(name, ":{}", overload->type->as_func.sign.args.types[i]);
+					name = mn::strf(name, ":{}", *overload->type->as_func.sign.args.types[i]);
 				}
-				name = mn::strf(name, "):{}", overload->type->as_func.sign.return_type);
+				name = mn::strf(name, "):{}", *overload->type->as_func.sign.return_type);
 			}
 			return name;
 		}

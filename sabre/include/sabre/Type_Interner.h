@@ -1005,12 +1005,13 @@ namespace sabre
 namespace fmt
 {
 	template<>
-	struct formatter<sabre::Type*> {
+	struct formatter<sabre::Type> {
 		template <typename ParseContext>
 		constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
 
 		template <typename FormatContext>
-		auto format(const sabre::Type* t, FormatContext &ctx) {
+		auto format(const sabre::Type& targ, FormatContext &ctx) {
+			auto t = &targ;
 			if (t == sabre::type_void)
 			{
 				return format_to(ctx.out(), "void");
@@ -1117,7 +1118,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_args[i]);
+						format_to(ctx.out(), "{}", *t->template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1126,9 +1127,9 @@ namespace fmt
 				{
 					if (i > 0)
 						format_to(ctx.out(), ", ");
-					format_to(ctx.out(), ":{}", t->as_func.sign.args.types[i]);
+					format_to(ctx.out(), ":{}", *t->as_func.sign.args.types[i]);
 				}
-				format_to(ctx.out(), "):{}", t->as_func.sign.return_type);
+				format_to(ctx.out(), "):{}", *t->as_func.sign.return_type);
 				return ctx.out();
 			}
 			else if (t->kind == sabre::Type::KIND_STRUCT)
@@ -1141,7 +1142,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_args[i]);
+						format_to(ctx.out(), "{}", *t->template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1152,7 +1153,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->template_base_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1174,9 +1175,9 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), ":{}", overload->type->as_func.sign.args.types[i]);
+						format_to(ctx.out(), ":{}", *overload->type->as_func.sign.args.types[i]);
 					}
-					format_to(ctx.out(), "):{}", overload->type->as_func.sign.return_type);
+					format_to(ctx.out(), "):{}", *overload->type->as_func.sign.return_type);
 				}
 				return ctx.out();
 			}
@@ -1200,9 +1201,9 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_ARRAY)
 			{
 				if (t->array.count == -1)
-					return format_to(ctx.out(), "[]{}", t->array.base);
+					return format_to(ctx.out(), "[]{}", *t->array.base);
 				else
-					return format_to(ctx.out(), "[{}]{}", t->array.count, t->array.base);
+					return format_to(ctx.out(), "[{}]{}", t->array.count, *t->array.base);
 			}
 			else if (t->kind == sabre::Type::KIND_ENUM)
 			{
@@ -1226,7 +1227,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_args[i]);
+						format_to(ctx.out(), "{}", *t->template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1237,7 +1238,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->template_base_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1253,7 +1254,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_args[i]);
+						format_to(ctx.out(), "{}", *t->template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1264,7 +1265,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->template_base_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1280,7 +1281,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_args[i]);
+						format_to(ctx.out(), "{}", *t->template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1291,7 +1292,7 @@ namespace fmt
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->template_base_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
