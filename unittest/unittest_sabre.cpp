@@ -33,7 +33,7 @@ load_out_hlsl_data(const mn::Str& filepath)
 
 TEST_CASE("[sabre]: lex")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "lex");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -53,7 +53,7 @@ TEST_CASE("[sabre]: lex")
 
 		auto [answer, err] = sabre::scan_file(filepath, f.name);
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 
 		CHECK(answer == out_data);
 		if (answer != out_data)
@@ -67,7 +67,7 @@ TEST_CASE("[sabre]: lex")
 
 TEST_CASE("[sabre]: parse-expr")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "expr");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -87,7 +87,7 @@ TEST_CASE("[sabre]: parse-expr")
 
 		auto [answer, err] = sabre::parse_expr_from_file(filepath, f.name);
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 
 		auto match = answer == out_data;
 		CHECK(match == true);
@@ -101,7 +101,7 @@ TEST_CASE("[sabre]: parse-expr")
 
 TEST_CASE("[sabre]: parse-stmt")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "stmt");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -121,7 +121,7 @@ TEST_CASE("[sabre]: parse-stmt")
 
 		auto [answer, err] = sabre::parse_stmt_from_file(filepath, f.name);
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 
 		auto match = answer == out_data;
 		CHECK(match == true);
@@ -135,7 +135,7 @@ TEST_CASE("[sabre]: parse-stmt")
 
 TEST_CASE("[sabre]: parse-decl")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "decl");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -155,7 +155,7 @@ TEST_CASE("[sabre]: parse-decl")
 
 		auto [answer, err] = sabre::parse_decl_from_file(filepath, f.name);
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 
 		auto match = answer == out_data;
 		CHECK(match == true);
@@ -169,7 +169,7 @@ TEST_CASE("[sabre]: parse-decl")
 
 TEST_CASE("[sabre]: typecheck")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "check");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -189,7 +189,7 @@ TEST_CASE("[sabre]: typecheck")
 
 		auto [answer, err] = sabre::check_file(filepath, f.name, mn::str_lit(""), {});
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::str_replace(answer, "\r\n", "\n");
 		mn::str_trim(answer);
 
@@ -206,7 +206,7 @@ TEST_CASE("[sabre]: typecheck")
 
 TEST_CASE("[sabre]: glsl")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "codegen");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -233,7 +233,7 @@ TEST_CASE("[sabre]: glsl")
 
 		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit(""), {});
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::str_replace(answer, "\r\n", "\n");
 		mn::str_trim(answer);
 
@@ -249,7 +249,7 @@ TEST_CASE("[sabre]: glsl")
 
 TEST_CASE("[sabre]: hlsl")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "codegen");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -276,7 +276,7 @@ TEST_CASE("[sabre]: hlsl")
 
 		auto [answer, err] = sabre::hlsl_gen_from_file(filepath, f.name, mn::str_lit(""), {});
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::str_replace(answer, "\r\n", "\n");
 		mn::str_trim(answer);
 
@@ -292,7 +292,7 @@ TEST_CASE("[sabre]: hlsl")
 
 TEST_CASE("[sabre]: glsl-shader")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "codegen-shader");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -319,7 +319,7 @@ TEST_CASE("[sabre]: glsl-shader")
 
 		auto [answer, err] = sabre::glsl_gen_from_file(filepath, f.name, mn::str_lit("main"), {});
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::str_replace(answer, "\r\n", "\n");
 		mn::str_trim(answer);
 
@@ -335,7 +335,7 @@ TEST_CASE("[sabre]: glsl-shader")
 
 TEST_CASE("[sabre]: hlsl-shader")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "codegen-shader");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -362,7 +362,7 @@ TEST_CASE("[sabre]: hlsl-shader")
 
 		auto [answer, err] = sabre::hlsl_gen_from_file(filepath, f.name, mn::str_lit("main"), {});
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::str_replace(answer, "\r\n", "\n");
 		mn::str_trim(answer);
 
@@ -378,7 +378,7 @@ TEST_CASE("[sabre]: hlsl-shader")
 
 TEST_CASE("[sabre]: reflect")
 {
-	mn_defer(mn::memory::tmp()->clear_all());
+	mn_defer{mn::memory::tmp()->clear_all();};
 
 	auto base_dir = mn::path_join(mn::str_tmp(), DATA_DIR, "reflect");
 	auto files = mn::path_entries(base_dir, mn::memory::tmp());
@@ -398,7 +398,7 @@ TEST_CASE("[sabre]: reflect")
 
 		auto [answer, err] = sabre::reflect_file(filepath, mn::str_lit("main"), {});
 		CHECK(err == false);
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::str_replace(answer, "\r\n", "\n");
 		mn::str_trim(answer);
 

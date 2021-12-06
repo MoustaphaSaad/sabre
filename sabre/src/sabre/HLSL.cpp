@@ -1480,7 +1480,7 @@ namespace sabre
 	_hlsl_gen_for_stmt(HLSL& self, Stmt* s)
 	{
 		_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, s));
-		mn_defer(_hlsl_leave_scope(self));
+		mn_defer{_hlsl_leave_scope(self);};
 
 		mn::print_to(self.out, "{{ // for scope");
 		++self.indent;
@@ -1638,7 +1638,7 @@ namespace sabre
 
 		if (d->func_decl.body != nullptr)
 			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
-		mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
+		mn_defer{if (d->func_decl.body) _hlsl_leave_scope(self);};
 
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)
@@ -2133,7 +2133,7 @@ namespace sabre
 
 		if (d->func_decl.body != nullptr)
 			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
-		mn_defer(if (d->func_decl.body) _hlsl_leave_scope(self));
+		mn_defer{if (d->func_decl.body) _hlsl_leave_scope(self);};
 
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)

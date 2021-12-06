@@ -232,7 +232,7 @@ namespace sabre
 		// enter function scope
 		if (d->func_decl.body != nullptr)
 			_spirv_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
-		mn_defer(if (d->func_decl.body) _spirv_leave_scope(self));
+		mn_defer{if (d->func_decl.body) _spirv_leave_scope(self);};
 
 		// add function arguments to value table
 		auto vt = _spirv_current_value_table(self);
@@ -249,13 +249,13 @@ namespace sabre
 
 		// enter spirv func
 		_spirv_enter_func(self, func);
-		mn_defer(_spirv_leave_func(self));
+		mn_defer{_spirv_leave_func(self);};
 
 		if (d->func_decl.body)
 		{
 			auto entry = spirv::func_basic_block_new(func);
 			_spirv_enter_bb(self, entry);
-			mn_defer(_spirv_leave_bb(self));
+			mn_defer{_spirv_leave_bb(self);};
 
 			_spirv_stmt_gen(self, d->func_decl.body);
 		}

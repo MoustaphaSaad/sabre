@@ -576,7 +576,7 @@ namespace sabre
 	expr_value_to_json(Expr_Value a)
 	{
 		auto checkpoint = mn::allocator_arena_checkpoint(mn::memory::tmp());
-		mn_defer(mn::allocator_arena_restore(mn::memory::tmp(), checkpoint));
+		mn_defer{mn::allocator_arena_restore(mn::memory::tmp(), checkpoint);};
 
 		if (a.type == nullptr)
 		{

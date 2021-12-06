@@ -2216,7 +2216,7 @@ namespace sabre
 		{
 			// enter file scope to make import symbols visible
 			_typer_enter_scope(self, decl->loc.file->file_scope);
-			mn_defer(_typer_leave_scope(self));
+			mn_defer{_typer_leave_scope(self);};
 
 			decl_type = _typer_resolve_func_decl(self, decl);
 			_typer_add_func_overload(self, type, decl);
@@ -2938,13 +2938,13 @@ namespace sabre
 		bool create_sub_typer = self.unit != sym->package;
 		if (create_sub_typer)
 			self = typer_new(sym->package);
-		mn_defer({
+		mn_defer{
 			if (create_sub_typer)
 			{
 				typer_free(self);
 				self = old_typer;
 			}
-		});
+		};
 
 		sym->state = STATE_RESOLVING;
 

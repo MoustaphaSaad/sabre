@@ -111,10 +111,10 @@ int main(int argc, char** argv)
 {
 	auto compiler_folder = mn::path_absolute(mn::file_directory(argv[0], mn::memory::tmp()));
 	auto std_library_folder = mn::path_join(compiler_folder, "std");
-	mn_defer(mn::str_free(std_library_folder));
+	mn_defer{mn::str_free(std_library_folder);};
 
 	Args args{};
-	mn_defer(args_free(args));
+	mn_defer{args_free(args);};
 
 	if (args_parse(args, argc, argv) == false)
 	{
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -169,7 +169,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -209,7 +209,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -249,7 +249,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -269,7 +269,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -289,7 +289,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}
@@ -309,7 +309,7 @@ int main(int argc, char** argv)
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
-		mn_defer(mn::str_free(answer));
+		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
 	}

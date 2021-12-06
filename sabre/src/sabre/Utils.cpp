@@ -35,7 +35,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, mn::str_lit(""));
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		if (unit_scan(unit))
 			return unit_dump_tokens(unit);
@@ -50,7 +50,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, mn::str_lit(""));
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		_unit_change_paths(unit, fake_path);
 
@@ -58,7 +58,7 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto parser = parser_new(unit->root_file);
-		mn_defer(parser_free(parser));
+		mn_defer{parser_free(parser);};
 
 		auto expr = parser_parse_expr(parser);
 		if (expr == nullptr)
@@ -68,7 +68,7 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
-		mn_defer(ast_printer_free(printer));
+		mn_defer{ast_printer_free(printer);};
 
 		ast_printer_print_expr(printer, expr);
 
@@ -82,7 +82,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, mn::str_lit(""));
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		_unit_change_paths(unit, fake_path);
 
@@ -90,7 +90,7 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto parser = parser_new(unit->root_file);
-		mn_defer(parser_free(parser));
+		mn_defer{parser_free(parser);};
 
 		auto stmt = parser_parse_stmt(parser);
 		if (stmt == nullptr)
@@ -100,7 +100,7 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
-		mn_defer(ast_printer_free(printer));
+		mn_defer{ast_printer_free(printer);};
 
 		ast_printer_print_stmt(printer, stmt);
 
@@ -114,7 +114,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, mn::str_lit(""));
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		_unit_change_paths(unit, fake_path);
 
@@ -122,7 +122,7 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto parser = parser_new(unit->root_file);
-		mn_defer(parser_free(parser));
+		mn_defer{parser_free(parser);};
 
 		auto decl = parser_parse_decl(parser);
 		if (decl == nullptr)
@@ -132,7 +132,7 @@ namespace sabre
 			return unit_dump_errors(unit);
 
 		auto printer = ast_printer_new();
-		mn_defer(ast_printer_free(printer));
+		mn_defer{ast_printer_free(printer);};
 
 		ast_printer_print_decl(printer, decl);
 
@@ -146,7 +146,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, entry);
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
 			if (auto err = unit_add_library_collection(unit, name, path))
@@ -171,7 +171,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, entry);
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
 			if (auto err = unit_add_library_collection(unit, name, path))
@@ -202,7 +202,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, entry);
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
 			if (auto err = unit_add_library_collection(unit, name, path))
@@ -233,7 +233,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, entry);
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
 			if (auto err = unit_add_library_collection(unit, name, path))
@@ -260,7 +260,7 @@ namespace sabre
 			return mn::Err{ "file '{}' not found", filepath };
 
 		auto unit = unit_from_file(filepath, entry);
-		mn_defer(unit_free(unit));
+		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
 			if (auto err = unit_add_library_collection(unit, name, path))

@@ -854,7 +854,7 @@ namespace sabre
 	_glsl_gen_for_stmt(GLSL& self, Stmt* s)
 	{
 		_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, s));
-		mn_defer(_glsl_leave_scope(self));
+		mn_defer{_glsl_leave_scope(self);};
 
 		mn::print_to(self.out, "{{ // for scope");
 		++self.indent;
@@ -987,7 +987,7 @@ namespace sabre
 
 		if (d->func_decl.body != nullptr)
 			_glsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
-		mn_defer(if (d->func_decl.body) _glsl_leave_scope(self));
+		mn_defer{if (d->func_decl.body) _glsl_leave_scope(self);};
 
 		size_t i = 0;
 		for (auto arg: d->func_decl.args)

@@ -422,7 +422,7 @@ namespace sabre
 	unit_file_parse(Unit_File* self)
 	{
 		auto parser = parser_new(self);
-		mn_defer(parser_free(parser));
+		mn_defer{parser_free(parser);};
 
 		auto start = _capture_timepoint();
 		self->package_name = parser_parse_package(parser);
@@ -466,7 +466,7 @@ namespace sabre
 	unit_file_resolve_package(Unit_File* self, const mn::Str& path)
 	{
 		auto old_pwd = mn::path_current(mn::memory::tmp());
-		mn_defer(mn::path_current_change(old_pwd));
+		mn_defer{mn::path_current_change(old_pwd);};
 
 		auto unit = self->parent_package->parent_unit;
 
@@ -661,7 +661,7 @@ namespace sabre
 			auto start = _capture_timepoint();
 			bool has_errors = false;
 			auto typer = typer_new(self);
-			mn_defer(typer_free(typer));
+			mn_defer{typer_free(typer);};
 			typer_check(typer);
 			if (unit_package_has_errors(self))
 			{
@@ -988,7 +988,7 @@ namespace sabre
 		}
 
 		auto json_result = mn::json::value_object_new();
-		mn_defer(mn::json::value_free(json_result));
+		mn_defer{mn::json::value_free(json_result);};
 
 		mn::json::value_object_insert(json_result, "package", mn::json::value_string_new(self->root_package->name.str));
 		mn::json::value_object_insert(json_result, "entry", json_entry);
@@ -1033,10 +1033,10 @@ namespace sabre
 
 		auto start = _capture_timepoint();
 		auto stream = mn::memory_stream_new(allocator);
-		mn_defer(mn::memory_stream_free(stream));
+		mn_defer{mn::memory_stream_free(stream);};
 
 		auto glsl = glsl_new(self->root_package, stream);
-		mn_defer(glsl_free(glsl));
+		mn_defer{glsl_free(glsl);};
 
 		if (entry)
 			glsl_gen_entry(glsl, entry);
@@ -1066,10 +1066,10 @@ namespace sabre
 
 		auto start = _capture_timepoint();
 		auto stream = mn::memory_stream_new(allocator);
-		mn_defer(mn::memory_stream_free(stream));
+		mn_defer{mn::memory_stream_free(stream);};
 
 		auto hlsl = hlsl_new(self->root_package, stream);
-		mn_defer(hlsl_free(hlsl));
+		mn_defer{hlsl_free(hlsl);};
 
 		if (entry)
 			hlsl_gen_entry(hlsl, entry);
@@ -1091,10 +1091,10 @@ namespace sabre
 
 		auto start = _capture_timepoint();
 		auto stream = mn::memory_stream_new(allocator);
-		mn_defer(mn::memory_stream_free(stream));
+		mn_defer{mn::memory_stream_free(stream);};
 
 		auto bc = spirv_new(self->root_package);
-		mn_defer(spirv_free(bc));
+		mn_defer{spirv_free(bc);};
 
 		spirv_gen(bc);
 		auto end = _capture_timepoint();
@@ -1103,7 +1103,7 @@ namespace sabre
 		#endif
 
 		auto ir_text = spirv::ir_text_new(stream, bc.out);
-		mn_defer(spirv::ir_text_free(ir_text));
+		mn_defer{spirv::ir_text_free(ir_text);};
 
 		spirv::ir_text_gen(ir_text);
 
@@ -1114,7 +1114,7 @@ namespace sabre
 	unit_dump_tokens(Unit* self, mn::Allocator allocator)
 	{
 		auto out = mn::memory_stream_new(allocator);
-		mn_defer(mn::memory_stream_free(out));
+		mn_defer{mn::memory_stream_free(out);};
 
 		for (auto package: self->packages)
 			unit_package_dump_tokens(package, out);
@@ -1126,7 +1126,7 @@ namespace sabre
 	unit_dump_errors(Unit* self, mn::Allocator allocator)
 	{
 		auto out = mn::memory_stream_new(allocator);
-		mn_defer(mn::memory_stream_free(out));
+		mn_defer{mn::memory_stream_free(out);};
 
 		for (auto package: self->packages)
 			unit_package_dump_errors(package, out);
