@@ -61,8 +61,6 @@ func pixel(input: PS_Input): PS_Output {
 	var diffuse_factor = std.max(std.dot(normal, dir), 0.0);
 	var diffuse_color = diffuse_factor * light.color;
 
-	var diffuse_factor = normal -> std.dot(dir) -> std.max(0.0);
-
 	var output: PS_Output;
 	output.color.rgb = (ambient_color.rgb + diffuse_color.rgb) * model.color.rgb;
 	output.color.a = model.color.a;

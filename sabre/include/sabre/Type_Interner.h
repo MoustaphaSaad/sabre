@@ -224,7 +224,7 @@ namespace sabre
 		size_t alignment;
 		mn::Buf<Type*> template_args;
 		mn::Buf<size_t> template_args_index;
-		// we use this for printing types, it's easier to track the entire list of the type arguments
+		// we use this for printing types among other things, it's easier to track the entire list of the type arguments
 		// while we're specializing the type itself
 		mn::Buf<Type*> full_template_args;
 
