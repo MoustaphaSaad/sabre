@@ -276,6 +276,28 @@ namespace sabre
 		return mn::buf_top(self.scope_stack);
 	}
 
+	inline static void
+	_glsl_loop_post_stmt_enter(GLSL& self, Stmt* post)
+	{
+		mn::buf_push(self.loop_post_stmt_stack, post);
+	}
+
+	inline static void
+	_glsl_loop_post_stmt_leave(GLSL& self)
+	{
+		mn::buf_pop(self.loop_post_stmt_stack);
+	}
+
+	inline static Stmt*
+	_glsl_current_loop_post_stmt(GLSL& self)
+	{
+		if (self.loop_post_stmt_stack.count > 0)
+		{
+			return mn::buf_top(self.loop_post_stmt_stack);
+		}
+		return nullptr;
+	}
+
 	inline static Symbol*
 	_glsl_find_symbol(GLSL& self, const char* name)
 	{
@@ -779,6 +801,21 @@ namespace sabre
 		}
 	}
 
+	inline static bool
+	_glsl_add_semicolon_after(GLSL& self, Stmt* s)
+	{
+		if (s->kind == Stmt::KIND_BREAK ||
+			s->kind == Stmt::KIND_CONTINUE ||
+			s->kind == Stmt::KIND_DISCARD ||
+			s->kind == Stmt::KIND_RETURN ||
+			s->kind == Stmt::KIND_ASSIGN ||
+			s->kind == Stmt::KIND_EXPR)
+		{
+			return true;
+		}
+		return false;
+	}
+
 	inline static void
 	_glsl_gen_break_stmt(GLSL& self, Stmt* s)
 	{
@@ -788,6 +825,15 @@ namespace sabre
 	inline static void
 	_glsl_gen_continue_stmt(GLSL& self, Stmt* s)
 	{
+		if (auto post = _glsl_current_loop_post_stmt(self))
+		{
+			glsl_stmt_gen(self, post);
+			if (_glsl_add_semicolon_after(self, post))
+			{
+				mn::print_to(self.out, ";");
+			}
+			_glsl_newline(self);
+		}
 		mn::print_to(self.out, "continue");
 	}
 
@@ -835,21 +881,6 @@ namespace sabre
 		}
 	}
 
-	inline static bool
-	_glsl_add_semicolon_after(GLSL& self, Stmt* s)
-	{
-		if (s->kind == Stmt::KIND_BREAK ||
-			s->kind == Stmt::KIND_CONTINUE ||
-			s->kind == Stmt::KIND_DISCARD ||
-			s->kind == Stmt::KIND_RETURN ||
-			s->kind == Stmt::KIND_ASSIGN ||
-			s->kind == Stmt::KIND_EXPR)
-		{
-			return true;
-		}
-		return false;
-	}
-
 	inline static void
 	_glsl_gen_for_stmt(GLSL& self, Stmt* s)
 	{
@@ -880,6 +911,7 @@ namespace sabre
 
 		_glsl_newline(self);
 		mn::print_to(self.out, "// for body");
+		_glsl_loop_post_stmt_enter(self, s->for_stmt.post);
 		for (auto stmt: s->for_stmt.body->block_stmt)
 		{
 			_glsl_newline(self);
@@ -889,6 +921,7 @@ namespace sabre
 				mn::print_to(self.out, ";");
 			}
 		}
+		_glsl_loop_post_stmt_leave(self);
 
 		if (s->for_stmt.post != nullptr)
 		{
@@ -1825,6 +1858,7 @@ namespace sabre
 	glsl_free(GLSL& self)
 	{
 		mn::buf_free(self.scope_stack);
+		mn::buf_free(self.loop_post_stmt_stack);
 		mn::map_free(self.reserved_to_alternative);
 		mn::map_free(self.symbol_to_names);
 		destruct(self.input_names);

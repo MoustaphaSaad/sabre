@@ -14,6 +14,7 @@ int main_sum_to_n(bool x) {
 		while (i < n) {
 			// for body
 			if (i % 2 == 0) {
+				++i;
 				continue;
 			} else if (i % 3 == 0) {
 				break;
