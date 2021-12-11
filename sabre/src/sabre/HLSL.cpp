@@ -385,6 +385,28 @@ namespace sabre
 		return mn::buf_top(self.scope_stack);
 	}
 
+	inline static void
+	_hlsl_loop_post_stmt_enter(HLSL& self, Stmt* post)
+	{
+		mn::buf_push(self.loop_post_stmt_stack, post);
+	}
+
+	inline static void
+	_hlsl_loop_post_stmt_leave(HLSL& self)
+	{
+		mn::buf_pop(self.loop_post_stmt_stack);
+	}
+
+	inline static Stmt*
+	_hlsl_current_loop_post_stmt(HLSL& self)
+	{
+		if (self.loop_post_stmt_stack.count > 0)
+		{
+			return mn::buf_top(self.loop_post_stmt_stack);
+		}
+		return nullptr;
+	}
+
 	inline static Symbol*
 	_hlsl_find_symbol(HLSL& self, const char* name)
 	{
@@ -1380,6 +1402,21 @@ namespace sabre
 		}
 	}
 
+	inline static bool
+	_hlsl_add_semicolon_after(HLSL& self, Stmt* s)
+	{
+		if (s->kind == Stmt::KIND_BREAK ||
+			s->kind == Stmt::KIND_CONTINUE ||
+			s->kind == Stmt::KIND_DISCARD ||
+			s->kind == Stmt::KIND_RETURN ||
+			s->kind == Stmt::KIND_ASSIGN ||
+			s->kind == Stmt::KIND_EXPR)
+		{
+			return true;
+		}
+		return false;
+	}
+
 	inline static void
 	_hlsl_gen_break_stmt(HLSL& self, Stmt* s)
 	{
@@ -1389,6 +1426,15 @@ namespace sabre
 	inline static void
 	_hlsl_gen_continue_stmt(HLSL& self, Stmt* s)
 	{
+		if (auto post = _hlsl_current_loop_post_stmt(self))
+		{
+			hlsl_stmt_gen(self, post);
+			if (_hlsl_add_semicolon_after(self, post))
+			{
+				mn::print_to(self.out, ";");
+			}
+			_hlsl_newline(self);
+		}
 		mn::print_to(self.out, "continue");
 	}
 
@@ -1410,21 +1456,6 @@ namespace sabre
 		{
 			mn::print_to(self.out, "return");
 		}
-	}
-
-	inline static bool
-	_hlsl_add_semicolon_after(HLSL& self, Stmt* s)
-	{
-		if (s->kind == Stmt::KIND_BREAK ||
-			s->kind == Stmt::KIND_CONTINUE ||
-			s->kind == Stmt::KIND_DISCARD ||
-			s->kind == Stmt::KIND_RETURN ||
-			s->kind == Stmt::KIND_ASSIGN ||
-			s->kind == Stmt::KIND_EXPR)
-		{
-			return true;
-		}
-		return false;
 	}
 
 	inline static void
@@ -1506,6 +1537,7 @@ namespace sabre
 
 		_hlsl_newline(self);
 		mn::print_to(self.out, "// for body");
+		_hlsl_loop_post_stmt_enter(self, s->for_stmt.post);
 		for (auto stmt: s->for_stmt.body->block_stmt)
 		{
 			_hlsl_newline(self);
@@ -1515,6 +1547,7 @@ namespace sabre
 				mn::print_to(self.out, ";");
 			}
 		}
+		_hlsl_loop_post_stmt_leave(self);
 
 		if (s->for_stmt.post != nullptr)
 		{
@@ -2222,6 +2255,7 @@ namespace sabre
 	hlsl_free(HLSL& self)
 	{
 		mn::buf_free(self.scope_stack);
+		mn::buf_free(self.loop_post_stmt_stack);
 		mn::map_free(self.reserved_to_alternative);
 		mn::map_free(self.symbol_to_names);
 		mn::set_free(self.io_structs);

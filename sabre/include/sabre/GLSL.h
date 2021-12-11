@@ -22,6 +22,9 @@ namespace sabre
 
 		Entry_Point* entry;
 		mn::Buf<Scope*> scope_stack;
+		// we use this stack to track the post statement of for loops bodies we enter
+		// this is useful when we want to duplicate the loop post statement on continue
+		mn::Buf<Stmt*> loop_post_stmt_stack;
 		// map from the reserved keywords to the alternative names
 		mn::Map<const char*, const char*> reserved_to_alternative;
 		// maps the name of a specific AST entity to some generated name, used in compound literals
