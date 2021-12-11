@@ -530,6 +530,7 @@ namespace sabre
 		Tag_Table tags;
 		Type* type;
 		mn::Buf<Template_Arg> template_args;
+		Symbol* symbol;
 		union
 		{
 			struct

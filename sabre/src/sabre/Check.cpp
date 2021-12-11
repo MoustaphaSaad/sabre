@@ -1082,7 +1082,7 @@ namespace sabre
 		return type;
 	}
 
-	inline static void
+	inline static bool
 	_typer_resolve_expected_type_from_arg_type(Typer& self, Type* expected_type, Type* arg_type, Location arg_loc, mn::Map<Type*, Type*>& resolved_types)
 	{
 		if (type_is_typename(expected_type))
@@ -1095,37 +1095,76 @@ namespace sabre
 					err.loc = arg_loc;
 					err.msg = mn::strf("type '{}' is ambiguous, we already deduced it to be '{}' but we have another guess which is '{}'", *expected_type, *it->value, *arg_type);
 					unit_err(self.unit, err);
+					return false;
+				}
+				else
+				{
+					return true;
 				}
 			}
 			else
 			{
 				mn::map_insert(resolved_types, expected_type, arg_type);
+				return true;
 			}
+		}
+		else if (type_is_templated(expected_type))
+		{
+			auto min_args = expected_type->full_template_args.count;
+			if (min_args > arg_type->template_base_args.count)
+				min_args = arg_type->template_base_args.count;
+
+			auto res = expected_type->full_template_args.count == arg_type->template_base_args.count;
+			for (size_t i = 0; i < min_args; ++i)
+				res &= _typer_resolve_expected_type_from_arg_type(self, expected_type->full_template_args[i], arg_type->template_base_args[i], arg_loc, resolved_types);
+			return res;
 		}
 		else
 		{
-			for (size_t i = 0; i < expected_type->template_args.count; ++i)
-			{
-				_typer_resolve_expected_type_from_arg_type(self, expected_type->template_args[i], arg_type->template_base_args[i], arg_loc, resolved_types);
-			}
+			return type_is_equal(expected_type, arg_type);
 		}
 	}
 
-	inline static mn::Map<Type*, Type*>
-	_typer_guess_template_func_call_types(Typer& self, Expr* e)
+	inline static bool
+	_typer_guess_template_func_call_types(Typer& self, Type* func_type, const mn::Buf<Expr*>& args, mn::Map<Type*, Type*>& resolved_types)
 	{
-		auto resolved_types = mn::map_with_allocator<Type*, Type*>(mn::memory::tmp());
-
-		auto func_type = _typer_resolve_expr(self, e->call.base);
-		for (size_t i = 0; i < e->call.args.count; ++i)
+		bool res = true;
+		for (size_t i = 0; i < args.count; ++i)
 		{
-			auto arg = e->call.args[i];
+			auto arg = args[i];
 			auto arg_type = _typer_resolve_expr(self, arg);
 			auto expected_type = func_type->as_func.sign.args.types[i];
-			_typer_resolve_expected_type_from_arg_type(self, expected_type, arg_type, arg->loc, resolved_types);
+			res &= _typer_resolve_expected_type_from_arg_type(self, expected_type, arg_type, arg->loc, resolved_types);
 		}
-		return resolved_types;
+		return res;
 	}
+
+	inline static int
+	_typer_type_similarity_score(Type* a, Type* b)
+	{
+		if (type_is_equal(a, b))
+			return 1;
+
+		if (type_is_typename(a) || type_is_typename(b))
+			return 0;
+
+		int score = 0;
+		for (auto it = a->template_base_type; it != nullptr; it = it->template_base_type)
+		{
+			for (auto it2 = b; it2 != nullptr; it2 = it2->template_base_type)
+			{
+				score += _typer_type_similarity_score(it, it2);
+			}
+		}
+		return score;
+	}
+
+	struct Overload_Candidate
+	{
+		Decl* original_decl;
+		Decl* instantiated_decl;
+		int score;
+	};
 
 	inline static Type*
 	_typer_resolve_call_expr(Typer& self, Expr* e)
@@ -1158,98 +1197,116 @@ namespace sabre
 				return type->as_func.sign.return_type;
 			}
 
+			auto resolved_types = mn::map_with_allocator<Type*, Type*>(mn::memory::tmp());
 			if (type_is_templated(type))
 			{
-				auto resolved_types = _typer_guess_template_func_call_types(self, e);
-				auto arg_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-				for (auto template_arg: type->template_args)
+				auto is_guess_ok = _typer_guess_template_func_call_types(self, _typer_resolve_expr(self, e->call.base), e->call.args, resolved_types);
+				if (is_guess_ok)
 				{
-					auto it = mn::map_lookup(resolved_types, template_arg);
-					mn_assert(it != nullptr);
-					mn::buf_push(arg_types, it->value);
-				}
-
-				auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, e->call.func);
-				if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
-				{
-					// do nothing we have already instantiated this function
-				}
-				else
-				{
-					auto templated_decl = symbol->func_sym.decl;
-					auto instantiated_decl = decl_clone(templated_decl, templated_decl->arena);
-					instantiated_decl->type = instantiated_type;
-					type_interner_add_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types, instantiated_decl);
-
-					auto instantiation_sym = symbol_func_instantiation_new(self.unit->symbols_arena, symbol, instantiated_type, instantiated_decl);
-					_typer_add_dependency(self, instantiation_sym);
-					mn::buf_push(self.unit->reachable_symbols, instantiation_sym);
-
-					e->call.func = instantiated_decl;
-					e->call.base->symbol = instantiation_sym;
-					auto templated_scope = unit_scope_find(self.unit->parent_unit, templated_decl);
-					auto instantiated_scope = unit_create_scope_for(self.unit, instantiated_decl, templated_scope->parent, instantiated_decl->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
-					_typer_enter_scope(self, instantiated_scope);
+					auto arg_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+					for (auto template_arg: type->template_args)
 					{
-						// push symbols for typenames but after actually resolving them
-						size_t i = 0;
-						for (auto template_arg: instantiated_decl->template_args)
+						auto it = mn::map_lookup(resolved_types, template_arg);
+						mn_assert(it != nullptr);
+						mn::buf_push(arg_types, it->value);
+					}
+
+					auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, e->call.func);
+					if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
+					{
+						// do nothing we have already instantiated this function
+					}
+					else
+					{
+						auto templated_decl = symbol->func_sym.decl;
+						auto instantiated_decl = decl_clone(templated_decl, templated_decl->arena);
+						instantiated_decl->type = instantiated_type;
+						type_interner_add_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types, instantiated_decl);
+
+						auto instantiation_sym = symbol_func_instantiation_new(self.unit->symbols_arena, symbol, instantiated_type, instantiated_decl);
+						_typer_add_dependency(self, instantiation_sym);
+						mn::buf_push(self.unit->reachable_symbols, instantiation_sym);
+
+						e->call.func = instantiated_decl;
+						e->call.base->symbol = instantiation_sym;
+						auto templated_scope = unit_scope_find(self.unit->parent_unit, templated_decl);
+						auto instantiated_scope = unit_create_scope_for(self.unit, instantiated_decl, templated_scope->parent, instantiated_decl->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
+						_typer_enter_scope(self, instantiated_scope);
 						{
-							for (auto name: template_arg.names)
+							// push symbols for typenames but after actually resolving them
+							size_t i = 0;
+							for (auto template_arg: instantiated_decl->template_args)
 							{
-								auto v = symbol_typename_new(self.unit->symbols_arena, name);
-								v->type = arg_types[i];
-								_typer_add_symbol(self, v);
-								++i;
+								for (auto name: template_arg.names)
+								{
+									auto v = symbol_typename_new(self.unit->symbols_arena, name);
+									v->type = arg_types[i];
+									_typer_add_symbol(self, v);
+									++i;
+								}
+							}
+
+							// push arguments to instantiated scope
+							i = 0;
+							for (auto arg: instantiated_decl->func_decl.args)
+							{
+								auto arg_type = instantiated_type->as_func.sign.args.types[i];
+								for (auto name: arg.names)
+								{
+									auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+									v->type = arg_type;
+									v->state = STATE_RESOLVED;
+									_typer_add_symbol(self, v);
+									++i;
+								}
 							}
 						}
+						_typer_leave_scope(self);
 
-						// push arguments to instantiated scope
-						i = 0;
-						for (auto arg: instantiated_decl->func_decl.args)
+						auto err_count = self.unit->errs.count;
+						_typer_resolve_func_body_internal(self, instantiated_decl, instantiated_type, instantiated_scope);
+						if (self.unit->errs.count > err_count)
 						{
-							auto arg_type = instantiated_type->as_func.sign.args.types[i];
-							for (auto name: arg.names)
+							Err err{};
+							err.is_note = true;
+							err.loc = e->loc;
+							err.msg = mn::strf("call to template function '{}' has errors, it was instantiated with the following template arguments:\n", templated_decl->name.str);
+							for (size_t i = 0; i < instantiated_type->template_base_args.count; ++i)
 							{
-								auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
-								v->type = arg_type;
-								v->state = STATE_RESOLVED;
-								_typer_add_symbol(self, v);
-								++i;
+								if (i > 0)
+									err.msg = mn::strf(err.msg, "\n");
+								err.msg = mn::strf(err.msg, "  - {} = {}", *instantiated_type->template_base_type->template_args[i], *instantiated_type->template_base_args[i]);
 							}
+							unit_err(self.unit, err);
 						}
 					}
-					_typer_leave_scope(self);
-
-					auto err_count = self.unit->errs.count;
-					_typer_resolve_func_body_internal(self, instantiated_decl, instantiated_type, instantiated_scope);
-					if (self.unit->errs.count > err_count)
-					{
-						Err err{};
-						err.is_note = true;
-						err.loc = e->loc;
-						err.msg = mn::strf("call to template function '{}' has errors, it was instantiated with the following template arguments:\n", templated_decl->name.str);
-						for (size_t i = 0; i < instantiated_type->template_base_args.count; ++i)
-						{
-							if (i > 0)
-								err.msg = mn::strf(err.msg, "\n");
-							err.msg = mn::strf(err.msg, "  - {} = {}", *instantiated_type->template_base_type->template_args[i], *instantiated_type->template_base_args[i]);
-						}
-						unit_err(self.unit, err);
-					}
+					type = instantiated_type;
 				}
-				type = instantiated_type;
 			}
 
 			for (size_t i = 0; i < e->call.args.count; ++i)
 			{
 				auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
-				if (_typer_can_assign(type->as_func.sign.args.types[i], e->call.args[i]) == false)
+				auto func_arg_type = type->as_func.sign.args.types[i];
+				if (_typer_can_assign(func_arg_type, e->call.args[i]) == false)
 				{
-					Err err{};
-					err.loc = e->call.args[i]->loc;
-					err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, *type->as_func.sign.args.types[i], *arg_type);
-					unit_err(self.unit, err);
+					if (type_is_templated(func_arg_type) || type_is_typename(func_arg_type))
+					{
+						if (auto it = mn::map_lookup(resolved_types, func_arg_type))
+						{
+							Err err{};
+							err.loc = e->call.args[i]->loc;
+							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, *it->value, *arg_type);
+							unit_err(self.unit, err);
+						}
+					}
+					else
+					{
+						Err err{};
+						err.loc = e->call.args[i]->loc;
+						err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, *func_arg_type, *arg_type);
+						unit_err(self.unit, err);
+					}
 				}
 			}
 
@@ -1258,11 +1315,18 @@ namespace sabre
 		else if (type->kind == Type::KIND_FUNC_OVERLOAD_SET)
 		{
 			auto overload_set_symbol = type->func_overload_set_type.symbol;
-			Type* res = nullptr;
+			auto templated_candidates = mn::buf_with_allocator<Decl*>(mn::memory::tmp());
+			Decl* exact_decl = nullptr;
 			for (auto& [overload_decl, overload_type]: overload_set_symbol->func_overload_set_sym.decls)
 			{
 				if (e->call.args.count != overload_type->as_func.sign.args.types.count)
 					continue;
+
+				if (type_is_templated(overload_type))
+				{
+					mn::buf_push(templated_candidates, overload_decl);
+					continue;
+				}
 
 				bool args_match = true;
 				for (size_t i = 0; i < e->call.args.count; ++i)
@@ -1276,10 +1340,10 @@ namespace sabre
 				}
 				if (args_match)
 				{
+					exact_decl = overload_decl;
 					if (e->call.base->kind == Expr::KIND_ATOM)
-						e->call.base->atom.decl = overload_decl;
-					e->call.func = overload_decl;
-					res = overload_type->as_func.sign.return_type;
+						e->call.base->atom.decl = exact_decl;
+					e->call.func = exact_decl;
 					if (mn::set_lookup(overload_set_symbol->func_overload_set_sym.unique_used_decls, overload_decl) == nullptr)
 					{
 						mn::buf_push(overload_set_symbol->func_overload_set_sym.used_decls, overload_decl);
@@ -1289,7 +1353,164 @@ namespace sabre
 				}
 			}
 
-			if (res == nullptr)
+			if (exact_decl == nullptr && templated_candidates.count > 0)
+			{
+				auto overload_candidates = mn::buf_with_allocator<Overload_Candidate>(mn::memory::tmp());
+				for (auto candidate: templated_candidates)
+				{
+					auto resolved_types = mn::map_with_allocator<Type*, Type*>(mn::memory::tmp());
+					auto is_guess_ok = _typer_guess_template_func_call_types(self, candidate->type, e->call.args, resolved_types);
+					if (is_guess_ok == false)
+						continue;
+
+					auto arg_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+					for (auto template_arg: candidate->type->template_args)
+					{
+						auto it = mn::map_lookup(resolved_types, template_arg);
+						mn_assert(it != nullptr);
+						mn::buf_push(arg_types, it->value);
+					}
+
+					auto instantiated_type = _typer_template_instantiate(self, candidate->type, arg_types, e->loc, candidate);
+					Decl* instantiated_decl = nullptr;
+					if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
+					{
+						instantiated_decl = decl;
+					}
+					else
+					{
+						auto templated_decl = candidate;
+						instantiated_decl = decl_clone(templated_decl, templated_decl->arena);
+						instantiated_decl->type = instantiated_type;
+						type_interner_add_func_instantiation_decl(self.unit->parent_unit->type_interner, candidate->type, arg_types, instantiated_decl);
+
+						auto templated_scope = unit_scope_find(self.unit->parent_unit, templated_decl);
+						auto instantiated_scope = unit_create_scope_for(self.unit, instantiated_decl, templated_scope->parent, instantiated_decl->name.str, instantiated_type->as_func.sign.return_type, Scope::FLAG_NONE);
+						_typer_enter_scope(self, instantiated_scope);
+						{
+							// push symbols for typenames but after actually resolving them
+							size_t i = 0;
+							for (auto template_arg: instantiated_decl->template_args)
+							{
+								for (auto name: template_arg.names)
+								{
+									auto v = symbol_typename_new(self.unit->symbols_arena, name);
+									v->type = arg_types[i];
+									_typer_add_symbol(self, v);
+									++i;
+								}
+							}
+
+							// push arguments to instantiated scope
+							i = 0;
+							for (auto arg: instantiated_decl->func_decl.args)
+							{
+								auto arg_type = instantiated_type->as_func.sign.args.types[i];
+								for (auto name: arg.names)
+								{
+									auto v = symbol_var_new(self.unit->symbols_arena, name, nullptr, arg.type, nullptr);
+									v->type = arg_type;
+									v->state = STATE_RESOLVED;
+									_typer_add_symbol(self, v);
+									++i;
+								}
+							}
+						}
+						_typer_leave_scope(self);
+
+						auto err_count = self.unit->errs.count;
+						_typer_resolve_func_body_internal(self, instantiated_decl, instantiated_type, instantiated_scope);
+						if (self.unit->errs.count > err_count)
+						{
+							Err err{};
+							err.is_note = true;
+							err.loc = e->loc;
+							err.msg = mn::strf("call to template function '{}' has errors, it was instantiated with the following template arguments:\n", templated_decl->name.str);
+							for (size_t i = 0; i < instantiated_type->template_base_args.count; ++i)
+							{
+								if (i > 0)
+									err.msg = mn::strf(err.msg, "\n");
+								err.msg = mn::strf(err.msg, "  - {} = {}", *instantiated_type->template_base_type->template_args[i], *instantiated_type->template_base_args[i]);
+							}
+							unit_err(self.unit, err);
+							instantiated_decl = nullptr;
+						}
+					}
+
+					// mn::log_debug("call at line: {}", e->loc.pos.line);
+					int score = 0;
+					for (size_t i = 0; i < e->call.args.count; ++i)
+					{
+						auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+						auto template_type = candidate->type->as_func.sign.args.types[i];
+						score += _typer_type_similarity_score(arg_type, template_type);
+						// mn::log_debug("{} vs {} = {}", *arg_type, *template_type, _typer_type_similarity_score(arg_type, template_type));
+					}
+					// mn::log_debug("candidate {}, score {}", *candidate->type, score);
+					mn::buf_push(overload_candidates, Overload_Candidate{candidate, instantiated_decl, score});
+				}
+
+				std::stable_sort(begin(overload_candidates), end(overload_candidates), [](const auto& a, const auto& b){
+					return a.score > b.score;
+				});
+
+				if (overload_candidates.count > 0)
+				{
+					auto best_match_score = overload_candidates[0].score;
+					size_t same_score_count = 1;
+					for (size_t i = 1; i < overload_candidates.count; ++i)
+						if (overload_candidates[i].score == best_match_score)
+							++same_score_count;
+
+					if (same_score_count > 1)
+					{
+						auto msg = mn::strf("ambiguous function call 'func(");
+
+						for (size_t i = 0; i < e->call.args.count; ++i)
+						{
+							if (i > 0)
+								msg = mn::strf(msg, ", ");
+
+							auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+							msg = mn::strf(msg, ":{}", *arg_type);
+						}
+						msg = mn::strf(msg, ")' in the overload set:");
+
+						for (size_t i = 0; i < same_score_count; ++i)
+						{
+							auto candidate = overload_candidates[i].original_decl;
+							msg = mn::strf(
+								msg,
+								"\n  {}. {} defined in {}:{}:{}",
+								i,
+								*candidate->type,
+								candidate->loc.file->filepath,
+								candidate->loc.pos.line,
+								candidate->loc.pos.col
+							);
+						}
+
+						Err err{};
+						err.loc = e->loc;
+						err.msg = msg;
+						unit_err(self.unit, err);
+						return type_void;
+					}
+					else
+					{
+						exact_decl = overload_candidates[0].instantiated_decl;
+						auto symbol = e->call.base->symbol;
+						symbol_func_instantiation_new(self.unit->symbols_arena, symbol, exact_decl->type, exact_decl);
+						_typer_add_dependency(self, exact_decl->symbol);
+						mn::buf_push(self.unit->reachable_symbols, exact_decl->symbol);
+
+						e->call.func = exact_decl;
+						e->call.base->symbol = exact_decl->symbol;
+					}
+				}
+			}
+
+			if (exact_decl == nullptr)
 			{
 				auto msg = mn::strf("cannot find suitable function for 'func(");
 
@@ -1325,7 +1546,7 @@ namespace sabre
 			}
 			else
 			{
-				return res;
+				return exact_decl->type->as_func.sign.return_type;
 			}
 		}
 		return type_void;

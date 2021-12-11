@@ -224,6 +224,9 @@ namespace sabre
 		size_t alignment;
 		mn::Buf<Type*> template_args;
 		mn::Buf<size_t> template_args_index;
+		// we use this for printing types among other things, it's easier to track the entire list of the type arguments
+		// while we're specializing the type itself
+		mn::Buf<Type*> full_template_args;
 
 		// type specialization data
 		// base template data which this type is a specialization of
@@ -1111,14 +1114,14 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_FUNC)
 			{
 				format_to(ctx.out(), "func");
-				if (t->template_args.count > 0)
+				if (t->full_template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_args.count; ++i)
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_args[i]);
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1135,25 +1138,14 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_STRUCT)
 			{
 				format_to(ctx.out(), "struct {}", t->struct_type.symbol->name);
-				if (t->template_args.count > 0)
+				if (t->full_template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_args.count; ++i)
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_args[i]);
-					}
-					format_to(ctx.out(), ">");
-				}
-				else if (t->template_base_args.count)
-				{
-					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_base_args.count; ++i)
-					{
-						if (i > 0)
-							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1220,25 +1212,14 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_TRIANGLE_STREAM)
 			{
 				format_to(ctx.out(), "TriangleStream");
-				if (t->template_args.count > 0)
+				if (t->full_template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_args.count; ++i)
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_args[i]);
-					}
-					format_to(ctx.out(), ">");
-				}
-				else if (t->template_base_args.count)
-				{
-					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_base_args.count; ++i)
-					{
-						if (i > 0)
-							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1247,25 +1228,14 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_LINE_STREAM)
 			{
 				format_to(ctx.out(), "LineStream");
-				if (t->template_args.count > 0)
+				if (t->full_template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_args.count; ++i)
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_args[i]);
-					}
-					format_to(ctx.out(), ">");
-				}
-				else if (t->template_base_args.count)
-				{
-					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_base_args.count; ++i)
-					{
-						if (i > 0)
-							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}
@@ -1274,25 +1244,14 @@ namespace fmt
 			else if (t->kind == sabre::Type::KIND_POINT_STREAM)
 			{
 				format_to(ctx.out(), "PointStream");
-				if (t->template_args.count > 0)
+				if (t->full_template_args.count > 0)
 				{
 					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_args.count; ++i)
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
 					{
 						if (i > 0)
 							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_args[i]);
-					}
-					format_to(ctx.out(), ">");
-				}
-				else if (t->template_base_args.count)
-				{
-					format_to(ctx.out(), "<");
-					for (size_t i = 0; i < t->template_base_args.count; ++i)
-					{
-						if (i > 0)
-							format_to(ctx.out(), ", ");
-						format_to(ctx.out(), "{}", *t->template_base_args[i]);
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
 					}
 					format_to(ctx.out(), ">");
 				}

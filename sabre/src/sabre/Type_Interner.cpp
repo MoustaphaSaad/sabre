@@ -278,6 +278,7 @@ namespace sabre
 
 			new_type->template_args = mn::buf_with_allocator<Type*>(self->arena);
 			new_type->template_args_index = mn::buf_with_allocator<size_t>(self->arena);
+			new_type->full_template_args = mn::buf_with_allocator<Type*>(self->arena);
 			mn::buf_reserve(new_type->template_args, args.count);
 			for (size_t i = 0; i < base_type->template_args.count; ++i)
 			{
@@ -286,6 +287,7 @@ namespace sabre
 					mn::buf_push(new_type->template_args, args[i]);
 					mn::buf_push(new_type->template_args_index, i);
 				}
+				mn::buf_push(new_type->full_template_args, args[i]);
 			}
 
 			new_type->template_base_type = base_type;
@@ -301,6 +303,7 @@ namespace sabre
 
 			new_type->template_args = mn::buf_with_allocator<Type*>(self->arena);
 			new_type->template_args_index = mn::buf_with_allocator<size_t>(self->arena);
+			new_type->full_template_args = mn::buf_with_allocator<Type*>(self->arena);
 			mn::buf_reserve(new_type->template_args, args.count);
 			for (size_t i = 0; i < base_type->template_args.count; ++i)
 			{
@@ -309,6 +312,7 @@ namespace sabre
 					mn::buf_push(new_type->template_args, args[i]);
 					mn::buf_push(new_type->template_args_index, i);
 				}
+				mn::buf_push(new_type->full_template_args, args[i]);
 			}
 
 			new_type->struct_type.symbol = base_type->struct_type.symbol;
@@ -441,10 +445,14 @@ namespace sabre
 
 			auto new_type = type_interner_func(self, func_sign, decl, template_args);
 			new_type->template_args_index = mn::buf_with_allocator<size_t>(self->arena);
+			new_type->full_template_args = mn::buf_with_allocator<Type*>(self->arena);
 			mn::buf_reserve(template_args, args.count);
 			for (size_t i = 0; i < base_type->template_args.count; ++i)
+			{
 				if (type_is_typename(args[i]))
 					mn::buf_push(new_type->template_args_index, args[i]);
+				mn::buf_push(new_type->full_template_args, args[i]);
+			}
 
 			new_type->template_base_type = base_type;
 			new_type->template_base_args = sign.args;

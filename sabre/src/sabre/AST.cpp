@@ -4,6 +4,17 @@
 
 namespace sabre
 {
+	template<typename T>
+	inline static mn::Buf<T*>
+	_ast_helper_clone(const mn::Buf<T*>& other, mn::Allocator arena)
+	{
+		auto self = mn::buf_with_allocator<T*>(arena);
+		mn::buf_resize(self, other.count);
+		for (size_t i = 0; i < other.count; ++i)
+			self[i] = clone(other[i]);
+		return self;
+	}
+
 	// API
 	Type_Sign_Atom
 	type_sign_atom_named(Tkn type_name, Tkn package_name)
@@ -110,6 +121,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_BINARY;
+		self->arena = arena;
 		self->binary.left = lhs;
 		self->binary.op = op;
 		self->binary.right = rhs;
@@ -121,6 +133,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_CAST;
+		self->arena = arena;
 		self->cast.base = base;
 		self->cast.type = type;
 		return self;
@@ -131,6 +144,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_UNARY;
+		self->arena = arena;
 		self->unary.op = op;
 		self->unary.base = base;
 		return self;
@@ -141,6 +155,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_CALL;
+		self->arena = arena;
 		self->call.base = base;
 		self->call.args = args;
 		return self;
@@ -151,6 +166,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_INDEXED;
+		self->arena = arena;
 		self->indexed.base = base;
 		self->indexed.index = index;
 		return self;
@@ -161,6 +177,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_DOT;
+		self->arena = arena;
 		self->dot.lhs = lhs;
 		self->dot.rhs = rhs;
 		return self;
@@ -171,6 +188,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_ATOM;
+		self->arena = arena;
 		self->atom.tkn = atom;
 		return self;
 	}
@@ -180,6 +198,7 @@ namespace sabre
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_COMPLIT;
+		self->arena = arena;
 		self->complit.type = type;
 		self->complit.fields = fields;
 		self->complit.referenced_fields = mn::map_with_allocator<size_t, size_t>(arena);
@@ -213,7 +232,7 @@ namespace sabre
 			break;
 		case Expr::KIND_CALL:
 			self->call.base = clone(other->call.base);
-			self->call.args = mn::buf_clone(other->call.args, arena);
+			self->call.args = _ast_helper_clone(other->call.args, arena);
 			break;
 		case Expr::KIND_CAST:
 			self->cast.base = clone(other->cast.base);
@@ -230,6 +249,7 @@ namespace sabre
 		case Expr::KIND_COMPLIT:
 			self->complit.type = clone(other->complit.type);
 			self->complit.fields = mn::buf_clone(other->complit.fields, arena);
+			self->complit.referenced_fields = mn::map_memcpy_clone(other->complit.referenced_fields, arena);
 			break;
 		default:
 			mn_unreachable();
@@ -370,8 +390,8 @@ namespace sabre
 			self->return_stmt = clone(other->return_stmt);
 			break;
 		case Stmt::KIND_IF:
-			self->if_stmt.cond = mn::buf_clone(other->if_stmt.cond, arena);
-			self->if_stmt.body = mn::buf_clone(other->if_stmt.body, arena);
+			self->if_stmt.cond = _ast_helper_clone(other->if_stmt.cond, arena);
+			self->if_stmt.body = _ast_helper_clone(other->if_stmt.body, arena);
 			self->if_stmt.else_body = clone(other->if_stmt.else_body);
 			break;
 		case Stmt::KIND_FOR:
@@ -381,15 +401,15 @@ namespace sabre
 			self->for_stmt.body = clone(other->for_stmt.body);
 			break;
 		case Stmt::KIND_ASSIGN:
-			self->assign_stmt.lhs = mn::buf_clone(other->assign_stmt.lhs, arena);
-			self->assign_stmt.rhs = mn::buf_clone(other->assign_stmt.rhs, arena);
+			self->assign_stmt.lhs = _ast_helper_clone(other->assign_stmt.lhs, arena);
+			self->assign_stmt.rhs = _ast_helper_clone(other->assign_stmt.rhs, arena);
 			self->assign_stmt.op = other->assign_stmt.op;
 			break;
 		case Stmt::KIND_EXPR:
 			self->expr_stmt = clone(other->expr_stmt);
 			break;
 		case Stmt::KIND_BLOCK:
-			self->block_stmt = mn::buf_clone(other->block_stmt, arena);
+			self->block_stmt = _ast_helper_clone(other->block_stmt, arena);
 			break;
 		case Stmt::KIND_DECL:
 			self->decl_stmt = clone(other->decl_stmt);
@@ -575,12 +595,12 @@ namespace sabre
 		{
 		case Decl::KIND_CONST:
 			self->const_decl.names = mn::buf_memcpy_clone(other->const_decl.names, arena);
-			self->const_decl.values = mn::buf_clone(other->const_decl.values, arena);
+			self->const_decl.values = _ast_helper_clone(other->const_decl.values, arena);
 			self->const_decl.type = clone(other->const_decl.type);
 			break;
 		case Decl::KIND_VAR:
 			self->var_decl.names = mn::buf_memcpy_clone(other->var_decl.names, arena);
-			self->var_decl.values = mn::buf_clone(other->var_decl.values, arena);
+			self->var_decl.values = _ast_helper_clone(other->var_decl.values, arena);
 			self->var_decl.type = clone(other->var_decl.type);
 			break;
 		case Decl::KIND_FUNC:
@@ -596,9 +616,9 @@ namespace sabre
 			self->import_decl.name = other->import_decl.name;
 			break;
 		case Decl::KIND_IF:
-			self->if_decl.cond = mn::buf_clone(other->if_decl.cond, arena);
+			self->if_decl.cond = _ast_helper_clone(other->if_decl.cond, arena);
 			self->if_decl.body = mn::buf_clone(other->if_decl.body, arena);
-			self->if_decl.else_body = mn::buf_clone(other->if_decl.else_body, arena);
+			self->if_decl.else_body = _ast_helper_clone(other->if_decl.else_body, arena);
 			break;
 		case Decl::KIND_ENUM:
 			self->enum_decl.fields = mn::buf_clone(other->enum_decl.fields, arena);
