@@ -17,6 +17,9 @@ namespace sabre
 		self->const_sym.name = name;
 		self->const_sym.sign = sign;
 		self->const_sym.value = value;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 
@@ -33,6 +36,9 @@ namespace sabre
 		self->var_sym.name = name;
 		self->var_sym.sign = sign;
 		self->var_sym.value = value;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 
@@ -47,6 +53,9 @@ namespace sabre
 		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->func_sym.decl = decl;
 		self->func_sym.name = name;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 
@@ -61,6 +70,9 @@ namespace sabre
 		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->struct_sym.decl = decl;
 		self->struct_sym.name = name;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 
@@ -74,6 +86,9 @@ namespace sabre
 		self->name = name.str;
 		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->enum_sym.decl = decl;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 
@@ -89,6 +104,9 @@ namespace sabre
 		self->package_sym.decl = decl;
 		self->package_sym.name = name;
 		self->package_sym.package = package;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 
@@ -113,6 +131,8 @@ namespace sabre
 			mn::buf_push(self->func_overload_set_sym.used_decls, func_decl);
 			mn::set_insert(self->func_overload_set_sym.unique_used_decls, func_decl);
 		}
+
+		if (func_decl) func_decl->symbol = self;
 		return self;
 	}
 
@@ -157,6 +177,9 @@ namespace sabre
 		self->dependencies = mn::set_with_allocator<Symbol*>(arena);
 		self->as_func_instantiation.template_symbol = template_symbol;
 		self->as_func_instantiation.decl = decl;
+
+		if (decl) decl->symbol = self;
+
 		return self;
 	}
 

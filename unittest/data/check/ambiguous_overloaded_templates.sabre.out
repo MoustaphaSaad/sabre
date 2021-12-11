@@ -1,0 +1,10 @@
+>> 	var z = add(e, f);
+>> 	        ^^^^^^^^^ 
+Error[ambiguous_overloaded_templates.sabre:14:10]: ambiguous function call 'func(:struct Point<int>, :struct Point<int>)' in the overload set:
+  0. func(:typename T, :struct Point<typename R>):struct Point<typename R> defined in ambiguous_overloaded_templates.sabre:23:1
+  1. func(:struct Point<typename T>, :typename R):struct Point<typename T> defined in ambiguous_overloaded_templates.sabre:30:1
+>> 	var w = add(g, h);
+>> 	        ^^^^^^^^^ 
+Error[ambiguous_overloaded_templates.sabre:15:10]: ambiguous function call 'func(:struct Bar<float, float>, :struct Bar<float, float>)' in the overload set:
+  0. func(:struct Bar<typename T, float>, :struct Bar<typename T, float>):struct Bar<typename T, float> defined in ambiguous_overloaded_templates.sabre:42:1
+  1. func(:struct Bar<float, typename T>, :struct Bar<float, typename T>):struct Bar<float, typename T> defined in ambiguous_overloaded_templates.sabre:49:1

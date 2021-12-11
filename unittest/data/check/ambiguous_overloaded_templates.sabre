@@ -1,0 +1,54 @@
+package main
+
+func add<T: type>(a, b: T): T {
+	return a + b;
+}
+
+func add(a, b: float): float {
+	return a - b;
+}
+
+func foo(a, b: float, c, d: int, e, f: Point<int>, g, h: Bar<float, float>) {
+	var x = add(a, b);
+	var y = add(c, d);
+	var z = add(e, f);
+	var w = add(g, h);
+	var u = add(:Bar<float, int>{}, :Bar<float, int>{});
+}
+
+type Point struct<T: type> {
+	x, y: T,
+}
+
+func add<T, R: type>(a: T, b: Point<R>): Point<R> {
+	return {
+		a.x - b.x,
+		a.y + b.y,
+	};
+}
+
+func add<T, R: type>(a: Point<T>, b: R): Point<T> {
+	return {
+		a.x + b.x,
+		a.y - b.y,
+	};
+}
+
+type Bar struct<T, R: type> {
+	x: T,
+	y: R,
+}
+
+func add<T: type>(a, b: Bar<T, float>): Bar<T, float> {
+	return {
+		a.x + b.x,
+		a.y + b.y,
+	};
+}
+
+func add<T: type>(a, b: Bar<float, T>): Bar<float, T> {
+	return {
+		a.x + b.x,
+		a.y + b.y,
+	};
+}
