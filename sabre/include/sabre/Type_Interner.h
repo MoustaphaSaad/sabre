@@ -695,6 +695,21 @@ namespace sabre
 		);
 	}
 
+	// return whether the type can be used in arithmetic operations
+	inline static bool
+	type_has_arithmetic(Type* a)
+	{
+		return (
+			type_is_equal(a, type_int) ||
+			type_is_equal(a, type_uint) ||
+			type_is_equal(a, type_float) ||
+			type_is_equal(a, type_double) ||
+			(type_is_vec(a) && type_has_arithmetic(a->vec.base)) ||
+			(a->kind == Type::KIND_MAT && type_has_arithmetic(a->mat.base)) ||
+			type_is_enum(a)
+		);
+	}
+
 	// creates a new vector type, max width == 4
 	inline static Type*
 	type_vectorize(Type* base, int width)

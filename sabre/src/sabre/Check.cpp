@@ -910,6 +910,28 @@ namespace sabre
 				unit_err(self.unit, err);
 			}
 		}
+		else if (e->binary.op.kind == Tkn::KIND_PLUS ||
+				 e->binary.op.kind == Tkn::KIND_MINUS ||
+				 e->binary.op.kind == Tkn::KIND_STAR ||
+				 e->binary.op.kind == Tkn::KIND_DIVIDE ||
+				 e->binary.op.kind == Tkn::KIND_MODULUS)
+		{
+			if (type_has_arithmetic(lhs_type) == false)
+			{
+				Err err{};
+				err.loc = e->binary.left->loc;
+				err.msg = mn::strf("type '{}' doesn't support arithmetic operations", *lhs_type);
+				unit_err(self.unit, err);
+			}
+
+			if (type_has_arithmetic(rhs_type) == false)
+			{
+				Err err{};
+				err.loc = e->binary.right->loc;
+				err.msg = mn::strf("type '{}' doesn't support arithmetic operations", *rhs_type);
+				unit_err(self.unit, err);
+			}
+		}
 
 		if (failed == false && type_is_equal(lhs_type, rhs_type) == false)
 		{
@@ -1422,17 +1444,13 @@ namespace sabre
 						_typer_resolve_func_body_internal(self, instantiated_decl, instantiated_type, instantiated_scope);
 						if (self.unit->errs.count > err_count)
 						{
-							Err err{};
-							err.is_note = true;
-							err.loc = e->loc;
-							err.msg = mn::strf("call to template function '{}' has errors, it was instantiated with the following template arguments:\n", templated_decl->name.str);
-							for (size_t i = 0; i < instantiated_type->template_base_args.count; ++i)
+							// we ignore this candidate since it has errors but we'll not actually issue any errors
+							// because other candidates might not have errors
+							for (size_t i = err_count; i < self.unit->errs.count; ++i)
 							{
-								if (i > 0)
-									err.msg = mn::strf(err.msg, "\n");
-								err.msg = mn::strf(err.msg, "  - {} = {}", *instantiated_type->template_base_type->template_args[i], *instantiated_type->template_base_args[i]);
+								err_free(self.unit->errs[i]);
 							}
-							unit_err(self.unit, err);
+							mn::buf_resize(self.unit->errs, err_count);
 							instantiated_decl = nullptr;
 						}
 					}
