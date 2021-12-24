@@ -1627,6 +1627,29 @@ namespace sabre
 		else
 			type = _typer_expected_expression_type(self);
 
+		if (type == nullptr)
+		{
+			if (e->dot.rhs &&
+				e->dot.rhs->kind == Expr::KIND_ATOM &&
+				(e->dot.rhs->atom.tkn.kind == Tkn::KIND_LITERAL_INTEGER ||
+				 e->dot.rhs->atom.tkn.kind == Tkn::KIND_LITERAL_FLOAT))
+			{
+				Err err{};
+				err.loc = e->loc;
+				err.msg = mn::strf("Did you mean 0.{}?, you cannot omit 0 in floating point numbers", e->dot.rhs->atom.tkn.str);
+				unit_err(self.unit, err);
+				return type_void;
+			}
+			else
+			{
+				Err err{};
+				err.loc = e->loc;
+				err.msg = mn::strf("we couldn't deduce lhs type of a dot expression from context, please provide it explicity");
+				unit_err(self.unit, err);
+				return type_void;
+			}
+		}
+
 		if (type->kind == Type::KIND_VEC)
 		{
 			bool outside_range = false;

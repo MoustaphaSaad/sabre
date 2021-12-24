@@ -4,6 +4,9 @@ Error[literal_types.sabre:10:18]: type mismatch in compound literal value, selec
 >> 	var z = :ivec2{ 1.0, x };
 >> 	                     ^   
 Error[literal_types.sabre:11:23]: type mismatch in compound literal value, selector type 'int' but expression type is 'float'
->> 	var z = :ivec2{ 1.0, x };
->> 	^^^^^^^^^^^^^^^^^^^^^^^^^
-Error[literal_types.sabre:11:2]: missing return at the end of the function because 
+>> 	var w = .1;
+>> 	        ^^ 
+Error[literal_types.sabre:12:10]: Did you mean 0.1?, you cannot omit 0 in floating point numbers
+>> 	var w = .1;
+>> 	^^^^^^^^^^^
+Error[literal_types.sabre:12:2]: missing return at the end of the function because 
