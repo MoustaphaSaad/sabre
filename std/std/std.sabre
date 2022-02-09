@@ -528,6 +528,8 @@ type Blend_Param enum {
 	One_Minus_Dst_Color,
 	Src_Alpha,
 	One_Minus_Src_Alpha,
+	Dst_Alpha,
+	One_Minus_Dst_Alpha,
 }
 
 type Blend_Eq enum {
