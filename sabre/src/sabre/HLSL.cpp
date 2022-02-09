@@ -132,6 +132,7 @@ namespace sabre
 		"VertexShader",
 		"void",
 		"volatile",
+		"[loop]",
 		"while",
 		"float",
 		"double",
@@ -1526,6 +1527,8 @@ namespace sabre
 				mn::print_to(self.out, ";");
 		}
 
+		_hlsl_newline(self);
+		mn::print_to(self.out, "[loop]");
 		_hlsl_newline(self);
 		mn::print_to(self.out, "while (");
 		if (s->for_stmt.cond != nullptr)
