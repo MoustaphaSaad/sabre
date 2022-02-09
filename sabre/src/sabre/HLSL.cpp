@@ -132,7 +132,6 @@ namespace sabre
 		"VertexShader",
 		"void",
 		"volatile",
-		"[loop]",
 		"while",
 		"float",
 		"double",
