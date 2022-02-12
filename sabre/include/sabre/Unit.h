@@ -157,13 +157,19 @@ namespace sabre
 		COMPILATION_MODE_GEOMETRY,
 	};
 
+	struct Input_Layout_Attribute
+	{
+		Type* type;
+		Tag_Table* tags;
+	};
+
 	// represents an entry point, along with its symbol and mode (vertex, pixel, geometry, etc...)
 	struct Entry_Point
 	{
 		COMPILATION_MODE mode;
 		Symbol* symbol;
 		mn::Buf<Symbol*> reachable_symbols;
-		mn::Map<const char*, Type*> input_layout;
+		mn::Map<const char*, Input_Layout_Attribute> input_layout;
 		mn::Buf<Symbol*> uniforms;
 		mn::Buf<Symbol*> textures;
 		mn::Buf<Symbol*> samplers;

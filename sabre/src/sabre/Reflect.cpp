@@ -16,7 +16,7 @@ namespace sabre
 
 		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
 		{
-			const auto& arg = decl->func_decl.args[i];
+			auto& arg = decl->func_decl.args[i];
 
 			for (const auto& name: arg.names)
 			{
@@ -24,11 +24,23 @@ namespace sabre
 				switch (arg_type->kind)
 				{
 				case Type::KIND_STRUCT:
-					for (auto field: arg_type->struct_type.fields)
+				{
+					size_t field_index = 0;
+					auto decl = symbol_decl(arg_type->struct_type.symbol);
+					for (auto& field: decl->struct_decl.fields)
 					{
-						mn::map_insert(entry->input_layout, field.name.str, field.type);
+						for (auto name: field.names)
+						{
+							auto field_type = arg_type->struct_type.fields[field_index++];
+
+							Input_Layout_Attribute attribute{};
+							attribute.type = field_type.type;
+							attribute.tags = &field.tags;
+							mn::map_insert(entry->input_layout, field_type.name.str, attribute);
+						}
 					}
 					break;
+				}
 				default:
 					break;
 				}

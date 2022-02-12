@@ -303,35 +303,40 @@ namespace sabre
 	}
 
 	inline static mn::json::Value
-	_decl_tags_to_json(Decl* decl)
+	_tags_to_json(Tag_Table& self)
 	{
 		auto json_tags = mn::json::value_object_new();
-		if (decl)
+		for (const auto& [tag_name, tag_args]: self.table)
 		{
-			for (const auto& [tag_name, tag_args]: decl->tags.table)
+			auto json_tag = mn::json::value_object_new();
+			for (const auto& [arg_name, arg_value]: tag_args.args)
 			{
-				auto json_tag = mn::json::value_object_new();
-				for (const auto& [arg_name, arg_value]: tag_args.args)
+				mn::json::Value value{};
+				switch (arg_value.value.kind)
 				{
-					mn::json::Value value{};
-					switch (arg_value.value.kind)
-					{
-					case Tkn::KIND_LITERAL_INTEGER:
-						value = mn::json::value_number_new(::atoi(arg_value.value.str));
-						break;
-					case Tkn::KIND_LITERAL_STRING:
-						value = mn::json::value_string_new(arg_value.value.str);
-						break;
-					default:
-						mn_unreachable();
-						break;
-					}
-					mn::json::value_object_insert(json_tag, arg_name, value);
+				case Tkn::KIND_LITERAL_INTEGER:
+					value = mn::json::value_number_new(::atoi(arg_value.value.str));
+					break;
+				case Tkn::KIND_LITERAL_STRING:
+					value = mn::json::value_string_new(arg_value.value.str);
+					break;
+				default:
+					mn_unreachable();
+					break;
 				}
-				mn::json::value_object_insert(json_tags, tag_name, json_tag);
+				mn::json::value_object_insert(json_tag, arg_name, value);
 			}
+			mn::json::value_object_insert(json_tags, tag_name, json_tag);
 		}
 		return json_tags;
+	}
+
+	inline static mn::json::Value
+	_decl_tags_to_json(Decl* decl)
+	{
+		if (decl)
+			return _tags_to_json(decl->tags);
+		return mn::json::value_object_new();
 	}
 
 	inline static void
@@ -875,14 +880,16 @@ namespace sabre
 			mn::json::value_object_insert(json_entry, "name", mn::json::value_string_new(entry->symbol->name));
 
 			auto json_layout = mn::json::value_array_new();
-			for (const auto& [attribute_name, attribute_type]: entry->input_layout)
+			for (const auto& [attribute_name, attribute]: entry->input_layout)
 			{
 				auto json_attribute = mn::json::value_object_new();
 				mn::json::value_object_insert(json_attribute, "name", mn::json::value_string_new(attribute_name));
-				mn::json::value_object_insert(json_attribute, "type", mn::json::value_string_new(_type_to_reflect_json(attribute_type, false)));
+				mn::json::value_object_insert(json_attribute, "type", mn::json::value_string_new(_type_to_reflect_json(attribute.type, false)));
+				if (attribute.tags)
+					mn::json::value_object_insert(json_attribute, "tags", _tags_to_json(*attribute.tags));
 				mn::json::value_array_push(json_layout, json_attribute);
 
-				_push_type(types, attribute_type);
+				_push_type(types, attribute.type);
 			}
 			mn::json::value_object_insert(json_entry, "input_layout", json_layout);
 		}
