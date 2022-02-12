@@ -1527,6 +1527,8 @@ namespace sabre
 		}
 
 		_hlsl_newline(self);
+		mn::print_to(self.out, "[loop]");
+		_hlsl_newline(self);
 		mn::print_to(self.out, "while (");
 		if (s->for_stmt.cond != nullptr)
 			hlsl_expr_gen(self, s->for_stmt.cond);

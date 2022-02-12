@@ -11,6 +11,7 @@ int main_sum_to_n(bool x) {
 	{ // for scope
 		// for init statement
 		int i = 0;
+		[loop]
 		while (i < n) {
 			// for body
 			if (i % 2 == 0) {
