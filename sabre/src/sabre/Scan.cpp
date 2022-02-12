@@ -351,6 +351,11 @@ namespace sabre
 				break;
 			case '!':
 				tkn.kind = Tkn::KIND_LOGICAL_NOT;
+				if (self.c == '=')
+				{
+					tkn.kind = Tkn::KIND_NOT_EQUAL;
+					_scanner_eat(self);
+				}
 				break;
 			case '<':
 				tkn.kind = Tkn::KIND_LESS;
