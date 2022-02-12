@@ -405,6 +405,10 @@ namespace sabre
 			can_write_name = true;
 			str = mn::strf(str, "int");
 			break;
+		case Type::KIND_UINT:
+			can_write_name = true;
+			str = mn::strf(str, "uint");
+			break;
 		case Type::KIND_FLOAT:
 			can_write_name = true;
 			str = mn::strf(str, "float");
@@ -1682,9 +1686,15 @@ namespace sabre
 								field_index++;
 								continue;
 							}
-							else if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
+							if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
 							{
 								mn::buf_push(self.input_names, mn::str_lit("gl_FragDepth"));
+								field_index++;
+								continue;
+							}
+							if (mn::map_lookup(field.tags.table, KEYWORD_SV_PRIMITIVE_ID) != nullptr)
+							{
+								mn::buf_push(self.input_names, mn::str_lit("gl_PrimitiveID"));
 								field_index++;
 								continue;
 							}

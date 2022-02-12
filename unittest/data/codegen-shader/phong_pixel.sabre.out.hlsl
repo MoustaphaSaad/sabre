@@ -2,6 +2,7 @@ struct main_PS_Input {
 	float4 position: SV_POSITION;
 	float3 vertex_position: TEXCOORD1;
 	float3 vertex_normal: TEXCOORD2;
+	uint primitive_id: SV_PrimitiveID;
 };
 struct main_PS_Output {
 	float4 color: SV_TARGET0;

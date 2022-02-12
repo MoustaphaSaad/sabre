@@ -8,6 +8,7 @@ struct main_PS_Input {
 	vec4 position;
 	vec3 vertex_position;
 	vec3 vertex_normal;
+	uint primitive_id;
 };
 struct main_PS_Output {
 	vec4 color;
@@ -52,6 +53,7 @@ void main() {
 	RESERVED_input.position = gl_FragCoord;
 	RESERVED_input.vertex_position = RESERVED_input_vertex_position;
 	RESERVED_input.vertex_normal = RESERVED_input_vertex_normal;
+	RESERVED_input.primitive_id = gl_PrimitiveID;
 	
 	main_PS_Output _tmp_3 = main_main(RESERVED_input);
 	_entry_point_output_color = _tmp_3.color;

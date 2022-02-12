@@ -3,6 +3,7 @@ package main
 type PS_Input struct {
 	@system_position position: vec4,
 	vertex_position, vertex_normal: vec3,
+	@system_primitive_id primitive_id: uint,
 }
 
 type PS_Output struct {

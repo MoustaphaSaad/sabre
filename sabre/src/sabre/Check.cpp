@@ -3416,6 +3416,39 @@ namespace sabre
 		{
 			const auto& struct_field = type->struct_type.fields[struct_type_index];
 
+			if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+			{
+				if (struct_field.type != type_vec4)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+			}
+
+			if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
+			{
+				if (struct_field.type != type_float)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("system depth type is '{}', but it should be 'float'", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+			}
+
+			if (mn::map_lookup(field.tags.table, KEYWORD_SV_PRIMITIVE_ID) != nullptr)
+			{
+				if (struct_field.type != type_uint)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("system primitive id type is '{}', but it should be 'uint'", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+			}
+
 			if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
 			{
 				Err err{};
@@ -3502,43 +3535,22 @@ namespace sabre
 		// handle return type
 		if (return_type->kind == Type::KIND_STRUCT)
 		{
-			auto struct_decl = symbol_decl(return_type->struct_type.symbol);
-			size_t struct_type_index = 0;
-			for (const auto& field: struct_decl->struct_decl.fields)
-			{
-				const auto& struct_field = return_type->struct_type.fields[struct_type_index];
+			_typer_check_entry_struct_input(self, return_type);
+			// auto struct_decl = symbol_decl(return_type->struct_type.symbol);
+			// size_t struct_type_index = 0;
+			// for (const auto& field: struct_decl->struct_decl.fields)
+			// {
+			// 	const auto& struct_field = return_type->struct_type.fields[struct_type_index];
 
-				if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
-				{
-					if (struct_field.type != type_vec4)
-					{
-						Err err{};
-						err.loc = struct_field.name.loc;
-						err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", *struct_field.type);
-						unit_err(self.unit, err);
-					}
-				}
-
-				if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
-				{
-					if (struct_field.type != type_float)
-					{
-						Err err{};
-						err.loc = struct_field.name.loc;
-						err.msg = mn::strf("system depth type is '{}', but it should be 'float'", *struct_field.type);
-						unit_err(self.unit, err);
-					}
-				}
-
-				if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
-				{
-					Err err{};
-					err.loc = struct_field.name.loc;
-					err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
-					unit_err(self.unit, err);
-				}
-				struct_type_index += field.names.count;
-			}
+			// 	if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
+			// 	{
+			// 		Err err{};
+			// 		err.loc = struct_field.name.loc;
+			// 		err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
+			// 		unit_err(self.unit, err);
+			// 	}
+			// 	struct_type_index += field.names.count;
+			// }
 		}
 		else
 		{

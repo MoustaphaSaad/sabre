@@ -1864,6 +1864,10 @@ namespace sabre
 					{
 						mn::print_to(self.out, ": SV_DEPTH");
 					}
+					else if (mn::map_lookup(field.tags.table, KEYWORD_SV_PRIMITIVE_ID) != nullptr)
+					{
+						mn::print_to(self.out, ": SV_PrimitiveID");
+					}
 					else if (io_flags_it->value == ENTRY_IO_FLAG_PIXEL_OUT)
 					{
 						mn::print_to(self.out, ": SV_TARGET{}", i);
