@@ -456,6 +456,10 @@ namespace sabre
 		{
 			return true;
 		}
+		else if ((a == type_lit_float && b == type_lit_int) || (a == type_lit_int && b == type_lit_float))
+		{
+			return true;
+		}
 		else
 		{
 			return a == b;

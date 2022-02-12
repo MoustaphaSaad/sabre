@@ -2653,6 +2653,28 @@ namespace sabre
 					unit_err(self.unit, err);
 				}
 			}
+			else if (s->assign_stmt.op.kind == Tkn::KIND_PLUS_EQUAL ||
+					 s->assign_stmt.op.kind == Tkn::KIND_MINUS_EQUAL ||
+					 s->assign_stmt.op.kind == Tkn::KIND_STAR_EQUAL ||
+					 s->assign_stmt.op.kind == Tkn::KIND_DIVIDE_EQUAL ||
+					 s->assign_stmt.op.kind == Tkn::KIND_MODULUS_EQUAL)
+			{
+				if (lhs_type->kind == Type::KIND_VEC && type_is_numeric_scalar(rhs_type))
+				{
+					if (type_is_equal(lhs_type->vec.base, rhs_type))
+					{
+						// this is allowed
+						continue;
+					}
+					else
+					{
+						Err err{};
+						err.loc = s->loc;
+						err.msg = mn::strf("illegal binary operation on vector type, lhs is '{}' and rhs is '{}'", *lhs_type, *rhs_type);
+						unit_err(self.unit, err);
+					}
+				}
+			}
 
 			if (_typer_can_assign(lhs_type, s->assign_stmt.rhs[i]) == false)
 			{
