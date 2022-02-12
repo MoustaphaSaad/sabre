@@ -2,8 +2,7 @@ package main
 
 type PS_Input struct {
 	@system_position position: vec4,
-	vertex_position: vec3,
-	vertex_normal: vec3,
+	vertex_position, vertex_normal: vec3,
 }
 
 type PS_Output struct {

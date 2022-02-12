@@ -1874,8 +1874,8 @@ namespace sabre
 					}
 				}
 				mn::print_to(self.out, ";");
+				++i;
 			}
-			i += field.names.count;
 		}
 
 		--self.indent;
