@@ -1,0 +1,38 @@
+name: CMake
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+  CPM_SOURCE_CACHE: ~/CPMCache
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Install UUID
+      run: sudo apt install uuid-dev
+      
+    - name: Cache CPM Dependencies
+      uses: actions/cache@v2
+      with:
+        key: cache-cpm-dependencies-${{hashFiles('**/CMakeLists.txt')}}
+        path: ${{env.CPM_SOURCE_CACHE}}
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCPM_SOURCE_CACHE=${{env.CPM_SOURCE_CACHE}}
+
+    - name: Build
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: Test
+      run: build/bin/${{env.BUILD_TYPE}}/unittest
+      
