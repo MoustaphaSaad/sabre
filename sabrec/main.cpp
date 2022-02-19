@@ -143,12 +143,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::scan_file(path, mn::str_lit(""));
+		auto [answer_, err] = sabre::scan_file(path, mn::str_lit(""));
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -163,12 +164,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::parse_expr_from_file(path, mn::str_lit(""));
+		auto [answer_, err] = sabre::parse_expr_from_file(path, mn::str_lit(""));
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -183,12 +185,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::parse_stmt_from_file(path, mn::str_lit(""));
+		auto [answer_, err] = sabre::parse_stmt_from_file(path, mn::str_lit(""));
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -203,12 +206,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::parse_decl_from_file(path, mn::str_lit(""));
+		auto [answer_, err] = sabre::parse_decl_from_file(path, mn::str_lit(""));
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -223,12 +227,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::check_file(path, mn::str_lit(""), args.entry, args.collections);
+		auto [answer_, err] = sabre::check_file(path, mn::str_lit(""), args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -243,12 +248,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
+		auto [answer_, err] = sabre::glsl_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -263,12 +269,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::hlsl_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
+		auto [answer_, err] = sabre::hlsl_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -283,12 +290,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::reflect_file(path, args.entry, args.collections);
+		auto [answer_, err] = sabre::reflect_file(path, args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
@@ -303,12 +311,13 @@ int main(int argc, char** argv)
 		}
 		auto path = args.input[0];
 
-		auto [answer, err] = sabre::spirv_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
+		auto [answer_, err] = sabre::spirv_gen_from_file(path, mn::str_lit(""), args.entry, args.collections);
 		if (err)
 		{
 			mn::printerr("{}\n", err);
 			return EXIT_FAILURE;
 		}
+		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
 		mn::print("{}\n", answer);
 		return EXIT_SUCCESS;
