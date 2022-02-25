@@ -3,3 +3,6 @@ package main
 import foo "Foo"
 
 const answer = foo.answer;
+const bar = foo.my_bar;
+const pos = foo.my_bar.pos;
+const xy = foo.my_bar.pos.xy;

@@ -12,6 +12,16 @@ namespace sabre
 	const char SWIZZLE_XYZW[4] = {'x', 'y', 'z', 'w'};
 	const char SWIZZLE_RGBA[4] = {'r', 'g', 'b', 'a'};
 
+	inline static size_t
+	_swizzle_style_index(const char* style, size_t size, mn::Rune r)
+	{
+		for (size_t i = 0; i < size; ++i)
+			if (style[i] == r)
+				return i;
+		mn_unreachable();
+		return SIZE_MAX;
+	}
+
 	inline static bool
 	_swizzle_style_contains(const char* style, size_t size, mn::Rune r)
 	{
@@ -1707,8 +1717,20 @@ namespace sabre
 				return type_void;
 			}
 
+			auto res = type_vectorize(type->vec.base, len);
 			e->mode = e->dot.lhs->mode;
-			return type_vectorize(type->vec.base, len);
+
+			if (e->mode == ADDRESS_MODE_CONST)
+			{
+				e->const_value = expr_value_aggregate(e->loc.file->ast_arena, res);
+				for (auto r: mn::str_runes(e->dot.rhs->atom.tkn.str))
+				{
+					auto index = _swizzle_style_index(swizzle_style, 4, r);
+					auto src_value = expr_value_aggregate_get(e->dot.lhs->const_value, index);
+					expr_value_aggregate_set(e->const_value, index, src_value);
+				}
+			}
+			return res;
 		}
 		else if (type->kind == Type::KIND_STRUCT)
 		{
@@ -1732,6 +1754,8 @@ namespace sabre
 			}
 
 			e->mode = e->dot.lhs->mode;
+			if (e->mode == ADDRESS_MODE_CONST)
+				e->const_value = expr_value_aggregate_get(e->dot.lhs->const_value, it->value);
 			e->symbol = type->struct_type.symbol;
 			return type->struct_type.fields[it->value].type;
 		}

@@ -8,3 +8,11 @@ func foo(): int {
 }
 
 const answer = 42;
+
+type Bar struct {
+	pos: vec4,
+}
+
+const my_bar = :Bar {
+	pos = {1, 2, 3, 4},
+};
