@@ -1,0 +1,5 @@
+package main
+
+import foo "Foo"
+
+const answer = foo.answer;

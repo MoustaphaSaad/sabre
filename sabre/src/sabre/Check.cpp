@@ -756,8 +756,12 @@ namespace sabre
 				{
 					e->const_value = sym->const_sym.value->const_value;
 				}
+				else if (sym->kind == Symbol::KIND_PACKAGE)
+				{
+					e->const_value = expr_value_package(sym);
+				}
 
-				if (sym->kind == Symbol::KIND_CONST)
+				if (sym->kind == Symbol::KIND_CONST || sym->kind == Symbol::KIND_PACKAGE)
 					e->mode = ADDRESS_MODE_CONST;
 				else if (sym->kind == Symbol::KIND_VAR)
 					e->mode = ADDRESS_MODE_VARIABLE;
@@ -1765,6 +1769,11 @@ namespace sabre
 			e->dot.rhs->atom.decl = symbol_decl(symbol);
 			_typer_resolve_symbol(self, symbol);
 			e->symbol = symbol;
+			if (symbol->kind == Symbol::KIND_CONST && symbol->const_sym.value != nullptr)
+			{
+				e->const_value = symbol->const_sym.value->const_value;
+				e->mode = symbol->const_sym.value->mode;
+			}
 			return symbol->type;
 		}
 		else if (type->kind == Type::KIND_ENUM)

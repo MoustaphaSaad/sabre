@@ -6,3 +6,5 @@ var y = 12;
 func foo(): int {
 	return y;
 }
+
+const magic = 123;

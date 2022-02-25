@@ -1,9 +1,16 @@
 package main
 
+import "A"
+
 func foo() {
 	var x = 5.0;
 	x /= 2;
 
 	var v = :vec3{1.0, 2.0, 3.0};
 	v /= 2;
+}
+
+const x = A.magic;
+if x == 1 {
+	type koko struct{}
 }

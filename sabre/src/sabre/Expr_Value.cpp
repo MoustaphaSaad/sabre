@@ -108,6 +108,15 @@ namespace sabre
 	}
 
 	Expr_Value
+	expr_value_package(Symbol* v)
+	{
+		Expr_Value self{};
+		self.type = v->type;
+		self.as_package = v;
+		return self;
+	}
+
+	Expr_Value
 	expr_value_aggregate(mn::Allocator arena, Type* type)
 	{
 		Expr_Value self{};

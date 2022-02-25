@@ -11,6 +11,7 @@
 namespace sabre
 {
 	struct Type;
+	struct Symbol;
 
 	// expression values, used for compile time const values
 	struct Expr_Value
@@ -22,6 +23,7 @@ namespace sabre
 			int64_t as_int;
 			double as_double;
 			mn::Map<size_t, Expr_Value> as_aggregate;
+			Symbol* as_package;
 		};
 	};
 
@@ -36,6 +38,10 @@ namespace sabre
 	// creates a new double expression value
 	SABRE_EXPORT Expr_Value
 	expr_value_double(double v);
+
+	// creates a new package expression value
+	SABRE_EXPORT Expr_Value
+	expr_value_package(Symbol* v);
 
 	// creates a new aggregate expression value
 	SABRE_EXPORT Expr_Value
