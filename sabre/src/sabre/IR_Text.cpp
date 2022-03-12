@@ -68,6 +68,16 @@ namespace sabre::spirv
 					instruction.as_iadd.op2->id
 				);
 				break;
+			case Instruction::Op_ISub:
+				mn::print_to(
+					self.out,
+					"%{} = OpISub {} %{} %{}",
+					instruction.as_isub.res->id,
+					_ir_text_type_gen(self, instruction.as_isub.res->type),
+					instruction.as_isub.op1->id,
+					instruction.as_isub.op2->id
+				);
+				break;
 			case Instruction::Op_ReturnValue:
 				mn::print_to(
 					self.out,

@@ -34,6 +34,23 @@ namespace sabre::spirv
 	}
 
 	Value*
+	basic_block_sub(Basic_Block* self, Value* op1, Value* op2)
+	{
+		if (type_is_int(op1->type) && type_is_int(op2->type))
+		{
+			Instruction ins{};
+			ins.kind = Instruction::Op_ISub;
+			ins.as_isub.op1 = op1;
+			ins.as_isub.op2 = op2;
+			ins.as_isub.res = _module_value_new(self->func->module, op1->type);
+			mn::buf_push(self->instructions, ins);
+
+			return ins.as_isub.res;
+		}
+		return nullptr;
+	}
+
+	Value*
 	basic_block_ret(Basic_Block* self, Value* res)
 	{
 		Instruction ins{};

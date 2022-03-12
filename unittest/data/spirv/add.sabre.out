@@ -8,3 +8,10 @@
 	%7 = OpIAdd %1 %4 %5
 	OpReturnValue %7
 OpFunctionEnd
+%8 = OpFunction %1 None %2
+	%9 = OpFunctionParameter %1
+	%10 = OpFunctionParameter %1
+	%11 = OpLabel
+	%12 = OpISub %1 %9 %10
+	OpReturnValue %12
+OpFunctionEnd
