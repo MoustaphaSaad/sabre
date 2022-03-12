@@ -1,0 +1,6 @@
+>>         ch = :ivec2{0, 1};
+>>                          ^
+Error[semicolon_crash.sabre:9:26]: expected ',' but found ';'
+>>     };
+>>     ^ 
+Error[semicolon_crash.sabre:10:5]: expected an expression but found '}'

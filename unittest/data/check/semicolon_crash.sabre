@@ -1,5 +1,3 @@
-// segfault.sabre
-
 package main
 
 type Bar struct {
@@ -8,6 +6,6 @@ type Bar struct {
 
 func Foo(): Bar {
     return :Bar {
-        ch = :ivec2{0, 1};// << unexpected (;)
+        ch = :ivec2{0, 1};
     };
 }

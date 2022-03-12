@@ -188,6 +188,9 @@ namespace sabre
 				_parser_eat_must(self, Tkn::KIND_COMMA);
 
 			auto expr = parser_parse_expr(self);
+			if (expr == nullptr)
+				break;
+
 			if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
 			{
 				auto value = parser_parse_expr(self);
