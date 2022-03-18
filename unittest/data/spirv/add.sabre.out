@@ -22,3 +22,10 @@ OpFunctionEnd
 	%17 = OpIMul %1 %14 %15
 	OpReturnValue %17
 OpFunctionEnd
+%18 = OpFunction %1 None %2
+	%19 = OpFunctionParameter %1
+	%20 = OpFunctionParameter %1
+	%21 = OpLabel
+	%22 = OpSDiv %1 %19 %20
+	OpReturnValue %22
+OpFunctionEnd

@@ -88,6 +88,16 @@ namespace sabre::spirv
 					instruction.as_imul.op2->id
 				);
 				break;
+			case Instruction::Op_SDiv:
+				mn::print_to(
+					self.out,
+					"%{} = OpSDiv {} %{} %{}",
+					instruction.as_sdiv.res->id,
+					_ir_text_type_gen(self, instruction.as_sdiv.res->type),
+					instruction.as_sdiv.op1->id,
+					instruction.as_sdiv.op2->id
+				);
+				break;
 			case Instruction::Op_ReturnValue:
 				mn::print_to(
 					self.out,

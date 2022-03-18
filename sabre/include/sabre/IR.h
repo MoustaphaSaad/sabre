@@ -126,6 +126,7 @@ namespace sabre::spirv
 			Op_IAdd,
 			Op_ISub,
 			Op_IMul,
+			Op_SDiv,
 			Op_ReturnValue,
 		};
 
@@ -155,6 +156,13 @@ namespace sabre::spirv
 
 			struct
 			{
+				Value* op1;
+				Value* op2;
+				Value* res;
+			} as_sdiv;
+
+			struct
+			{
 				Value* value;
 			} as_return;
 		};
@@ -180,6 +188,10 @@ namespace sabre::spirv
 	// generates the correct mul instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_mul(Basic_Block* self, Value* op1, Value* op2);
+
+	// generates the correct div instruction for the given 2 values and returns the output value
+	SABRE_EXPORT Value*
+	basic_block_div(Basic_Block* self, Value* op1, Value* op2);
 
 	// returns the given value from the given basic block
 	SABRE_EXPORT Value*
