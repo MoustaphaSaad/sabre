@@ -137,6 +137,8 @@ namespace sabre
 			return spirv::basic_block_add(bb, lhs, rhs);
 		case Tkn::KIND_MINUS:
 			return spirv::basic_block_sub(bb, lhs, rhs);
+		case Tkn::KIND_STAR:
+			return spirv::basic_block_mul(bb, lhs, rhs);
 		default:
 			break;
 		}

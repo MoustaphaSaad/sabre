@@ -15,3 +15,10 @@ OpFunctionEnd
 	%12 = OpISub %1 %9 %10
 	OpReturnValue %12
 OpFunctionEnd
+%13 = OpFunction %1 None %2
+	%14 = OpFunctionParameter %1
+	%15 = OpFunctionParameter %1
+	%16 = OpLabel
+	%17 = OpIMul %1 %14 %15
+	OpReturnValue %17
+OpFunctionEnd

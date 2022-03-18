@@ -51,6 +51,23 @@ namespace sabre::spirv
 	}
 
 	Value*
+	basic_block_mul(Basic_Block* self, Value* op1, Value* op2)
+	{
+		if (type_is_int(op1->type) && type_is_int(op2->type))
+		{
+			Instruction ins{};
+			ins.kind = Instruction::Op_IMul;
+			ins.as_imul.op1 = op1;
+			ins.as_imul.op2 = op2;
+			ins.as_imul.res = _module_value_new(self->func->module, op1->type);
+			mn::buf_push(self->instructions, ins);
+
+			return ins.as_imul.res;
+		}
+		return nullptr;
+	}
+
+	Value*
 	basic_block_ret(Basic_Block* self, Value* res)
 	{
 		Instruction ins{};
