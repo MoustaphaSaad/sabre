@@ -1,0 +1,3 @@
+>> 	var a: float;
+>> 	^^^^^^^^^^^^ 
+Error[shadowed_variable_crash.sabre:4:2]: 'a' symbol redefinition, first declared in 3:10

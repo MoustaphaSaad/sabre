@@ -168,7 +168,10 @@ namespace sabre
 		case Symbol::KIND_CONST:
 			return self->const_sym.decl->loc;
 		case Symbol::KIND_VAR:
-			return self->var_sym.decl->loc;
+			if (self->var_sym.decl)
+				return self->var_sym.decl->loc;
+			else
+				return self->var_sym.name.loc;
 		case Symbol::KIND_FUNC:
 			return self->func_sym.decl->loc;
 		case Symbol::KIND_STRUCT:
