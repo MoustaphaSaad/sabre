@@ -318,10 +318,30 @@ namespace sabre
 	_spirv_var_gen(SPIRV& self, Symbol* sym)
 	{
 		auto vt = _spirv_current_value_table(self);
-		auto type = _spirv_ptr_gen(self, _spirv_type_gen(self, sym->type), spirv::STORAGE_CLASS_FUNCTION);
+		auto type = _spirv_type_gen(self, sym->type);
+		auto ptr_type = _spirv_ptr_gen(self, type, spirv::STORAGE_CLASS_FUNCTION);
 		auto bb = _spirv_current_bb(self);
-		auto res =  spirv::basic_block_variable(bb, type, spirv::STORAGE_CLASS_FUNCTION, nullptr);
+
+		spirv::Value* initial_value = nullptr;
+
+		auto value = sym->var_sym.value;
+		// constants can be emitted and assigned in the initial value, we have it set to nullptr for now
+		// later we can emit the constant and reference it here, it also works for globals
+		if (value && value->mode == ADDRESS_MODE_CONST)
+		{
+			// emit constant here
+		}
+
+		auto res = spirv::basic_block_variable(bb, ptr_type, spirv::STORAGE_CLASS_FUNCTION, initial_value);
 		value_table_add(vt, sym->name, res);
+
+		// emit load and store instruction here
+		if (value && sym->var_sym.value->mode != ADDRESS_MODE_CONST)
+		{
+			auto init_value = _spirv_expr_gen(self, value);
+			auto loaded_value = spirv::basic_block_load(bb, type, init_value);
+			spirv::basic_block_store(bb, loaded_value, res);
+		}
 	}
 
 	inline static void

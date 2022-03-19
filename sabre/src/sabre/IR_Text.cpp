@@ -120,7 +120,6 @@ namespace sabre::spirv
 				);
 				break;
 			case Instruction::Op_Variable:
-				// TODO: enable other variable types, we hardcode function now
 				mn::print_to(
 					self.out,
 					"%{} = OpVariable {} {}",
@@ -130,6 +129,23 @@ namespace sabre::spirv
 				);
 				if (instruction.as_variable.init)
 					mn::print_to(self.out, "%{}", instruction.as_variable.init->id);
+				break;
+			case Instruction::Op_Load:
+				mn::print_to(
+					self.out,
+					"%{} = OpLoad {} %{}",
+					instruction.as_load.res->id,
+					_ir_text_type_gen(self, instruction.as_load.type),
+					instruction.as_load.src->id
+				);
+				break;
+			case Instruction::Op_Store:
+				mn::print_to(
+					self.out,
+					"OpStore %{} %{}",
+					instruction.as_store.dst->id,
+					instruction.as_store.src->id
+				);
 				break;
 			case Instruction::Op_ReturnValue:
 				mn::print_to(

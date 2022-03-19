@@ -7,5 +7,9 @@
 	%5 = OpFunctionParameter %3
 	%6 = OpLabel
 	%8 = OpVariable %7 Function
-	%9 = OpVariable %7 Function
+	%9 = OpLoad %3 %5
+	OpStore %8 %9
+	%10 = OpVariable %7 Function
+	%11 = OpLoad %3 %5
+	OpStore %10 %11
 OpFunctionEnd

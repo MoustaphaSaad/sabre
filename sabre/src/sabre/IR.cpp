@@ -109,6 +109,29 @@ namespace sabre::spirv
 		return ins.as_variable.res;
 	}
 
+	Value*
+	basic_block_load(Basic_Block* self, Type* type, Value* src)
+	{
+		Instruction ins{};
+		ins.kind = Instruction::Op_Load;
+		ins.as_load.type = type;
+		ins.as_load.src = src;
+		ins.as_load.res = _module_value_new(self->func->module, type);
+		mn::buf_push(self->instructions, ins);
+
+		return ins.as_load.res;
+	}
+
+	void
+	basic_block_store(Basic_Block* self, Value* src, Value* dst)
+	{
+		Instruction ins{};
+		ins.kind = Instruction::Op_Store;
+		ins.as_store.src = src;
+		ins.as_store.dst = dst;
+		mn::buf_push(self->instructions, ins);
+	}
+
 	Module*
 	module_new()
 	{

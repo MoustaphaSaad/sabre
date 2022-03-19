@@ -140,6 +140,8 @@ namespace sabre::spirv
 			Op_IMul,
 			Op_SDiv,
 			Op_Variable,
+			Op_Load,
+			Op_Store,
 			Op_ReturnValue,
 		};
 
@@ -184,6 +186,19 @@ namespace sabre::spirv
 
 			struct
 			{
+				Type* type;
+				Value* src;
+				Value* res;
+			} as_load;
+
+			struct
+			{
+				Value* src;
+				Value* dst;
+			} as_store;
+
+			struct
+			{
 				Value* value;
 			} as_return;
 		};
@@ -221,6 +236,14 @@ namespace sabre::spirv
 	// creates a new variable with the given type
 	SABRE_EXPORT Value*
 	basic_block_variable(Basic_Block* self, Type* type, STORAGE_CLASS storage_class, Value* init);
+
+	// loads data with the given type from the given source
+	SABRE_EXPORT Value*
+	basic_block_load(Basic_Block* self, Type* type, Value* src);
+
+	// stores data from src to dst
+	SABRE_EXPORT void
+	basic_block_store(Basic_Block* self, Value* src, Value* dst);
 
 	// represents a SPIRV function
 	struct Func
