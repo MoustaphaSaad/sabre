@@ -88,6 +88,15 @@ namespace sabre
 		return _spirv_value_table_of_scope(self, _spirv_current_scope(self));
 	}
 
+	inline static spirv::Type*
+	_spirv_ptr_gen(SPIRV& self, spirv::Type* type, spirv::STORAGE_CLASS storage_class)
+	{
+		if (auto it = mn::map_lookup(self.spirv_type_pointer_table, type))
+			return it->value;
+		auto res = spirv::module_type_pointer_new(self.out, type, storage_class);
+		mn::map_insert(self.spirv_type_pointer_table, type, res);
+		return res;
+	}
 
 	inline static spirv::Type*
 	_spirv_type_gen(SPIRV& self, Type* type)
@@ -190,6 +199,12 @@ namespace sabre
 	_spirv_stmt_gen(SPIRV& self, Stmt* stmt);
 
 	inline static void
+	_spirv_decl_gen(SPIRV& self, Decl* decl);
+
+	inline static void
+	_spirv_symbol_gen(SPIRV& self, Symbol* sym);
+
+	inline static void
 	_spirv_stmt_block_gen(SPIRV& self, Stmt* stmt)
 	{
 		for (auto s: stmt->block_stmt)
@@ -211,6 +226,12 @@ namespace sabre
 	}
 
 	inline static void
+	_spirv_stmt_decl_gen(SPIRV& self, Stmt* stmt)
+	{
+		_spirv_decl_gen(self, stmt->decl_stmt);
+	}
+
+	inline static void
 	_spirv_stmt_gen(SPIRV& self, Stmt* stmt)
 	{
 		switch (stmt->kind)
@@ -223,7 +244,33 @@ namespace sabre
 			break;
 		case Stmt::KIND_EXPR:
 			_spirv_stmt_expr_gen(self, stmt);
+			break;
+		case Stmt::KIND_DECL:
+			_spirv_stmt_decl_gen(self, stmt);
+			break;
 		default:
+			break;
+		}
+	}
+
+	inline static void
+	_spirv_decl_var_gen(SPIRV& self, Decl* decl)
+	{
+		auto current_scope = _spirv_current_scope(self);
+		for (auto v: decl->var_decl.names)
+		{
+			auto sym = scope_find(current_scope, v.str);
+			_spirv_symbol_gen(self, sym);
+		}
+	}
+
+	inline static void
+	_spirv_decl_gen(SPIRV& self, Decl* decl)
+	{
+		switch (decl->kind)
+		{
+		case Decl::KIND_VAR:
+			_spirv_decl_var_gen(self, decl);
 			break;
 		}
 	}
@@ -268,12 +315,25 @@ namespace sabre
 	}
 
 	inline static void
+	_spirv_var_gen(SPIRV& self, Symbol* sym)
+	{
+		auto vt = _spirv_current_value_table(self);
+		auto type = _spirv_ptr_gen(self, _spirv_type_gen(self, sym->type), spirv::STORAGE_CLASS_FUNCTION);
+		auto bb = _spirv_current_bb(self);
+		auto res =  spirv::basic_block_variable(bb, type, spirv::STORAGE_CLASS_FUNCTION, nullptr);
+		value_table_add(vt, sym->name, res);
+	}
+
+	inline static void
 	_spirv_symbol_gen(SPIRV& self, Symbol* sym)
 	{
 		switch(sym->kind)
 		{
 		case Symbol::KIND_FUNC:
 			_spirv_func_gen(self, sym);
+			break;
+		case Symbol::KIND_VAR:
+			_spirv_var_gen(self, sym);
 			break;
 		default:
 			mn_unreachable();
@@ -346,6 +406,7 @@ namespace sabre
 	{
 		spirv::module_free(self.out);
 		mn::map_free(self.spirv_type_table);
+		mn::map_free(self.spirv_type_pointer_table);
 
 		for (auto& [_, vt]: self.scope_value_table)
 			value_table_free(vt);

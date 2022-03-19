@@ -6,6 +6,18 @@
 
 namespace sabre::spirv
 {
+	inline static const char*
+	_ir_text_storage_class(STORAGE_CLASS storage_class)
+	{
+		switch (storage_class)
+		{
+		case STORAGE_CLASS_FUNCTION:
+			return "Function";
+		default:
+			mn_unreachable();
+		}
+	}
+
 	inline static void
 	_ir_text_newline(IR_Text& self)
 	{
@@ -36,6 +48,15 @@ namespace sabre::spirv
 			{
 				res = mn::strf(res, " {}", _ir_text_type_gen(self, type->as_func.args[i]));
 			}
+			break;
+		case Type::KIND_PTR:
+			res = mn::strf(
+				res,
+				"%{} = OpTypePointer {} %{}",
+				type->id,
+				_ir_text_storage_class(type->as_ptr.storage_class),
+				type->as_ptr.base->id
+			);
 			break;
 		default:
 			break;
@@ -97,6 +118,18 @@ namespace sabre::spirv
 					instruction.as_sdiv.op1->id,
 					instruction.as_sdiv.op2->id
 				);
+				break;
+			case Instruction::Op_Variable:
+				// TODO: enable other variable types, we hardcode function now
+				mn::print_to(
+					self.out,
+					"%{} = OpVariable {} {}",
+					instruction.as_variable.res->id,
+					_ir_text_type_gen(self, instruction.as_variable.type),
+					_ir_text_storage_class(instruction.as_variable.storage_class)
+				);
+				if (instruction.as_variable.init)
+					mn::print_to(self.out, "%{}", instruction.as_variable.init->id);
 				break;
 			case Instruction::Op_ReturnValue:
 				mn::print_to(
@@ -179,7 +212,13 @@ namespace sabre::spirv
 	{
 		for (const auto& [_, e]: self.module->entities)
 		{
-			_ir_text_entity_gen(self, e);
+			if (e.kind == Entity::KIND_TYPE)
+				_ir_text_entity_gen(self, e);
+		}
+		for (const auto& [_, e]: self.module->entities)
+		{
+			if (e.kind != Entity::KIND_TYPE)
+				_ir_text_entity_gen(self, e);
 		}
 	}
 }

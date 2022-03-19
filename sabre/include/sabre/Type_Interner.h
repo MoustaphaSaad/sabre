@@ -217,6 +217,7 @@ namespace sabre
 			KIND_TRIANGLE_STREAM,
 			KIND_LINE_STREAM,
 			KIND_POINT_STREAM,
+			KIND_POINTER,
 		};
 
 		KIND kind;

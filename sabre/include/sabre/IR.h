@@ -78,6 +78,11 @@ namespace sabre::spirv
 		return self;
 	}
 
+	enum STORAGE_CLASS
+	{
+		STORAGE_CLASS_FUNCTION,
+	};
+
 	// represents a SPIRV type
 	struct Type
 	{
@@ -86,6 +91,7 @@ namespace sabre::spirv
 			KIND_VOID,
 			KIND_INT,
 			KIND_FUNC,
+			KIND_PTR,
 		};
 
 		KIND kind;
@@ -103,6 +109,12 @@ namespace sabre::spirv
 				Type* return_type;
 				mn::Buf<Type*> args;
 			} as_func;
+
+			struct
+			{
+				Type* base;
+				STORAGE_CLASS storage_class;
+			} as_ptr;
 		};
 	};
 
@@ -127,6 +139,7 @@ namespace sabre::spirv
 			Op_ISub,
 			Op_IMul,
 			Op_SDiv,
+			Op_Variable,
 			Op_ReturnValue,
 		};
 
@@ -160,6 +173,14 @@ namespace sabre::spirv
 				Value* op2;
 				Value* res;
 			} as_sdiv;
+
+			struct
+			{
+				Type* type;
+				STORAGE_CLASS storage_class;
+				Value* init;
+				Value* res;
+			} as_variable;
 
 			struct
 			{
@@ -197,6 +218,10 @@ namespace sabre::spirv
 	SABRE_EXPORT Value*
 	basic_block_ret(Basic_Block* self, Value* res);
 
+	// creates a new variable with the given type
+	SABRE_EXPORT Value*
+	basic_block_variable(Basic_Block* self, Type* type, STORAGE_CLASS storage_class, Value* init);
+
 	// represents a SPIRV function
 	struct Func
 	{
@@ -230,6 +255,10 @@ namespace sabre::spirv
 	// creates a new int type instance
 	SABRE_EXPORT Type*
 	module_type_int_new(Module* self, int bit_width, bool is_signed);
+
+	// creates a new pointer to type instance
+	SABRE_EXPORT Type*
+	module_type_pointer_new(Module* self, Type* base, STORAGE_CLASS storage_class);
 
 	// creates a new func type instance
 	SABRE_EXPORT Type*

@@ -58,6 +58,7 @@ namespace sabre
 		Unit_Package* unit;
 		spirv::Module* out;
 		mn::Map<Type*, spirv::Type*> spirv_type_table;
+		mn::Map<spirv::Type*, spirv::Type*> spirv_type_pointer_table;
 		mn::Map<Scope*, Value_Table*> scope_value_table;
 		mn::Buf<Scope*> scope_stack;
 		mn::Buf<spirv::Func*> func_stack;

@@ -95,6 +95,20 @@ namespace sabre::spirv
 		return ins.as_return.value;
 	}
 
+	Value*
+	basic_block_variable(Basic_Block* self, Type* type, STORAGE_CLASS storage_class, Value* init)
+	{
+		Instruction ins{};
+		ins.kind = Instruction::Op_Variable;
+		ins.as_variable.type = type;
+		ins.as_variable.storage_class = storage_class;
+		ins.as_variable.init = init;
+		ins.as_variable.res = _module_value_new(self->func->module, type);
+		mn::buf_push(self->instructions, ins);
+
+		return ins.as_variable.res;
+	}
+
 	Module*
 	module_new()
 	{
@@ -133,6 +147,19 @@ namespace sabre::spirv
 		type->id = ++self->id_generator;
 		type->as_int.bit_width = bit_width;
 		type->as_int.is_signed = is_signed ? 1 : 0;
+
+		mn::map_insert(self->entities, type->id, entity_from_type(type));
+		return type;
+	}
+
+	Type*
+	module_type_pointer_new(Module* self, Type* base, STORAGE_CLASS storage_class)
+	{
+		auto type = mn::alloc_zerod_from<Type>(self->arena);
+		type->kind = Type::KIND_PTR;
+		type->id = ++self->id_generator;
+		type->as_ptr.base = base;
+		type->as_ptr.storage_class = storage_class;
 
 		mn::map_insert(self->entities, type->id, entity_from_type(type));
 		return type;
