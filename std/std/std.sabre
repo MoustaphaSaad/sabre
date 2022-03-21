@@ -118,6 +118,12 @@ func length(a: vec3): float
 func length(a: vec4): float
 
 @builtin
+func reflect(I, N: vec2): vec2
+
+@builtin
+func reflect(I, N: vec3): vec3
+
+@builtin
 func pow(base, power: float): float
 
 @builtin
