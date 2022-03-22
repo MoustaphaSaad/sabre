@@ -172,6 +172,18 @@ func log(a: vec3): vec3
 func log(a: vec4): vec4
 
 @builtin
+func log2(a: float): float
+
+@builtin
+func log2(a: vec2): vec2
+
+@builtin
+func log2(a: vec3): vec3
+
+@builtin
+func log2(a: vec4): vec4
+
+@builtin
 func sqrt(a: float): float
 
 @builtin
