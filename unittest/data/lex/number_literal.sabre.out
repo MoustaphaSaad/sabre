@@ -1,0 +1,4 @@
+line: 1, col: 0, kind: <INTEGER>, str: "0x55555555"
+line: 2, col: 1, kind: <INTEGER>, str: "0b11001100"
+line: 3, col: 1, kind: <INTEGER>, str: "0o55555555"
+line: 4, col: 1, kind: <INTEGER>, str: "0d77777777"

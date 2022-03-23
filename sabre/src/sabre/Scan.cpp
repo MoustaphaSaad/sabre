@@ -123,18 +123,22 @@ namespace sabre
 			{
 			case 'b':
 			case 'B':
+				_scanner_eat(self); // for the B(b).
 				base = 2;
 				break;
 			case 'o':
 			case 'O':
+				_scanner_eat(self); // for the O(o).
 				base = 8;
 				break;
 			case 'd':
 			case 'D':
+				_scanner_eat(self); // for the D(d).
 				base = 10;
 				break;
 			case 'x':
 			case 'X':
+				_scanner_eat(self); // for the X(x).
 				base = 16;
 				break;
 			}
