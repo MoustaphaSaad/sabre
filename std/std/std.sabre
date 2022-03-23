@@ -48,6 +48,14 @@ func texture_sample_level(:Texture2D, :Sampler, :vec2, :float): vec4
 }
 func texture_sample_level(:Texture3D, :Sampler, :vec3, :float): vec4
 
+@sample_func
+@hlsl_method
+@builtin {
+	glsl = "textureLod"
+	hlsl = "SampleLevel"
+}
+func texture_sample_level(:TextureCube, :Sampler, :vec3, :float): vec4
+
 @hlsl_method
 @builtin {
 	hlsl = "Append"
