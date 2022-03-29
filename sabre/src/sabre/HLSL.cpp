@@ -1756,10 +1756,6 @@ namespace sabre
 					{
 						str = mn::strf(str, "RWTexture3D<float4>");
 					}
-					else if (sym->type == type_texture_cube)
-					{
-						str = mn::strf(str, "RWTextureCube<float4>");
-					}
 					else
 					{
 						mn_unreachable();
@@ -1767,7 +1763,8 @@ namespace sabre
 
 					if (mn::str_lit(uniform_name).count > 0)
 						str = mn::strf(str, " {}", _hlsl_name(self, uniform_name));
-					mn::print_to(self.out, "{}: register(t{})", str, sym->var_sym.uniform_binding);
+					// TODO: Take into account that RWTexture bindings should start after the framebuffer output attachment count.
+					mn::print_to(self.out, "{}: register(u{})", str, sym->var_sym.uniform_binding);
 				}
 				else
 				{
