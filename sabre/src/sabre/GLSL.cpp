@@ -1074,7 +1074,39 @@ namespace sabre
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.uniform_binding, _glsl_write_field(self, sym->type, uniform_name));
+				// TODO: Move this part to the _glsl_write_field(...) function, while taking into account texture read/write access.
+				if (sym->var_sym.read_write_access)
+				{
+					mn::Str str = mn::str_tmp();
+					if (sym->type == type_texture1d)
+					{
+						str = mn::strf(str, "image1D");
+					}
+					else if (sym->type == type_texture2d)
+					{
+						str = mn::strf(str, "image2D");
+					}
+					else if (sym->type == type_texture3d)
+					{
+						str = mn::strf(str, "image3D");
+					}
+					else if (sym->type == type_texture_cube)
+					{
+						str = mn::strf(str, "imageCube");
+					}
+					else
+					{
+						mn_unreachable();
+					}
+
+					if (mn::str_lit(uniform_name).count > 0)
+						str = mn::strf(str, " {}", _glsl_name(self, uniform_name));
+					mn::print_to(self.out, "layout(binding = {}, rgba32f) uniform {}", sym->var_sym.uniform_binding, str);
+				}
+				else
+				{
+					mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.uniform_binding, _glsl_write_field(self, sym->type, uniform_name));
+				}
 			}
 			else
 			{
@@ -1223,7 +1255,6 @@ namespace sabre
 			if (self.entry == nullptr)
 			{
 				auto package = sym->package_sym.package;
-				
 				if (package->stage == COMPILATION_STAGE_CODEGEN)
 				{
 					for (size_t i = 0; i < package->reachable_symbols.count; ++i)

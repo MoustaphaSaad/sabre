@@ -65,6 +65,7 @@ namespace sabre
 				Expr* value;
 
 				// used when a variable refers is a uniform
+				bool read_write_access;
 				int uniform_binding;
 				bool is_uniform;
 				bool uniform_binding_processed;

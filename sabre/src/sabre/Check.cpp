@@ -370,7 +370,7 @@ namespace sabre
 				Expr* value = nullptr;
 				if (i < decl->const_decl.values.count)
 					value = decl->const_decl.values[i];
-				// add symbol twice, once in file scope an another one in package scope
+				// add symbol twice, once in file scope and another one in package scope
 				auto sym = symbol_const_new(self.unit->symbols_arena, name, decl, sign, value);
 				_typer_add_symbol(self, sym);
 				// search for the pipeline of that shader
@@ -3605,6 +3605,7 @@ namespace sabre
 		}
 	}
 
+	// TODO: Check this.
 	inline static void
 	_typer_assign_bindings(Typer& self, Entry_Point* entry, Symbol* sym)
 	{
@@ -3634,6 +3635,9 @@ namespace sabre
 		auto uniform_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_UNIFORM);
 		if (sym->type->kind == Type::KIND_TEXTURE)
 		{
+			if(mn::map_lookup(decl->tags.table, KEYWORD_READ_WRITE))
+				sym->var_sym.read_write_access = true;
+
 			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
 			{
 				auto value_tkn = binding_it->value.value;
@@ -3791,7 +3795,7 @@ namespace sabre
 					auto entry = entry_point_new(sym, COMPILATION_MODE_PIXEL);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
-				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
 					auto entry = entry_point_new(sym, COMPILATION_MODE_GEOMETRY);
 					mn::buf_push(self.unit->entry_points, entry);

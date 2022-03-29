@@ -1740,7 +1740,39 @@ namespace sabre
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				mn::print_to(self.out, "{}: register(t{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
+				// TODO: Move this part to the _hlsl_write_field(...) function, while taking into account texture read/write access.
+				if (sym->var_sym.read_write_access)
+				{
+					mn::Str str = mn::str_tmp();
+					if (sym->type == type_texture1d)
+					{
+						str = mn::strf(str, "RWTexture1D<float4>");
+					}
+					else if (sym->type == type_texture2d)
+					{
+						str = mn::strf(str, "RWTexture2D<float4>");
+					}
+					else if (sym->type == type_texture3d)
+					{
+						str = mn::strf(str, "RWTexture3D<float4>");
+					}
+					else if (sym->type == type_texture_cube)
+					{
+						str = mn::strf(str, "RWTextureCube<float4>");
+					}
+					else
+					{
+						mn_unreachable();
+					}
+
+					if (mn::str_lit(uniform_name).count > 0)
+						str = mn::strf(str, " {}", _hlsl_name(self, uniform_name));
+					mn::print_to(self.out, "{}: register(t{})", str, sym->var_sym.uniform_binding);
+				}
+				else
+				{
+					mn::print_to(self.out, "{}: register(t{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
+				}
 			}
 			else if (type_is_sampler(sym->type))
 			{
