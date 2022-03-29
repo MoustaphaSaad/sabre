@@ -3605,7 +3605,6 @@ namespace sabre
 		}
 	}
 
-	// TODO: Check this.
 	inline static void
 	_typer_assign_bindings(Typer& self, Entry_Point* entry, Symbol* sym)
 	{

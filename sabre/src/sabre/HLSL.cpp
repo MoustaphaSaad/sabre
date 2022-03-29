@@ -1756,6 +1756,11 @@ namespace sabre
 					{
 						str = mn::strf(str, "RWTexture3D<float4>");
 					}
+					else if (sym->type == type_texture_cube)
+					{
+						// TODO: Report error message or just produce normal TextureCube?
+						//       There is no RWTextureCube equivelant.
+					}
 					else
 					{
 						mn_unreachable();
