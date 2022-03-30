@@ -52,6 +52,8 @@ namespace sabre
 	inline constexpr const char* KEYWORD_POINT = "point";
 	inline constexpr const char* KEYWORD_LINE = "line";
 	inline constexpr const char* KEYWORD_TRIANGLE = "triangle";
+	inline constexpr const char* KEYWORD_WRITE_ONLY = "write_only";
+	inline constexpr const char* KEYWORD_READ_WRITE = "read_write";
 
 	enum COMPILATION_STAGE
 	{
