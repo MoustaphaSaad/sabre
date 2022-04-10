@@ -108,6 +108,15 @@ namespace sabre
 	}
 
 	Expr_Value
+	expr_value_string(const char* v)
+	{
+		Expr_Value self{};
+		self.type = type_lit_string;
+		self.as_string = v;
+		return self;
+	}
+
+	Expr_Value
 	expr_value_package(Symbol* v)
 	{
 		Expr_Value self{};

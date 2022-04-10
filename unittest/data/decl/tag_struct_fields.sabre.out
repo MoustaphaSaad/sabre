@@ -10,7 +10,7 @@
     (type-sign vec2)
   )
   (tag 'TEST'
-    (key: 'name', value: 'sdf')
+    (key: 'name', value: (atom 'sdf'))
   )
   (field
     (field-name 'test')

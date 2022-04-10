@@ -24,6 +24,7 @@ namespace sabre
 			double as_double;
 			mn::Map<size_t, Expr_Value> as_aggregate;
 			Symbol* as_package;
+			const char* as_string;
 		};
 	};
 
@@ -38,6 +39,10 @@ namespace sabre
 	// creates a new double expression value
 	SABRE_EXPORT Expr_Value
 	expr_value_double(double v);
+
+	// creates a new string expression value
+	SABRE_EXPORT Expr_Value
+	expr_value_string(const char* v);
 
 	// creates a new package expression value
 	SABRE_EXPORT Expr_Value

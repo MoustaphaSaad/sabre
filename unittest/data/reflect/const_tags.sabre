@@ -1,0 +1,28 @@
+package main
+
+type Direction enum {
+	UP,
+	DOWN,
+	LEFT,
+	RIGHT,
+}
+
+type VS_Input struct {
+	@buffer{slot = 0, dir = Direction.DOWN, koko = "koko", value = value_2x}
+	position: vec3,
+	normal: vec3,
+}
+
+type PS_Input struct {
+	@system_position position: vec4,
+}
+
+@vertex
+func main(input: VS_Input): PS_Input {
+	return {
+		position = {input.position.xyz, 1.0},
+	};
+}
+
+const value = 1;
+const value_2x = value * 2;

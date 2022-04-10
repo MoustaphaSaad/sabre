@@ -217,6 +217,7 @@ namespace sabre
 			KIND_TRIANGLE_STREAM,
 			KIND_LINE_STREAM,
 			KIND_POINT_STREAM,
+			KIND_STRING,
 			KIND_POINTER,
 		};
 
@@ -362,6 +363,7 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_triangle_stream;
 	SABRE_EXPORT extern Type* type_line_stream;
 	SABRE_EXPORT extern Type* type_point_stream;
+	SABRE_EXPORT extern Type* type_lit_string;
 
 	// given a type name it will return a type
 	inline static Type*

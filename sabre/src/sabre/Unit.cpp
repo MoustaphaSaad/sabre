@@ -312,17 +312,17 @@ namespace sabre
 			for (const auto& [arg_name, arg_value]: tag_args.args)
 			{
 				mn::json::Value value{};
-				switch (arg_value.value.kind)
+				if (arg_value.value->const_value.type == type_int)
 				{
-				case Tkn::KIND_LITERAL_INTEGER:
-					value = mn::json::value_number_new(::atoi(arg_value.value.str));
-					break;
-				case Tkn::KIND_LITERAL_STRING:
-					value = mn::json::value_string_new(arg_value.value.str);
-					break;
-				default:
+					value = mn::json::value_number_new(arg_value.value->const_value.as_int);
+				}
+				else if (arg_value.value->const_value.type == type_lit_string)
+				{
+					value = mn::json::value_string_new(arg_value.value->const_value.as_string);
+				}
+				else
+				{
 					mn_unreachable();
-					break;
 				}
 				mn::json::value_object_insert(json_tag, arg_name, value);
 			}

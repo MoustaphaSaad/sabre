@@ -384,7 +384,7 @@ namespace sabre
 	struct Tag_Key_Value
 	{
 		Tkn key;
-		Tkn value;
+		Expr* value;
 	};
 
 	// represents a tag that can be attached to declarations

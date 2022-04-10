@@ -319,7 +319,10 @@ namespace sabre
 			{
 				if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
 				{
-					res = arg->value.value.str;
+					if (arg->value.value->const_value.type == type_lit_string)
+						res = arg->value.value->const_value.as_string;
+					else
+						res = sym->name;
 				}
 				else
 				{
@@ -334,7 +337,10 @@ namespace sabre
 				{
 					if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
 					{
-						res = arg->value.value.str;
+						if (arg->value.value->const_value.type == type_lit_string)
+							res = arg->value.value->const_value.as_string;
+						else
+							res = sym->name;
 					}
 					else
 					{
@@ -351,7 +357,10 @@ namespace sabre
 					{
 						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
 						{
-							res = arg->value.value.str;
+							if (arg->value.value->const_value.type == type_lit_string)
+								res = arg->value.value->const_value.as_string;
+							else
+								res = sym->name;
 						}
 						else
 						{

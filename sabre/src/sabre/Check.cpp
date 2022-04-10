@@ -746,6 +746,10 @@ namespace sabre
 			e->mode = ADDRESS_MODE_CONST;
 			e->const_value = expr_value_bool(true);
 			return type_bool;
+		case Tkn::KIND_LITERAL_STRING:
+			e->mode = ADDRESS_MODE_CONST;
+			e->const_value = expr_value_string(e->atom.tkn.str);
+			return type_lit_string;
 		case Tkn::KIND_ID:
 		{
 			// try to find the symbol in the current scope
@@ -2232,9 +2236,42 @@ namespace sabre
 		return e->type;
 	}
 
+	inline static void
+	_typer_resolve_tags(Typer& self, Tag_Table& tags)
+	{
+		for (auto& [_, tag]: tags.table)
+		{
+			for (auto& [_, kv]: tag.args)
+			{
+				auto type = _typer_resolve_expr(self, kv.value);
+				auto mode = kv.value->mode;
+				if (mode != ADDRESS_MODE_CONST)
+				{
+					Err err{};
+					err.loc = kv.value->loc;
+					err.msg = mn::strf("tags can only accept constant expressions, the provided expression is not a constant");
+					unit_err(self.unit, err);
+					continue;
+				}
+
+				auto expr_value = kv.value->const_value;
+				if (expr_value.type != type_int &&
+					expr_value.type != type_lit_string)
+				{
+					Err err{};
+					err.loc = kv.value->loc;
+					err.msg = mn::strf("tag value expressions can only be of integer or string types");
+					unit_err(self.unit, err);
+				}
+			}
+		}
+	}
+
 	inline static Type*
 	_typer_resolve_const(Typer& self, Symbol* sym)
 	{
+		_typer_resolve_tags(self, sym->const_sym.decl->tags);
+
 		// we should infer if the declaration has no type signature
 		auto infer = sym->const_sym.sign.atoms.count == 0;
 
@@ -2352,6 +2389,7 @@ namespace sabre
 	inline static Type*
 	_typer_resolve_var(Typer& self, Symbol* sym)
 	{
+		_typer_resolve_tags(self, sym->var_sym.decl->tags);
 		// we should infer if the declaration has no type signature
 		auto infer = sym->var_sym.sign.atoms.count == 0;
 
@@ -2437,6 +2475,8 @@ namespace sabre
 		if (d->type)
 			return d->type;
 
+		_typer_resolve_tags(self, d->tags);
+
 		// TODO: find a nice way to handle the return type of function return type here, for now
 		// we set it to void then overwrite it later at the end of this function
 		auto scope = unit_create_scope_for(self.unit, d, _typer_current_scope(self), d->name.str, type_void, Scope::FLAG_NONE);
@@ -2457,7 +2497,7 @@ namespace sabre
 			}
 
 			auto sign = func_sign_new();
-			for (auto arg: d->func_decl.args)
+			for (auto& arg: d->func_decl.args)
 			{
 				auto arg_type = _typer_resolve_type_sign(self, arg.type);
 				if (arg.names.count > 0)
@@ -2469,6 +2509,7 @@ namespace sabre
 				{
 					mn::buf_push(sign.args.types, arg_type);
 				}
+				_typer_resolve_tags(self, arg.tags);
 			}
 			sign.return_type = _typer_resolve_type_sign(self, d->func_decl.return_type);
 			d->type = type_interner_func(self.unit->parent_unit->type_interner, sign, d, template_args);
@@ -2513,6 +2554,7 @@ namespace sabre
 			_typer_enter_scope(self, decl->loc.file->file_scope);
 			mn_defer{_typer_leave_scope(self);};
 
+			_typer_resolve_tags(self, decl->tags);
 			decl_type = _typer_resolve_func_decl(self, decl);
 			_typer_add_func_overload(self, type, decl);
 		}
@@ -3056,8 +3098,10 @@ namespace sabre
 
 				auto struct_fields = mn::buf_with_allocator<Struct_Field_Type>(self.unit->parent_unit->type_interner->arena);
 				auto struct_fields_by_name = mn::map_with_allocator<const char*, size_t>(self.unit->parent_unit->type_interner->arena);
-				for (auto field: d->struct_decl.fields)
+				for (auto& field: d->struct_decl.fields)
 				{
+					_typer_resolve_tags(self, field.tags);
+
 					auto field_type = _typer_resolve_type_sign(self, field.type);
 					if (field_type->kind == Type::KIND_INCOMPLETE || field_type->kind == Type::KIND_COMPLETING)
 						_typer_complete_type(self, field_type->struct_type.symbol, type_sign_location(field.type));
@@ -3281,15 +3325,18 @@ namespace sabre
 			break;
 		case Symbol::KIND_STRUCT:
 			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
+			_typer_resolve_tags(self, sym->struct_sym.decl->tags);
 			break;
 		case Symbol::KIND_PACKAGE:
 			sym->type = type_interner_package(self.unit->parent_unit->type_interner, sym->package_sym.package);
+			_typer_resolve_tags(self, sym->package_sym.decl->tags);
 			break;
 		case Symbol::KIND_FUNC_OVERLOAD_SET:
 			sym->type = _typer_resolve_func_overload_set(self, sym);
 			break;
 		case Symbol::KIND_ENUM:
 			sym->type = type_interner_incomplete(self.unit->parent_unit->type_interner, sym);
+			_typer_resolve_tags(self, sym->enum_sym.decl->tags);
 			break;
 		default:
 			mn_unreachable();
@@ -3605,6 +3652,12 @@ namespace sabre
 		}
 	}
 
+	inline static bool
+	_tag_arg_is_valid(Expr* e)
+	{
+
+	}
+
 	inline static void
 	_typer_assign_bindings(Typer& self, Entry_Point* entry, Symbol* sym)
 	{
@@ -3636,10 +3689,11 @@ namespace sabre
 		{
 			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
 			{
-				auto value_tkn = binding_it->value.value;
-				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				auto value_expr = binding_it->value.value;
+				if (value_expr->mode == ADDRESS_MODE_CONST &&
+					value_expr->const_value.type == type_int)
 				{
-					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					sym->var_sym.uniform_binding = value_expr->const_value.as_int;
 					if (sym->var_sym.uniform_binding > self.texture_binding_generator)
 						self.texture_binding_generator = sym->var_sym.uniform_binding + 1;
 				}
@@ -3675,10 +3729,11 @@ namespace sabre
 		{
 			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
 			{
-				auto value_tkn = binding_it->value.value;
-				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				auto value_expr = binding_it->value.value;
+				if (value_expr->mode == ADDRESS_MODE_CONST &&
+					value_expr->const_value.type == type_int)
 				{
-					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					sym->var_sym.uniform_binding = value_expr->const_value.as_int;
 					if (sym->var_sym.uniform_binding > self.sampler_binding_generator)
 						self.sampler_binding_generator = sym->var_sym.uniform_binding + 1;
 				}
@@ -3714,10 +3769,11 @@ namespace sabre
 		{
 			if (auto binding_it = mn::map_lookup(uniform_tag_it->value.args, KEYWORD_BINDING))
 			{
-				auto value_tkn = binding_it->value.value;
-				if (value_tkn.kind == Tkn::KIND_LITERAL_INTEGER)
+				auto value_expr = binding_it->value.value;
+				if (value_expr->mode == ADDRESS_MODE_CONST &&
+					value_expr->const_value.type == type_int)
 				{
-					sym->var_sym.uniform_binding = ::atoi(value_tkn.str);
+					sym->var_sym.uniform_binding = value_expr->const_value.as_int;
 					if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
 						self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
 				}

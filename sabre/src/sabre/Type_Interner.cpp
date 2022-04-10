@@ -87,6 +87,7 @@ namespace sabre
 	static Type _type_line_stream = _stream_type(Type::KIND_LINE_STREAM, &_type_line_stream_type_arg);
 	static Type _type_point_stream_type_arg {Type::KIND_TYPENAME, 0, 0};
 	static Type _type_point_stream = _stream_type(Type::KIND_POINT_STREAM, &_type_point_stream_type_arg);
+	static Type _type_lit_string { Type::KIND_STRING, 0, 0 };
 
 	inline static void
 	_calc_struct_size(Type* type)
@@ -162,6 +163,7 @@ namespace sabre
 	Type* type_triangle_stream = &_type_triangle_stream;
 	Type* type_line_stream = &_type_line_stream;
 	Type* type_point_stream = &_type_point_stream;
+	Type* type_lit_string = &_type_lit_string;
 
 	Type_Interner*
 	type_interner_new()

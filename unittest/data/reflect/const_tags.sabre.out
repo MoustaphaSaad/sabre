@@ -1,0 +1,1 @@
+{"package":"main", "entry":{"name":"main", "input_layout":[{"name":"position", "type":"vec3", "tags":{"buffer":{"slot":0, "dir":1, "koko":"koko", "value":2}}}, {"name":"normal", "type":"vec3", "tags":{}}]}, "uniforms":[], "textures":[], "types":[{"name":"vec3", "raw_name":"vec3", "kind":"builtin", "aligned_size":16, "unaligned_size":12, "alignment":16, "tags":{}}]}

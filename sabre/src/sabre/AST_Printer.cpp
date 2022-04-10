@@ -72,7 +72,9 @@ namespace sabre
 					for (auto [_, kv]: tag.args)
 					{
 						_ast_printer_newline(self);
-						mn::print_to(self.out, "(key: '{}', value: '{}')", kv.key.str, kv.value.str);
+						mn::print_to(self.out, "(key: '{}', value: ", kv.key.str);
+						ast_printer_print_expr(self, kv.value);
+						mn::print_to(self.out, ")");
 					}
 				}
 				_ast_printer_leave_scope(self);

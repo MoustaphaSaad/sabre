@@ -553,7 +553,10 @@ namespace sabre
 			{
 				if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 				{
-					res = arg->value.value.str;
+					if (arg->value.value->const_value.type == type_lit_string)
+						res = arg->value.value->const_value.as_string;
+					else
+						res = sym->name;
 				}
 				else
 				{
@@ -567,7 +570,10 @@ namespace sabre
 			{
 				if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 				{
-					res = arg->value.value.str;
+					if (arg->value.value->const_value.type == type_lit_string)
+						res = arg->value.value->const_value.as_string;
+					else
+						res = sym->name;
 				}
 				else
 				{
@@ -582,7 +588,10 @@ namespace sabre
 				{
 					if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 					{
-						res = arg->value.value.str;
+						if (arg->value.value->const_value.type == type_lit_string)
+							res = arg->value.value->const_value.as_string;
+						else
+							res = sym->name;
 					}
 					else
 					{
@@ -599,7 +608,10 @@ namespace sabre
 					{
 						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 						{
-							res = arg->value.value.str;
+							if (arg->value.value->const_value.type == type_lit_string)
+								res = arg->value.value->const_value.as_string;
+							else
+								res = sym->name;
 						}
 						else
 						{
@@ -2164,7 +2176,9 @@ namespace sabre
 		if (auto geometry_tag = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY))
 		{
 			auto geometry_max_vertex_count = mn::map_lookup(geometry_tag->value.args, KEYWORD_MAX_VERTEX_COUNT);
-			mn::print_to(self.out, "[maxvertexcount({})]", geometry_max_vertex_count->value.value.str);
+			auto const_value = geometry_max_vertex_count->value.value->const_value;
+			mn_assert(const_value.type == type_int);
+			mn::print_to(self.out, "[maxvertexcount({})]", const_value.as_int);
 			_hlsl_newline(self);
 		}
 

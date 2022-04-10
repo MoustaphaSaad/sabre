@@ -1,6 +1,6 @@
 (tag 'tagName'
-  (key: 'key', value: 'value')
-  (key: 'another_key', value: 'value2')
+  (key: 'key', value: (atom 'value'))
+  (key: 'another_key', value: (atom 'value2'))
 )
 (struct-decl
   (field

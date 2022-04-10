@@ -281,6 +281,10 @@ namespace sabre
 		{
 			expr = _parser_parse_complit_body(self, {});
 		}
+		else if (tkn.kind == Tkn::KIND_LITERAL_STRING)
+		{
+			expr = expr_atom_new(self.unit->ast_arena, _parser_eat(self));
+		}
 
 		if (expr != nullptr)
 		{
@@ -1239,15 +1243,16 @@ namespace sabre
 				{
 					auto key = _parser_eat_must(self, Tkn::KIND_ID);
 					_parser_eat_must(self, Tkn::KIND_EQUAL);
-					auto value = _parser_eat(self);
-					if (value.kind != Tkn::KIND_LITERAL_INTEGER &&
-						value.kind != Tkn::KIND_LITERAL_STRING)
-					{
-						Err err{};
-						err.loc = value.loc;
-						err.msg = mn::strf("invalid tag value, allowed values are integers and strings");
-						unit_err(self.unit, err);
-					}
+					auto value = parser_parse_expr(self);
+					// auto value = _parser_eat(self);
+					// if (value.kind != Tkn::KIND_LITERAL_INTEGER &&
+					// 	value.kind != Tkn::KIND_LITERAL_STRING)
+					// {
+					// 	Err err{};
+					// 	err.loc = value.loc;
+					// 	err.msg = mn::strf("invalid tag value, allowed values are integers and strings");
+					// 	unit_err(self.unit, err);
+					// }
 
 					if (key && value)
 					{
