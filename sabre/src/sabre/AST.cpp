@@ -490,7 +490,7 @@ namespace sabre
 	Template_Arg
 	template_arg_clone(const Template_Arg& other, mn::Allocator arena)
 	{
-		return {mn::buf_memcpy_clone(other.names, arena)};
+		return {mn::buf_memcpy_clone(other.names, arena), other.default_type};
 	}
 
 	Decl*

@@ -1003,6 +1003,9 @@ namespace sabre
 				_parser_eat_must(self, Tkn::KIND_COLON);
 				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
 
+				if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
+					arg.default_type = _parser_eat_must(self, Tkn::KIND_ID);;
+
 				mn::buf_push(args, arg);
 			}
 			_parser_eat_must(self, Tkn::KIND_GREATER);

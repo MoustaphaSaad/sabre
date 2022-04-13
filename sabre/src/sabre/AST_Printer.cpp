@@ -462,6 +462,12 @@ namespace sabre
 					_ast_printer_newline(self);
 					mn::print_to(self.out, "(arg '{}')", name.str);
 				}
+
+				if (arg.default_type)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(type-sign {})", arg.default_type.str);
+				}
 			}
 			_ast_printer_leave_scope(self);
 			_ast_printer_newline(self);

@@ -496,6 +496,7 @@ namespace sabre
 	struct Template_Arg
 	{
 		mn::Buf<Tkn> names;
+		Tkn default_type;
 	};
 
 	// copies the template arguments list
