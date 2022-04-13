@@ -15,6 +15,7 @@ namespace sabre::spirv
 			return "Function";
 		default:
 			mn_unreachable();
+			return "";
 		}
 	}
 
