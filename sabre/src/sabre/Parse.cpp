@@ -1003,8 +1003,19 @@ namespace sabre
 				_parser_eat_must(self, Tkn::KIND_COLON);
 				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
 
+				arg.default_type = type_sign_new(self.unit->ast_arena);
 				if (_parser_eat_kind(self, Tkn::KIND_EQUAL))
-					arg.default_type = _parser_eat_must(self, Tkn::KIND_ID);;
+				{
+					arg.default_type = _parser_parse_type(self);
+					if (arg.default_type.atoms.count == 0)
+					{
+						auto tkn = _parser_look(self);
+						Err err{};
+						err.loc = tkn.loc;
+						err.msg = mn::strf("expected '{}' but found '{}'", Tkn::NAMES[Tkn::KIND_ID], tkn.str);
+						unit_err(self.unit, err);
+					}
+				}
 
 				mn::buf_push(args, arg);
 			}

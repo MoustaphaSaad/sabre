@@ -463,10 +463,10 @@ namespace sabre
 					mn::print_to(self.out, "(arg '{}')", name.str);
 				}
 
-				if (arg.default_type)
+				if (arg.default_type.atoms.count > 0)
 				{
 					_ast_printer_newline(self);
-					mn::print_to(self.out, "(type-sign {})", arg.default_type.str);
+					_ast_printer_print_type(self, arg.default_type);
 				}
 			}
 			_ast_printer_leave_scope(self);
