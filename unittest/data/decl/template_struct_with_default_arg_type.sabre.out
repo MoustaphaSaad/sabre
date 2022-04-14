@@ -1,10 +1,10 @@
 (template
   (arg 'T')
-  (type-sign float)
+  (default-type (type-sign float))
 )
 (template
   (arg 'R')
-  (type-sign int)
+  (default-type (type-sign int))
 )
 (struct-decl
   (field

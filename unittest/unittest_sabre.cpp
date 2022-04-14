@@ -160,6 +160,8 @@ TEST_CASE("[sabre]: parse-decl")
 		CHECK(err == false);
 		auto answer = answer_;
 		mn_defer{mn::str_free(answer);};
+		mn::str_replace(answer, "\r\n", "\n");
+		mn::str_trim(answer);
 
 		auto match = answer == out_data;
 		CHECK(match == true);

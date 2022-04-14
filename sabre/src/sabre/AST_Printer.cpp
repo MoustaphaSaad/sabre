@@ -466,7 +466,9 @@ namespace sabre
 				if (arg.default_type.atoms.count > 0)
 				{
 					_ast_printer_newline(self);
+					mn::print_to(self.out, "(default-type ");
 					_ast_printer_print_type(self, arg.default_type);
+					mn::print_to(self.out, ")");
 				}
 			}
 			_ast_printer_leave_scope(self);

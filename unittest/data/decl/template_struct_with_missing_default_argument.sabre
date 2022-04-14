@@ -1,0 +1,4 @@
+type Foo struct<T: type = , R: type = int> {
+	x: T,
+	y: R,
+}
