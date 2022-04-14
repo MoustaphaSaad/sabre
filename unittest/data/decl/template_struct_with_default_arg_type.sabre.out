@@ -1,0 +1,18 @@
+(template
+  (arg 'T')
+  (default-type (type-sign float))
+)
+(template
+  (arg 'R')
+  (default-type (type-sign int))
+)
+(struct-decl
+  (field
+    (field-name 'x')
+    (type-sign T)
+  )
+  (field
+    (field-name 'y')
+    (type-sign R)
+  )
+)

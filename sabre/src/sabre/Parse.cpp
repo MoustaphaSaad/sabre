@@ -1003,6 +1003,19 @@ namespace sabre
 				_parser_eat_must(self, Tkn::KIND_COLON);
 				_parser_eat_must(self, Tkn::KIND_KEYWORD_TYPE);
 
+				arg.default_type = type_sign_new(self.unit->ast_arena);
+				if (auto tkn = _parser_eat_kind(self, Tkn::KIND_EQUAL))
+				{
+					arg.default_type = _parser_parse_type(self);
+					if (arg.default_type.atoms.count == 0)
+					{
+						Err err{};
+						err.loc = tkn.loc;
+						err.msg = mn::strf("expected a default type argument after the '=', but no type is provided");
+						unit_err(self.unit, err);
+					}
+				}
+
 				mn::buf_push(args, arg);
 			}
 			_parser_eat_must(self, Tkn::KIND_GREATER);
