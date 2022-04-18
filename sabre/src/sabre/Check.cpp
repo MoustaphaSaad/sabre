@@ -657,7 +657,18 @@ namespace sabre
 			case Type_Sign_Atom::KIND_NAMED:
 			{
 				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
+				{
 					res = named_type;
+
+					// check if type is templated and missing its templates
+					if (type_is_templated(res))
+					{
+						Err err{};
+						err.msg = mn::strf("incomplete type, missing {} template arguments", res->template_args.count);
+						err.loc = sign.loc;
+						unit_err(self.unit, err);
+					}
+				}
 				break;
 			}
 			case Type_Sign_Atom::KIND_ARRAY:

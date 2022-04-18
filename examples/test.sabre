@@ -1,100 +1,13 @@
 package main
 
-type Direction enum {
-	UP,
-	DOWN,
-	LEFT,
-	RIGHT,
+type Foo struct<T: type = int> {
+	value: T,
+	// value2: R,
 }
 
-type PS_Input struct {
-	@system_position position: vec4,
-	@buffer{slot = 0, dir = Direction.DOWN}
-	vertex_position: vec3,
-	vertex_normal: vec3,
-}
+var f: Foo;
+// const d: Foo;
 
-type PS_Output struct {
-	@SV_TARGET color: vec4,
-}
-
-type Model struct {
-	model_matrix: mat4,
-	model_inverse_transposed: mat4,
-	color: vec4,
-}
-
-type Light struct {
-	direction: vec3,
-	color: vec4,
-}
-
-@uniform{binding = 3} var model: Model;
-@uniform{binding = 2} var light: Light;
-
-type Dir_Light struct {
-	dir: vec3,
-	color: vec3,
-}
-
-const DIR_LIGHT_MAX = 4;
-
-type Lighting struct {
-	dir_lights: [DIR_LIGHT_MAX]Dir_Light,
-	dir_lights_count: int,
-}
-
-// camera
-type Camera struct {
-	view: mat4,
-	proj: mat4,
-	viewproj: mat4,
-	viewport: mat4,
-}
-
-// standard uniforms per frame
-type Per_Frame struct {
-	camera: Camera,
-	lighting: Lighting,
-}
-@standard_uniform {name = "per_frame"}
-@uniform
-var per_frame: Per_Frame;
-
-@uniform var lighting: Lighting;
-
-// dummy builtin functions for now
-@builtin
-func normalize(a: vec4): vec4
-@builtin
-func normalize(a: vec3): vec3
-@builtin
-func max(a, b: float): float
-@builtin
-func dot(a, b: vec3): float
-
-@reflect
-const draw_order = 2000;
-
-@pixel
-func main(input: PS_Input): PS_Output {
-	per_frame;
-	lighting.dir_lights[0];
-	var world_pos = model.model_matrix * :vec4{input.vertex_position, 1.0};
-	var normal = (model.model_inverse_transposed * :vec4{input.vertex_normal, 0.0}).xyz;
-	normal = normalize(normal);
-
-	// ambient
-	const ambient_factor = 0.3;
-	var ambient_color = ambient_factor * light.color;
-
-	// diffuse
-	var dir = normalize(-light.direction);
-	var diffuse_factor = max(dot(normal, dir), 0.0);
-	var diffuse_color = diffuse_factor * light.color;
-
-	var output: PS_Output;
-	output.color.rgb = (ambient_color.rgb + diffuse_color.rgb) * model.color.rgb;
-	output.color.a = model.color.a;
-	return output;
+func foo<T: type>(v: Foo<int>): Foo<T> {
+	return :Foo<T>{};
 }

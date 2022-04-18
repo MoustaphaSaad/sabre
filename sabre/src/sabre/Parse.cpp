@@ -111,6 +111,15 @@ namespace sabre
 		while (true)
 		{
 			auto tkn = _parser_look(self);
+			if (type.loc.file)
+			{
+				type.loc.rng.end = tkn.loc.rng.end;
+			}
+			else
+			{
+				type.loc = tkn.loc;
+			}
+
 			if (tkn.kind == Tkn::KIND_ID)
 			{
 				Tkn package_name{};

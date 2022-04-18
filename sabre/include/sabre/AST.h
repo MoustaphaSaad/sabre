@@ -77,6 +77,7 @@ namespace sabre
 	struct Type_Sign
 	{
 		mn::Buf<Type_Sign_Atom> atoms;
+		Location loc;
 	};
 
 	// creates a new type signature
