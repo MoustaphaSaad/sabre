@@ -1,0 +1,18 @@
+>> var v1: Foo1;
+>>         ^^^^ 
+Error[template_struct_default_arguments.sabre:7:9]: template type expected #1 arguments, but #0 only was provided
+>> var v2: Foo1<>;
+>>         ^^^^   
+Error[template_struct_default_arguments.sabre:8:9]: template type expected #1 arguments, but #0 only was provided
+>> var v11: int = v7.a;
+>>                ^^^^ 
+Error[template_struct_default_arguments.sabre:22:16]: type mismatch expected 'int' but found 'float'
+>> var v12: Foo3;
+>>          ^^^^ 
+Error[template_struct_default_arguments.sabre:29:10]: template type expected #2 arguments, but #1 only was provided
+>> var v13: Foo3<>;
+>>          ^^^^   
+Error[template_struct_default_arguments.sabre:30:10]: template type expected #2 arguments, but #1 only was provided
+>> var v14: Foo3<float>;
+>>          ^^^^        
+Error[template_struct_default_arguments.sabre:31:10]: template type expected #2 arguments, but #1 only was provided

@@ -1,0 +1,64 @@
+package main
+
+type Foo1 struct<T: type> {
+	a: T,
+}
+
+var v1: Foo1;
+var v2: Foo1<>;
+var v3: Foo1<int>;
+var v4: int = v3.a;
+
+type Foo2 struct<T: type = int> {
+	a: T,
+}
+
+var v5: Foo2;
+var v6: Foo2<>;
+var v7: Foo2<float>;
+var v8: int = v5.a;
+var v9: int = v6.a;
+var v10: float = v7.a;
+var v11: int = v7.a;
+
+type Foo3 struct<T: type = int, R: type> {
+	a: T,
+	b: R,
+}
+
+var v12: Foo3;
+var v13: Foo3<>;
+var v14: Foo3<float>;
+var v15: Foo3<int, float>;
+var v16: int = v15.a;
+var v17: float = v15.b;
+
+type Foo4 struct<T: type = int, R: type = float> {
+	a: T,
+	b: R,
+}
+
+var v18: Foo4;
+var v19: Foo4<>;
+var v20: Foo4<float>;
+var v21: Foo4<int, float>;
+var v22: int = v21.a;
+var v23: float = v21.b;
+var v24, v25: float = v20.a, v20.b;
+var v26: int = v19.a;
+var v27: float = v19.b;
+var v28: int = v18.a;
+var v29: float = v18.b;
+
+type Foo5 struct<T: type, R: type = float> {
+	a: T,
+	b: R,
+}
+
+func bar<T: type>(:T): Foo5<T> {
+	return {};
+}
+
+var v30 = bar(0:int);
+var v31: int = v30.a;
+var v32: float = v30.b;

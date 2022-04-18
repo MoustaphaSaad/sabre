@@ -657,7 +657,45 @@ namespace sabre
 			case Type_Sign_Atom::KIND_NAMED:
 			{
 				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
+				{
 					res = named_type;
+
+					// check if type is templated and missing its templates
+					if (type_is_templated(res))
+					{
+						auto sym = type_symbol(named_type);
+						Decl* decl = nullptr;
+						if (sym)
+							decl = symbol_decl(sym);
+
+						auto decl_args_indices = mn::buf_with_allocator<size_t>(mn::memory::tmp());
+						if (decl && decl->template_args.count > 0)
+						{
+							for (size_t i = 0; i < decl->template_args.count; ++i)
+								mn::buf_pushn(decl_args_indices, decl->template_args[i].names.count, i);
+						}
+
+						// we should do something with template arguments
+						auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+						mn::buf_reserve(args_types, named_type->template_args.count);
+						for (size_t i = 0; i < named_type->template_args.count; ++i)
+						{
+							if (decl && i < decl_args_indices.count)
+							{
+								auto decl_index = decl_args_indices[i];
+								auto default_type = decl->template_args[decl_index].default_type;
+
+								// missing template argument with no default value, stop processing template arguments at this point
+								if (default_type.atoms.count == 0)
+									break;
+
+								auto type = _typer_resolve_type_sign(self, default_type);
+								mn::buf_push(args_types, type);
+							}
+						}
+						res = _typer_template_instantiate(self, named_type, args_types, atom.named.type_name.loc, nullptr);
+					}
+				}
 				break;
 			}
 			case Type_Sign_Atom::KIND_ARRAY:
@@ -705,13 +743,40 @@ namespace sabre
 			{
 				if (auto named_type = _typer_resolve_named_type_atom(self, atom))
 				{
+					auto sym = type_symbol(named_type);
+					Decl* decl = nullptr;
+					if (sym)
+						decl = symbol_decl(sym);
+
+					auto decl_args_indices = mn::buf_with_allocator<size_t>(mn::memory::tmp());
+					if (decl && decl->template_args.count > 0)
+					{
+						for (size_t i = 0; i < decl->template_args.count; ++i)
+							mn::buf_pushn(decl_args_indices, decl->template_args[i].names.count, i);
+					}
+
 					// we should do something with template arguments
 					auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-					mn::buf_reserve(args_types, atom.templated.args.count);
-					for (const auto& arg_type_sign: atom.templated.args)
+					mn::buf_reserve(args_types, named_type->template_args.count);
+					for (size_t i = 0; i < named_type->template_args.count; ++i)
 					{
-						auto type = _typer_resolve_type_sign(self, arg_type_sign);
-						mn::buf_push(args_types, type);
+						if (i < atom.templated.args.count)
+						{
+							auto type = _typer_resolve_type_sign(self, atom.templated.args[i]);
+							mn::buf_push(args_types, type);
+						}
+						else if (decl && i < decl_args_indices.count)
+						{
+							auto decl_index = decl_args_indices[i];
+							auto default_type = decl->template_args[decl_index].default_type;
+
+							// missing template argument with no default value, stop processing template arguments at this point
+							if (default_type.atoms.count == 0)
+								break;
+
+							auto type = _typer_resolve_type_sign(self, default_type);
+							mn::buf_push(args_types, type);
+						}
 					}
 					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc, nullptr);
 				}
