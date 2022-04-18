@@ -694,11 +694,6 @@ namespace sabre
 							}
 						}
 						res = _typer_template_instantiate(self, named_type, args_types, atom.named.type_name.loc, nullptr);
-
-						// Err err{};
-						// err.msg = mn::strf("incomplete type, missing {} template arguments", res->template_args.count);
-						// err.loc = sign.loc;
-						// unit_err(self.unit, err);
 					}
 				}
 				break;
