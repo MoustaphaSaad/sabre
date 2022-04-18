@@ -1,13 +1,20 @@
 package main
 
-type Foo struct<T: type = int> {
+type Foo struct<T: type, R: type = int> {
 	value: T,
-	// value2: R,
+	value2: R,
 }
 
-var f: Foo;
+// var f: Foo;
+// var f2: TriangleStream;
 // const d: Foo;
 
-func foo<T: type>(v: Foo<int>): Foo<T> {
+func foo<T: type>(): Foo<T> {
 	return :Foo<T>{};
+}
+
+func bar() {
+	var v = foo();
+	var b: int = v.value2;
+	var c: float = v.value;
 }
