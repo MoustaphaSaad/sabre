@@ -54,6 +54,10 @@ namespace sabre
 	inline constexpr const char* KEYWORD_TRIANGLE = "triangle";
 	inline constexpr const char* KEYWORD_WRITE_ONLY = "write_only";
 	inline constexpr const char* KEYWORD_READ_WRITE = "read_write";
+	inline constexpr const char* KEYWORD_COMPUTE = "compute";
+	inline constexpr const char* KEYWORD_X = "x";
+	inline constexpr const char* KEYWORD_Y = "y";
+	inline constexpr const char* KEYWORD_Z = "z";
 
 	enum COMPILATION_STAGE
 	{
@@ -157,6 +161,7 @@ namespace sabre
 		COMPILATION_MODE_VERTEX,
 		COMPILATION_MODE_PIXEL,
 		COMPILATION_MODE_GEOMETRY,
+		COMPILATION_MODE_COMPUTE,
 	};
 
 	struct Input_Layout_Attribute
@@ -165,7 +170,7 @@ namespace sabre
 		Tag_Table* tags;
 	};
 
-	// represents an entry point, along with its symbol and mode (vertex, pixel, geometry, etc...)
+	// represents an entry point, along with its symbol and mode (vertex, pixel, geometry, compute, etc...)
 	struct Entry_Point
 	{
 		COMPILATION_MODE mode;

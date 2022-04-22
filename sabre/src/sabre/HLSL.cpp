@@ -1672,16 +1672,8 @@ namespace sabre
 		if (is_builtin)
 			return;
 
-		bool is_geometry = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY) != nullptr;
-		if (is_geometry)
-		{
-			mn::print_to(self.out, "void {}(", _hlsl_name(self, name));
-		}
-		else
-		{
-			auto return_type = t->as_func.sign.return_type;
-			mn::print_to(self.out, "{} {}(", _hlsl_write_field(self, return_type, ""), _hlsl_name(self, name));
-		}
+		auto return_type = t->as_func.sign.return_type;
+		mn::print_to(self.out, "{} {}(", _hlsl_write_field(self, return_type, ""), _hlsl_name(self, name));
 
 		if (d->func_decl.body != nullptr)
 			_hlsl_enter_scope(self, unit_scope_find(self.unit->parent_unit, d));
@@ -2181,6 +2173,33 @@ namespace sabre
 			mn::print_to(self.out, "[maxvertexcount({})]", const_value.as_int);
 			_hlsl_newline(self);
 		}
+		else if (auto compute_tag = mn::map_lookup(d->tags.table, KEYWORD_COMPUTE))
+		{
+			int x = 1, y = 1, z = 1;
+			if (auto compute_x = mn::map_lookup(compute_tag->value.args, KEYWORD_X))
+			{
+				auto const_x = compute_x->value.value->const_value;
+				mn_assert(const_x.type == type_int);
+				x = const_x.as_int;
+			}
+
+			if (auto compute_y = mn::map_lookup(compute_tag->value.args, KEYWORD_Y))
+			{
+				auto const_y = compute_y->value.value->const_value;
+				mn_assert(const_y.type == type_int);
+				y = const_y.as_int;
+			}
+
+			if (auto compute_z = mn::map_lookup(compute_tag->value.args, KEYWORD_Z))
+			{
+				auto const_z = compute_z->value.value->const_value;
+				mn_assert(const_z.type == type_int);
+				z = const_z.as_int;
+			}
+
+			mn::print_to(self.out, "[numthreads({}, {}, {})]", x, y, z);
+			_hlsl_newline(self);
+		}
 
 		mn::print_to(self.out, "{} main(", _hlsl_write_field(self, return_type, ""));
 
@@ -2386,6 +2405,9 @@ namespace sabre
 			break;
 		case COMPILATION_MODE_GEOMETRY:
 			_hlsl_generate_geometry_shader_io(self, entry->symbol);
+			break;
+		case COMPILATION_MODE_COMPUTE:
+			// compute doesn't have a shader io
 			break;
 		case COMPILATION_MODE_LIBRARY:
 			// library mode is not allowed

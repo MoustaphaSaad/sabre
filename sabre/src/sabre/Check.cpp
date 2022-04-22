@@ -3086,8 +3086,6 @@ namespace sabre
 
 				if (type_is_equal(t->as_func.sign.return_type, type_void) == false)
 				{
-					auto is_geometry = mn::map_lookup(d->tags.table, KEYWORD_GEOMETRY) != nullptr;
-
 					auto return_info = _typer_stmt_will_terminate(self, d->func_decl.body);
 					if (return_info.will_return == false)
 					{
@@ -3622,6 +3620,41 @@ namespace sabre
 			}
 		}
 
+		if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_COMPUTE))
+		{
+			// if (mn::map_lookup(tag_it->value.args, KEYWORD_X) == nullptr)
+			// {
+			// 	Err err{};
+			// 	err.loc = decl->loc;
+			// 	err.msg = mn::strf("compute shader should have thread local count '@compute{{x = 1, y = 2, z = 3}}'");
+			// 	unit_err(self.unit, err);
+			// }
+			//
+			// if (mn::map_lookup(tag_it->value.args, KEYWORD_Y) == nullptr)
+			// {
+			// 	Err err{};
+			// 	err.loc = decl->loc;
+			// 	err.msg = mn::strf("compute shader should have thread local count '@compute{{x = 1, y = 2, z = 3}}'");
+			// 	unit_err(self.unit, err);
+			// }
+			//
+			// if (mn::map_lookup(tag_it->value.args, KEYWORD_Z) == nullptr)
+			// {
+			// 	Err err{};
+			// 	err.loc = decl->loc;
+			// 	err.msg = mn::strf("compute shader should have thread local count '@compute{{x = 1, y = 2, z = 3}}'");
+			// 	unit_err(self.unit, err);
+			// }
+
+			if (decl->func_decl.args.count > 0)
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("compute shader can't have input arguments");
+				unit_err(self.unit, err);
+			}
+		}
+
 		size_t type_index = 0;
 		for (auto arg: decl->func_decl.args)
 		{
@@ -3677,25 +3710,22 @@ namespace sabre
 			}
 		}
 
+		// special case compute shaders
+		if (entry->mode == COMPILATION_MODE_COMPUTE)
+		{
+			if (return_type != type_void)
+			{
+				Err err{};
+				err.loc = decl->loc;
+				err.msg = mn::strf("compute shader return type should be void, but found '{}'", *return_type);
+				unit_err(self.unit, err);
+			}
+		}
+
 		// handle return type
 		if (return_type->kind == Type::KIND_STRUCT)
 		{
 			_typer_check_entry_struct_input(self, return_type);
-			// auto struct_decl = symbol_decl(return_type->struct_type.symbol);
-			// size_t struct_type_index = 0;
-			// for (const auto& field: struct_decl->struct_decl.fields)
-			// {
-			// 	const auto& struct_field = return_type->struct_type.fields[struct_type_index];
-
-			// 	if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
-			// 	{
-			// 		Err err{};
-			// 		err.loc = struct_field.name.loc;
-			// 		err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
-			// 		unit_err(self.unit, err);
-			// 	}
-			// 	struct_type_index += field.names.count;
-			// }
 		}
 		else
 		{
@@ -3706,6 +3736,8 @@ namespace sabre
 			int api_config = SHADER_API_DEFAULT;
 			if (entry->mode == COMPILATION_MODE_GEOMETRY)
 				api_config |= SHADER_API_ALLOW_VOID;
+			else if (entry->mode == COMPILATION_MODE_COMPUTE)
+				api_config |= SHADER_API_ALLOW_VOID;
 
 			if (type_is_shader_api(return_type, api_config) == false)
 			{
@@ -3715,12 +3747,6 @@ namespace sabre
 				unit_err(self.unit, err);
 			}
 		}
-	}
-
-	inline static bool
-	_tag_arg_is_valid(Expr* e)
-	{
-
 	}
 
 	inline static void
@@ -3915,6 +3941,11 @@ namespace sabre
 				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
 					auto entry = entry_point_new(sym, COMPILATION_MODE_GEOMETRY);
+					mn::buf_push(self.unit->entry_points, entry);
+				}
+				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_COMPUTE))
+				{
+					auto entry = entry_point_new(sym, COMPILATION_MODE_COMPUTE);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
 			}
