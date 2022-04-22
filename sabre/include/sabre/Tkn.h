@@ -127,5 +127,15 @@ namespace sabre
 			kind == Tkn::KIND_BIT_NOT_EQUAL
 		);
 	}
+
+	// returns whether a token is a keyword
+	inline static bool
+	tkn_is_keyword(Tkn::KIND kind)
+	{
+		return (
+			kind > Tkn::KIND_KEYWORDS__BEGIN &&
+			kind < Tkn::KIND_KEYWORDS__END
+		);
+	}
 }
 #undef TOKEN_LIST

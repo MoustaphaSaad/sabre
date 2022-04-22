@@ -599,3 +599,18 @@ type Color_Mask enum {
 	Alpha = 1 << 3,
 	All = .Red | .Green | .Blue | .Alpha,
 }
+
+type Buffer_Type enum {
+	None = 0,
+	Uint8 = 1,
+	Uint8_4 = 2,
+	Uint8_4N = 3,
+	Uint16 = 4,
+	Uint32 = 5,
+	Int16 = 6,
+	Int32 = 7,
+	Float = 8,
+	Float_2 = 9,
+	Float_3 = 10,
+	Float_4 = 11,
+}

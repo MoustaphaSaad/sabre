@@ -1,0 +1,3 @@
+@tagName { key = "value", type = std.Buffer_Type.Uint8_4N }
+type Vec struct {
+}

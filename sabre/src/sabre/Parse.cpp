@@ -1248,6 +1248,24 @@ namespace sabre
 		return decl_if_new(self.unit->ast_arena, cond, body, else_body);
 	}
 
+	inline static Tkn
+	_parser_eat_must_id_like(Parser& self)
+	{
+		auto tkn = _parser_eat(self);
+		if (tkn.kind == Tkn::KIND_ID)
+			return tkn;
+		else if (tkn_is_keyword(tkn.kind))
+		{
+			tkn.kind = Tkn::KIND_ID;
+			return tkn;
+		}
+		Err err{};
+		err.loc = tkn.loc;
+		err.msg = mn::strf("tag argument key should be ID like but found '{}'", tkn.str);
+		unit_err(self.unit, err);
+		return {};
+	}
+
 	inline static Tag_Table
 	_parser_parse_tags(Parser& self)
 	{
@@ -1263,7 +1281,7 @@ namespace sabre
 			{
 				while (_parser_look_kind(self, Tkn::KIND_CLOSE_CURLY) == false)
 				{
-					auto key = _parser_eat_must(self, Tkn::KIND_ID);
+					auto key = _parser_eat_must_id_like(self);
 					_parser_eat_must(self, Tkn::KIND_EQUAL);
 					auto value = parser_parse_expr(self);
 					// auto value = _parser_eat(self);

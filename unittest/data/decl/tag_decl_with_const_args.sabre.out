@@ -1,0 +1,12 @@
+(tag 'tagName'
+  (key: 'key', value: (atom 'value'))
+  (key: 'type', value: (dot
+    (dot
+      (atom 'std')
+      (atom 'Buffer_Type')
+    )
+    (atom 'Uint8_4N')
+  ))
+)
+(struct-decl
+)
