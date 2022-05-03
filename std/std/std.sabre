@@ -531,6 +531,7 @@ type Pipeline struct {
 	depth: Depth,
 	independent_blend: bool = false,
 	blend: [MAX_COLOR_ATTACHMENT]Blend,
+	index_buffer_type: Buffer_Type = .Uint16
 }
 
 type Rasterizer struct {
