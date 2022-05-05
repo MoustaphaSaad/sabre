@@ -18,3 +18,5 @@ func vertex_main(input: VS_Input): PS_Input {
 	output.v_normal = input.normal;
 	return output;
 }
+
+var _: int;

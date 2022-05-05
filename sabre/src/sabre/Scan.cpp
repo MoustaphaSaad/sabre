@@ -293,7 +293,8 @@ namespace sabre
 			return tkn;
 		}
 
-		if (mn::rune_is_letter(self.c))
+		if (mn::rune_is_letter(self.c) ||
+			self.c == '_')
 		{
 			tkn.kind = Tkn::KIND_ID;
 			tkn.str = _scanner_scan_id(self);

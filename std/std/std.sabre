@@ -524,6 +524,18 @@ func lerp(x, y: vec3, a: float): vec3
 }
 func lerp(x, y: vec4, a: float): vec4
 
+@builtin
+func clamp(x, min, max: float): float
+
+@builtin
+func clamp(x, min, max: vec2): vec2
+
+@builtin
+func clamp(x, min, max: vec3): vec3
+
+@builtin
+func clamp(x, min, max: vec4): vec4
+
 const MAX_COLOR_ATTACHMENT = 4;
 
 type Pipeline struct {
@@ -615,3 +627,5 @@ type Buffer_Type enum {
 	Float_3 = 10,
 	Float_4 = 11,
 }
+
+const PI = 3.14159265359;

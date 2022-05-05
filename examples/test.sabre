@@ -1,6 +1,5 @@
 package main
 
-@compute{x = 1, y = 2}
-func main() {
-	var x = 123;
+func _koko() {
+
 }
