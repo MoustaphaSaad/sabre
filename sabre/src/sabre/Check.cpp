@@ -1920,13 +1920,30 @@ namespace sabre
 	_typer_resolve_indexed_expr(Typer& self, Expr* e)
 	{
 		auto base_type = _typer_resolve_expr(self, e->indexed.base);
-		if (type_is_array(base_type) == false)
+		if (type_is_indexable(base_type) == false)
 		{
 			Err err{};
 			err.loc = e->loc;
-			err.msg = mn::strf("type '{}' is not array", *base_type);
+			err.msg = mn::strf("type '{}' is not indexable", *base_type);
 			unit_err(self.unit, err);
 			return base_type;
+		}
+
+		auto res = type_void;
+		size_t count = 0;
+		if (type_is_array(base_type))
+		{
+			res = base_type->array.base;
+			count = base_type->array.count;
+		}
+		else if (type_is_matrix(base_type))
+		{
+			res = type_vectorize(base_type->mat.base, base_type->mat.width);
+			count = base_type->mat.width;
+		}
+		else
+		{
+			mn_unreachable();
 		}
 
 		auto index_type = _typer_resolve_expr(self, e->indexed.index);
@@ -1937,18 +1954,18 @@ namespace sabre
 			err.loc = e->indexed.index->loc;
 			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", *index_type);
 			unit_err(self.unit, err);
-			return base_type->array.base;
+			return res;
 		}
 
 		if (e->indexed.index->mode == ADDRESS_MODE_CONST &&
 			e->indexed.index->const_value.type == type_int &&
-			e->indexed.index->const_value.as_int >= base_type->array.count)
+			e->indexed.index->const_value.as_int >= count)
 		{
 			Err err{};
 			err.loc = e->indexed.index->loc;
 			err.msg = mn::strf(
 				"array index out of range, array count is '{}' but index is '{}'",
-				base_type->array.count,
+				count,
 				e->indexed.index->const_value.as_int
 			);
 			unit_err(self.unit, err);
@@ -1962,7 +1979,7 @@ namespace sabre
 			if ((e->indexed.base->const_value.type && type_is_array(e->indexed.base->const_value.type)) &&
 				e->indexed.index->const_value.type == type_int)
 			{
-				if (e->indexed.index->const_value.as_int < e->indexed.base->type->array.count)
+				if (e->indexed.index->const_value.as_int < count)
 				{
 					e->mode = ADDRESS_MODE_CONST;
 					e->const_value = expr_value_aggregate_get(e->indexed.base->const_value, e->indexed.index->const_value.as_int);
@@ -1970,7 +1987,7 @@ namespace sabre
 			}
 		}
 
-		return base_type->array.base;
+		return res;
 	}
 
 	inline static Type*
@@ -2071,6 +2088,23 @@ namespace sabre
 					if (type_field_index < type_it->vec.width)
 					{
 						type_it = type_it->vec.base;
+						field.selector_index = type_field_index;
+						++type_field_index;
+					}
+					else
+					{
+						Err err{};
+						err.loc = field.value->loc;
+						err.msg = mn::strf("type '{}' contains only {} fields", *type_it, type_it->vec.width);
+						unit_err(self.unit, err);
+						failed = true;
+					}
+				}
+				else if (type_it->kind == Type::KIND_MAT)
+				{
+					if (type_field_index < type_it->mat.width)
+					{
+						type_it = type_vectorize(type_it->mat.base, type_it->mat.width);
 						field.selector_index = type_field_index;
 						++type_field_index;
 					}

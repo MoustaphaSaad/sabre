@@ -648,6 +648,22 @@ namespace sabre
 		return type_is_array(t) && t->array.count > -1;
 	}
 
+	// returns whether a type is a matrix
+	inline static bool
+	type_is_matrix(Type* t)
+	{
+		return t->kind == Type::KIND_MAT;
+	}
+
+	inline static bool
+	type_is_indexable(Type* t)
+	{
+		return (
+			type_is_array(t) ||
+			type_is_matrix(t)
+		);
+	}
+
 	// returns whether the type is an enum
 	inline static bool
 	type_is_enum(Type* t)

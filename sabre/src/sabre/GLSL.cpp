@@ -1367,6 +1367,23 @@ namespace sabre
 			mn::print_to(self.out, ");");
 			_glsl_newline(self);
 		}
+		else if (type_is_matrix(e->type))
+		{
+			auto tmp_name = _glsl_tmp_name(self);
+			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
+			mn::print_to(self.out, "{} = {{", _glsl_write_field(self, e->type, tmp_name));
+			for (size_t i = 0; i < e->type->mat.width; ++i)
+			{
+				if (i > 0)
+					mn::print_to(self.out, ", ");
+				if (i < e->complit.fields.count)
+					glsl_expr_gen(self, e->complit.fields[i].value);
+				else
+					_glsl_zero_value(self, e->type->mat.base);
+			}
+			mn::print_to(self.out, "}};");
+			_glsl_newline(self);
+		}
 		else if (type_is_vec(e->type))
 		{
 			auto tmp_name = _glsl_tmp_name(self);

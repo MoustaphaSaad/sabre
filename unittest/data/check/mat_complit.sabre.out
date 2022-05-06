@@ -1,0 +1,27 @@
+>> 	tbn[0] = :vec3{};
+>> 	         ^^^^^^^ 
+Error[mat_complit.sabre:7:11]: type mismatch in assignment statement, expected 'vec2' but found 'vec3'
+>> 	tbn[2] = b;
+>> 	    ^      
+Error[mat_complit.sabre:8:6]: array index out of range, array count is '2' but index is '2'
+>> 	var tbn2 = :mat2{a, b, c};
+>> 	                       ^  
+Error[mat_complit.sabre:10:25]: type 'mat2' contains only 2 fields
+>> 	tbn[0] = :vec2{};
+>> 	         ^^^^^^^ 
+Error[mat_complit.sabre:17:11]: type mismatch in assignment statement, expected 'vec3' but found 'vec2'
+>> 	tbn[3] = b;
+>> 	    ^      
+Error[mat_complit.sabre:18:6]: array index out of range, array count is '3' but index is '3'
+>> 	var tbn2 = :mat3{a, b, c, c};
+>> 	                          ^  
+Error[mat_complit.sabre:20:28]: type 'mat3' contains only 3 fields
+>> 	tbn[0] = :vec2{};
+>> 	         ^^^^^^^ 
+Error[mat_complit.sabre:27:11]: type mismatch in assignment statement, expected 'vec4' but found 'vec2'
+>> 	tbn[4] = b;
+>> 	    ^      
+Error[mat_complit.sabre:28:6]: array index out of range, array count is '4' but index is '4'
+>> 	var tbn2 = :mat4{a, b, c, c, b};
+>> 	                             ^  
+Error[mat_complit.sabre:30:31]: type 'mat4' contains only 4 fields

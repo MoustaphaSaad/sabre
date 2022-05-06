@@ -1,0 +1,31 @@
+package main
+
+func test_mat2() {
+	var a, b, c: vec2;
+	var tbn = :mat2{a, b};
+	tbn[0] = b;
+	tbn[0] = :vec3{};
+	tbn[2] = b;
+
+	var tbn2 = :mat2{a, b, c};
+}
+
+func test_mat3() {
+	var a, b, c: vec3;
+	var tbn = :mat3{a, b, c};
+	tbn[0] = b;
+	tbn[0] = :vec2{};
+	tbn[3] = b;
+
+	var tbn2 = :mat3{a, b, c, c};
+}
+
+func test_mat4() {
+	var a, b, c: vec4;
+	var tbn = :mat4{a, b, c};
+	tbn[0] = b;
+	tbn[0] = :vec2{};
+	tbn[4] = b;
+
+	var tbn2 = :mat4{a, b, c, c, b};
+}
