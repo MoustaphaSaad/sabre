@@ -536,6 +536,15 @@ func clamp(x, min, max: vec3): vec3
 @builtin
 func clamp(x, min, max: vec4): vec4
 
+@builtin
+func transpose(a: mat2): mat2
+
+@builtin
+func transpose(a: mat3): mat3
+
+@builtin
+func transpose(a: mat4): mat4
+
 const MAX_COLOR_ATTACHMENT = 4;
 
 type Pipeline struct {
