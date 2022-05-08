@@ -34,7 +34,8 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""));
+		// we don't really care about the backend here
+		auto unit = unit_from_file(filepath, mn::str_lit(""), BACKEND_MODE_NONE);
 		mn_defer{unit_free(unit);};
 
 		if (unit_scan(unit))
@@ -49,7 +50,8 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""));
+		// we don't really care about the backend here
+		auto unit = unit_from_file(filepath, mn::str_lit(""), BACKEND_MODE_NONE);
 		mn_defer{unit_free(unit);};
 
 		_unit_change_paths(unit, fake_path);
@@ -81,7 +83,8 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""));
+		// we don't really care about the backend here
+		auto unit = unit_from_file(filepath, mn::str_lit(""), BACKEND_MODE_NONE);
 		mn_defer{unit_free(unit);};
 
 		_unit_change_paths(unit, fake_path);
@@ -113,7 +116,8 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, mn::str_lit(""));
+		// we don't really care about the backend here
+		auto unit = unit_from_file(filepath, mn::str_lit(""), BACKEND_MODE_NONE);
 		mn_defer{unit_free(unit);};
 
 		_unit_change_paths(unit, fake_path);
@@ -145,7 +149,8 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry);
+		// we don't really care about the backend here
+		auto unit = unit_from_file(filepath, entry, BACKEND_MODE_HLSL);
 		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
@@ -170,7 +175,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry);
+		auto unit = unit_from_file(filepath, entry, BACKEND_MODE_GLSL);
 		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
@@ -201,7 +206,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry);
+		auto unit = unit_from_file(filepath, entry, BACKEND_MODE_HLSL);
 		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
@@ -232,7 +237,7 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry);
+		auto unit = unit_from_file(filepath, entry, BACKEND_MODE_SPIRV);
 		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)
@@ -259,7 +264,8 @@ namespace sabre
 		if (mn::path_is_file(filepath) == false)
 			return mn::Err{ "file '{}' not found", filepath };
 
-		auto unit = unit_from_file(filepath, entry);
+		// we don't really care about the backend here
+		auto unit = unit_from_file(filepath, entry, BACKEND_MODE_HLSL);
 		mn_defer{unit_free(unit);};
 
 		for (const auto& [name, path]: library_collections)

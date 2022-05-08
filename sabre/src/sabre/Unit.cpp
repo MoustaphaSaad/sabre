@@ -727,7 +727,7 @@ namespace sabre
 	}
 
 	Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry)
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry, BACKEND_MODE backend)
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
@@ -739,6 +739,7 @@ namespace sabre
 
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
+		self->backend = backend;
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
@@ -768,6 +769,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_X));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Y));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Z));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILD_BACKEND));
 
 		unit_add_package(self, self->root_package);
 

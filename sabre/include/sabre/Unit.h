@@ -58,6 +58,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_X = "x";
 	inline constexpr const char* KEYWORD_Y = "y";
 	inline constexpr const char* KEYWORD_Z = "z";
+	inline constexpr const char* KEYWORD_BUILD_BACKEND = "build_backend";
 
 	enum COMPILATION_STAGE
 	{
@@ -331,6 +332,14 @@ namespace sabre
 		return unit_package_entry_find(self, mn::str_lit(name));
 	}
 
+	enum BACKEND_MODE
+	{
+		BACKEND_MODE_NONE,
+		BACKEND_MODE_GLSL,
+		BACKEND_MODE_HLSL,
+		BACKEND_MODE_SPIRV,
+	};
+
 	struct Unit
 	{
 		// used to intern strings, usually token strings
@@ -365,15 +374,18 @@ namespace sabre
 		mn::Buf<Symbol*> symbol_stack;
 		// list of all the uniforms found in a program
 		mn::Buf<Symbol*> all_uniforms;
+		// backend mode of this unit, it's best to have match the actual backend codegen you'll
+		// be using because it's used in compile time if condition to do type checking
+		BACKEND_MODE backend;
 	};
 
 	SABRE_EXPORT Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry);
+	unit_from_file(const mn::Str& filepath, const mn::Str& entry, BACKEND_MODE backend);
 
 	inline static Unit*
-	unit_from_file(const char* filepath, const mn::Str& entry)
+	unit_from_file(const char* filepath, const mn::Str& entry, BACKEND_MODE backend)
 	{
-		return unit_from_file(mn::str_lit(filepath), entry);
+		return unit_from_file(mn::str_lit(filepath), entry, backend);
 	}
 
 	SABRE_EXPORT void

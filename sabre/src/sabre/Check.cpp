@@ -831,9 +831,16 @@ namespace sabre
 				e->symbol = sym;
 				e->atom.decl = symbol_decl(sym);
 				_typer_resolve_symbol(self, sym);
-				if (sym->kind == Symbol::KIND_CONST && sym->const_sym.value != nullptr)
+				if (sym->kind == Symbol::KIND_CONST)
 				{
-					e->const_value = sym->const_sym.value->const_value;
+					if (sym->const_sym.value)
+					{
+						e->const_value = sym->const_sym.value->const_value;
+					}
+					else if (mn::map_lookup(sym->const_sym.decl->tags.table, KEYWORD_BUILD_BACKEND) != nullptr)
+					{
+						e->const_value = expr_value_int(self.unit->parent_unit->backend);
+					}
 				}
 				else if (sym->kind == Symbol::KIND_PACKAGE)
 				{

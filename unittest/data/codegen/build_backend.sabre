@@ -1,0 +1,19 @@
+package main
+
+type Backend enum {
+	None,
+	GLSL,
+	HLSL,
+	SPIRV,
+}
+
+@build_backend
+const backend: Backend;
+
+if backend == .GLSL {
+	const x = 4;
+} else if backend == .HLSL {
+	const x = 5;
+} else {
+	const x = 42;
+}

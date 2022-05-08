@@ -1,5 +1,15 @@
 package std
 
+type Backend enum {
+	None,
+	GLSL,
+	HLSL,
+	SPIRV,
+}
+
+@build_backend
+const backend: Backend;
+
 @sample_func
 @hlsl_method
 @builtin {
@@ -544,6 +554,47 @@ func transpose(a: mat3): mat3
 
 @builtin
 func transpose(a: mat4): mat4
+
+if backend == .GLSL {
+	@builtin
+	func textureSize(:Texture1D): int
+
+	@builtin
+	func textureSize(:Texture2D): ivec2
+
+	@builtin
+	func textureSize(:Texture3D): ivec3
+} else if backend == .HLSL {
+	@builtin
+	@hlsl_method
+	func GetDimensions(:Texture1D, @in mip_level: uint, @out width, number_of_levels: uint)
+
+	@builtin
+	@hlsl_method
+	func GetDimensions(:Texture2D, @in mip_level: uint, @out width, height, number_of_levels: uint)
+
+	@builtin
+	@hlsl_method
+	func GetDimensions(:Texture3D, @in mip_level: uint, @out width, height, depth, number_of_levels: uint)
+
+	func textureSize(t: Texture1D): int {
+		var width, number_of_levels: uint;
+		GetDimensions(t, 0: uint, width, number_of_levels);
+		return width: int;
+	}
+
+	func textureSize(t: Texture2D): ivec2 {
+		var width, height, number_of_levels: uint;
+		GetDimensions(t, 0: uint, width, height, number_of_levels);
+		return {width: int, height: int};
+	}
+
+	func textureSize(t: Texture3D): ivec3 {
+		var width, height, depth, number_of_levels: uint;
+		GetDimensions(t, 0: uint, width, height, depth, number_of_levels);
+		return {width: int, height: int, depth: int};
+	}
+}
 
 const MAX_COLOR_ATTACHMENT = 4;
 
