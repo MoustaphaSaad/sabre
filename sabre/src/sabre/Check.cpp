@@ -1485,7 +1485,7 @@ namespace sabre
 
 					auto instantiated_type = _typer_template_instantiate(self, candidate->type, arg_types, e->loc, candidate);
 					Decl* instantiated_decl = nullptr;
-					if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
+					if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, candidate->type, arg_types))
 					{
 						instantiated_decl = decl;
 					}
