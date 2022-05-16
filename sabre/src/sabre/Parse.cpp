@@ -105,6 +105,70 @@ namespace sabre
 	}
 
 	inline static Type_Sign
+	_parser_parse_type(Parser& self);
+
+	// TODO: I used the word arguments instead of parameters, this function should have been named
+	// _parser_parse_template_args, and the other one should have been _parser_parse_template_parameters
+	inline static mn::Buf<Type_Sign>
+	_parser_parse_template_args_values(Parser& self)
+	{
+		auto args = mn::buf_with_allocator<Type_Sign>(self.unit->ast_arena);
+		if (_parser_eat_kind(self, Tkn::KIND_LESS))
+		{
+			while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
+			{
+				if (args.count > 0)
+					_parser_eat_must(self, Tkn::KIND_COMMA);
+
+				auto template_type = _parser_parse_type(self);
+				if (template_type.atoms.count == 0)
+					break;
+				mn::buf_push(args, template_type);
+			}
+			_parser_eat_must(self, Tkn::KIND_GREATER);
+		}
+		return args;
+	}
+
+	inline static mn::Buf<Type_Sign>
+	_parser_try_parse_template_args_values(Parser& self)
+	{
+		auto it = self.it;
+		auto prev_it = self.prev_it;
+		auto checkpoint = mn::allocator_arena_checkpoint(self.unit->ast_arena);
+
+		auto error_count = self.unit->errs.count;
+
+		auto args = mn::buf_with_allocator<Type_Sign>(self.unit->ast_arena);
+
+		_parser_eat_must(self, Tkn::KIND_LESS);
+		while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
+		{
+			if (args.count > 0)
+				_parser_eat_must(self, Tkn::KIND_COMMA);
+
+			auto template_type = _parser_parse_type(self);
+			if (template_type.atoms.count == 0)
+				break;
+			mn::buf_push(args, template_type);
+		}
+		_parser_eat_must(self, Tkn::KIND_GREATER);
+
+		if (self.unit->errs.count > error_count)
+		{
+			mn::buf_clear(args);
+			self.it = it;
+			self.prev_it = prev_it;
+			mn::allocator_arena_restore(self.unit->ast_arena, checkpoint);
+			for (size_t i = error_count; i < self.unit->errs.count; ++i)
+				err_free(self.unit->errs[i]);
+			mn::buf_resize(self.unit->errs, error_count);
+		}
+
+		return args;
+	}
+
+	inline static Type_Sign
 	_parser_parse_type(Parser& self)
 	{
 		auto type = type_sign_new(self.unit->ast_arena);
@@ -137,20 +201,9 @@ namespace sabre
 					package_name = Tkn{};
 				}
 
-				if (_parser_eat_kind(self, Tkn::KIND_LESS))
+				if (_parser_look_kind(self, Tkn::KIND_LESS))
 				{
-					auto args = mn::buf_with_allocator<Type_Sign>(self.unit->ast_arena);
-					while (_parser_should_stop_at_tkn_with_optional_comma(self, Tkn::KIND_GREATER) == false)
-					{
-						if (args.count > 0)
-							_parser_eat_must(self, Tkn::KIND_COMMA);
-
-						auto template_type = _parser_parse_type(self);
-						if (template_type.atoms.count == 0)
-							break;
-						mn::buf_push(args, template_type);
-					}
-					_parser_eat_must(self, Tkn::KIND_GREATER);
+					auto args = _parser_parse_template_args_values(self);
 					type_sign_push(type, type_sign_atom_templated(type_name, package_name, args));
 				}
 				else
@@ -311,6 +364,28 @@ namespace sabre
 		return expr;
 	}
 
+	inline static mn::Buf<Expr*>
+	_parser_parse_call_args_values(Parser& self)
+	{
+		auto args = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
+		if (_parser_eat_kind(self, Tkn::KIND_OPEN_PAREN))
+		{
+			if (_parser_eat_kind(self, Tkn::KIND_CLOSE_PAREN) == false)
+			{
+				while (true)
+				{
+					if (auto arg = parser_parse_expr(self))
+						mn::buf_push(args, arg);
+
+					if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
+						break;
+				}
+				_parser_eat_must(self, Tkn::KIND_CLOSE_PAREN);
+			}
+		}
+		return args;
+	}
+
 	inline static Expr*
 	_parser_parse_expr_base(Parser& self)
 	{
@@ -331,22 +406,11 @@ namespace sabre
 
 			while (true)
 			{
-				if (_parser_eat_kind(self, Tkn::KIND_OPEN_PAREN))
+				if (_parser_look_kind(self, Tkn::KIND_OPEN_PAREN))
 				{
-					auto args = mn::buf_with_allocator<Expr*>(self.unit->ast_arena);
-					if (_parser_eat_kind(self, Tkn::KIND_CLOSE_PAREN) == false)
-					{
-						while (true)
-						{
-							if (auto arg = parser_parse_expr(self))
-								mn::buf_push(args, arg);
-
-							if (_parser_eat_kind(self, Tkn::KIND_COMMA) == false)
-								break;
-						}
-						_parser_eat_must(self, Tkn::KIND_CLOSE_PAREN);
-					}
-					expr = expr_call_new(self.unit->ast_arena, expr, args);
+					auto template_args = _parser_parse_template_args_values(self);
+					auto args = _parser_parse_call_args_values(self);
+					expr = expr_call_new(self.unit->ast_arena, expr, args, template_args);
 				}
 				else if (_parser_eat_kind(self, Tkn::KIND_OPEN_BRACKET))
 				{
@@ -526,18 +590,33 @@ namespace sabre
 		auto expr = _parser_parse_expr_add(self);
 		if (tkn_is_cmp(_parser_look(self).kind))
 		{
-			auto op = _parser_eat(self);
-			auto rhs = _parser_parse_expr_add(self);
-			if (rhs == nullptr)
+			bool is_templated_function = false;
+			if (auto op = _parser_look(self); op.kind == Tkn::KIND_LESS)
 			{
-				Err err{};
-				err.loc = tkn.loc;
-				err.msg = mn::strf("missing right handside");
-				unit_err(self.unit, err);
+				auto template_args = _parser_try_parse_template_args_values(self);
+				if (template_args.count > 0)
+				{
+					auto args = _parser_parse_call_args_values(self);
+					expr = expr_call_new(self.unit->ast_arena, expr, args, template_args);
+					is_templated_function = true;
+				}
 			}
-			else
+
+			if (is_templated_function == false)
 			{
-				expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
+				auto op = _parser_eat(self);
+				auto rhs = _parser_parse_expr_add(self);
+				if (rhs == nullptr)
+				{
+					Err err{};
+					err.loc = tkn.loc;
+					err.msg = mn::strf("missing right handside");
+					unit_err(self.unit, err);
+				}
+				else
+				{
+					expr = expr_binary_new(self.unit->ast_arena, expr, op, rhs);
+				}
 			}
 		}
 

@@ -51,6 +51,15 @@ namespace sabre
 					mn::print_to(self.out, "[]");
 				}
 				break;
+			case Type_Sign_Atom::KIND_TEMPLATED:
+				if (atom.templated.package_name)
+					mn::print_to(self.out, "{}.", atom.templated.package_name.str);
+				mn::print_to(self.out, "{}", atom.templated.type_name.str);
+				mn::print_to(self.out, "<");
+				for (const auto& arg: atom.templated.args)
+					_ast_printer_print_type(self, arg);
+				mn::print_to(self.out, ">");
+				break;
 			default:
 				mn_unreachable_msg("unsupported type sign atom type");
 				break;
@@ -136,6 +145,22 @@ namespace sabre
 			ast_printer_print_expr(self, expr->call.base);
 			_ast_printer_enter_scope(self);
 			{
+				if (expr->call.template_args.count > 0)
+				{
+					_ast_printer_newline(self);
+					mn::print_to(self.out, "(template-args");
+					_ast_printer_enter_scope(self);
+					{
+						for (auto arg: expr->call.template_args)
+						{
+							_ast_printer_newline(self);
+							_ast_printer_print_type(self, arg);
+						}
+					}
+					_ast_printer_leave_scope(self);
+					_ast_printer_newline(self);
+					mn::print_to(self.out, ")");
+				}
 				for (auto e: expr->call.args)
 				{
 					_ast_printer_newline(self);

@@ -1,0 +1,9 @@
+(call (atom 'foo')
+  (template-args
+    (type-sign Bar<(type-sign int)>)
+    (type-sign Bar<(type-sign float)>)
+    (type-sign int)
+  )
+  (atom '1')
+  (atom '2')
+)

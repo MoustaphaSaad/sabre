@@ -189,6 +189,7 @@ namespace sabre
 			{
 				Expr* base;
 				mn::Buf<Expr*> args;
+				mn::Buf<Type_Sign> template_args;
 				// the actual function which this call uses
 				Decl* func;
 			} call;
@@ -236,7 +237,7 @@ namespace sabre
 
 	// creates a new call expression
 	SABRE_EXPORT Expr*
-	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args);
+	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args, mn::Buf<Type_Sign> template_args);
 
 	// creates a new indexed expression
 	SABRE_EXPORT Expr*

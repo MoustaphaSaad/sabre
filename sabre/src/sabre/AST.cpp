@@ -151,13 +151,14 @@ namespace sabre
 	}
 
 	Expr*
-	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args)
+	expr_call_new(mn::Allocator arena, Expr* base, mn::Buf<Expr*> args, mn::Buf<Type_Sign> template_args)
 	{
 		auto self = mn::alloc_zerod_from<Expr>(arena);
 		self->kind = Expr::KIND_CALL;
 		self->arena = arena;
 		self->call.base = base;
 		self->call.args = args;
+		self->call.template_args = template_args;
 		return self;
 	}
 

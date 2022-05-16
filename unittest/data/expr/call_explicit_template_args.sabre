@@ -1,0 +1,1 @@
+foo<Bar<int>, Bar<float>, int>(1, 2)
