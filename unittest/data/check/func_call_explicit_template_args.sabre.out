@@ -1,0 +1,14 @@
+>> 	foo<int>(1.5);
+>> 	         ^^^  
+Error[func_call_explicit_template_args.sabre:6:11]: function argument #0 type mismatch, expected 'int' but found 'float'
+>> 	emit<float>(p, 1.5);
+>> 	            ^       
+Error[func_call_explicit_template_args.sabre:16:14]: argument type mismatch, expected 'LineStream<float>' but found 'LineStream<int>'
+>> 	emit<float>(p, 1.5);
+>> 	            ^       
+Error[func_call_explicit_template_args.sabre:16:14]: argument type mismatch, expected 'PointStream<float>' but found 'LineStream<int>'
+>> 	emit<float>(p, 1.5);
+>> 	^^^^^^^^^^^^^^^^^^^ 
+Error[func_call_explicit_template_args.sabre:16:2]: cannot find suitable function for 'func(:LineStream<int>, :float)' in the overload set:
+  0. func(:LineStream<typename T>, :typename T):void defined in func_call_explicit_template_args.sabre:12:1
+  1. func(:PointStream<typename T>, :typename T):void defined in func_call_explicit_template_args.sabre:13:1

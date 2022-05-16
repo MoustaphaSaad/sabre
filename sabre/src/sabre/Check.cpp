@@ -592,30 +592,36 @@ namespace sabre
 	_typer_resolve_type_sign(Typer& self, const Type_Sign& sign);
 
 	inline static Type*
-	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc, Decl* base_decl)
+	_typer_template_instantiate(Typer& self, Type* base_type, const mn::Buf<Type*>& args, Location instantiation_loc, Decl* base_decl, bool suppress_errors)
 	{
 		if (base_type->template_args.count == 0)
 		{
-			Err err{};
-			err.loc = instantiation_loc;
-			err.msg = mn::strf(
-				"type '{}' is not a template type",
-				*base_type
-			);
-			unit_err(self.unit, err);
+			if (suppress_errors == false)
+			{
+				Err err{};
+				err.loc = instantiation_loc;
+				err.msg = mn::strf(
+					"type '{}' is not a template type",
+					*base_type
+				);
+				unit_err(self.unit, err);
+			}
 			return base_type;
 		}
 
 		if (args.count != base_type->template_args.count)
 		{
-			Err err{};
-			err.loc = instantiation_loc;
-			err.msg = mn::strf(
-				"template type expected #{} arguments, but #{} only was provided",
-				base_type->template_args.count,
-				args.count
-			);
-			unit_err(self.unit, err);
+			if (suppress_errors == false)
+			{
+				Err err{};
+				err.loc = instantiation_loc;
+				err.msg = mn::strf(
+					"template type expected #{} arguments, but #{} only was provided",
+					base_type->template_args.count,
+					args.count
+				);
+				unit_err(self.unit, err);
+			}
 			return base_type;
 		}
 
@@ -693,7 +699,7 @@ namespace sabre
 								mn::buf_push(args_types, type);
 							}
 						}
-						res = _typer_template_instantiate(self, named_type, args_types, atom.named.type_name.loc, nullptr);
+						res = _typer_template_instantiate(self, named_type, args_types, atom.named.type_name.loc, nullptr, false);
 					}
 				}
 				break;
@@ -778,7 +784,7 @@ namespace sabre
 							mn::buf_push(args_types, type);
 						}
 					}
-					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc, nullptr);
+					res = _typer_template_instantiate(self, named_type, args_types, atom.templated.type_name.loc, nullptr, false);
 				}
 				break;
 			}
@@ -1194,30 +1200,49 @@ namespace sabre
 		return type;
 	}
 
-	inline static bool
-	_typer_resolve_expected_type_from_arg_type(Typer& self, Type* expected_type, Type* arg_type, Location arg_loc, mn::Map<Type*, Type*>& resolved_types)
+	struct Resolved_Type
+	{
+		Type* type;
+		bool ok;
+	};
+
+	inline static Resolved_Type
+	_typer_resolve_expected_type_from_arg_type(Typer& self, Type* expected_type, Type* arg_type, Location arg_loc, mn::Map<Type*, Type*>& resolved_types, int depth, bool has_explicit_template_args)
 	{
 		if (type_is_typename(expected_type))
 		{
 			if (auto it = mn::map_lookup(resolved_types, expected_type))
 			{
-				if (it->value != arg_type)
+				if (type_is_equal(it->value, arg_type) == false)
 				{
-					Err err{};
-					err.loc = arg_loc;
-					err.msg = mn::strf("type '{}' is ambiguous, we already deduced it to be '{}' but we have another guess which is '{}'", *expected_type, *it->value, *arg_type);
-					unit_err(self.unit, err);
-					return false;
+					if (has_explicit_template_args == false || (has_explicit_template_args && depth == 0))
+					{
+						Err err{};
+						err.loc = arg_loc;
+						err.msg = mn::strf("type '{}' is ambiguous, we already deduced it to be '{}' but we have another guess which is '{}'", *expected_type, *it->value, *arg_type);
+						unit_err(self.unit, err);
+					}
+
+					Resolved_Type res{};
+					res.type = it->value;
+					res.ok = false;
+					return res;
 				}
 				else
 				{
-					return true;
+					Resolved_Type res{};
+					res.type = arg_type;
+					res.ok = true;
+					return res;
 				}
 			}
 			else
 			{
 				mn::map_insert(resolved_types, expected_type, arg_type);
-				return true;
+				Resolved_Type res{};
+				res.type = arg_type;
+				res.ok = true;
+				return res;
 			}
 		}
 		else if (type_is_templated(expected_type))
@@ -1226,27 +1251,47 @@ namespace sabre
 			if (min_args > arg_type->template_base_args.count)
 				min_args = arg_type->template_base_args.count;
 
-			auto res = expected_type->full_template_args.count == arg_type->template_base_args.count;
+			auto ok = expected_type->full_template_args.count == arg_type->template_base_args.count;
+			auto instantiation_args = mn::buf_with_allocator<Type*>(mn::memory::tmp());
 			for (size_t i = 0; i < min_args; ++i)
-				res &= _typer_resolve_expected_type_from_arg_type(self, expected_type->full_template_args[i], arg_type->template_base_args[i], arg_loc, resolved_types);
+			{
+				auto single_res = _typer_resolve_expected_type_from_arg_type(self, expected_type->full_template_args[i], arg_type->template_base_args[i], arg_loc, resolved_types, depth + 1, has_explicit_template_args);
+				mn::buf_push(instantiation_args, single_res.type);
+				ok &= single_res.ok;
+			}
+			Resolved_Type res{};
+			res.type = _typer_template_instantiate(self, expected_type, instantiation_args, arg_loc, nullptr, true);
+			res.ok = ok;
+			if (has_explicit_template_args && res.ok == false && depth == 0)
+			{
+				Err err{};
+				err.loc = arg_loc;
+				err.msg = mn::strf("argument type mismatch, expected '{}' but found '{}'", *res.type, *arg_type);
+				unit_err(self.unit, err);
+			}
 			return res;
 		}
 		else
 		{
-			return type_is_equal(expected_type, arg_type);
+			Resolved_Type res{};
+			res.type = arg_type;
+			res.ok = type_is_equal(expected_type, arg_type);
+			return res;
 		}
 	}
 
 	inline static bool
 	_typer_guess_template_func_call_types(Typer& self, Type* func_type, const mn::Buf<Expr*>& args, mn::Map<Type*, Type*>& resolved_types)
 	{
+		bool has_explicit_template_args = resolved_types.count > 0;
 		bool res = true;
 		for (size_t i = 0; i < args.count; ++i)
 		{
 			auto arg = args[i];
 			auto arg_type = _typer_resolve_expr(self, arg);
 			auto expected_type = func_type->as_func.sign.args.types[i];
-			res &= _typer_resolve_expected_type_from_arg_type(self, expected_type, arg_type, arg->loc, resolved_types);
+			auto single_res = _typer_resolve_expected_type_from_arg_type(self, expected_type, arg_type, arg->loc, resolved_types, 0, has_explicit_template_args);
+			res &= single_res.ok;
 		}
 		return res;
 	}
@@ -1312,6 +1357,12 @@ namespace sabre
 			auto resolved_types = mn::map_with_allocator<Type*, Type*>(mn::memory::tmp());
 			if (type_is_templated(type))
 			{
+				for (size_t i = 0; i < e->call.template_args.count; ++i)
+				{
+					auto explicit_type = _typer_resolve_type_sign(self, e->call.template_args[i]);
+					mn::map_insert(resolved_types, type->template_args[i], explicit_type);
+				}
+
 				auto is_guess_ok = _typer_guess_template_func_call_types(self, _typer_resolve_expr(self, e->call.base), e->call.args, resolved_types);
 				if (is_guess_ok)
 				{
@@ -1323,7 +1374,7 @@ namespace sabre
 						mn::buf_push(arg_types, it->value);
 					}
 
-					auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, e->call.func);
+					auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, e->call.func, false);
 					if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, type, arg_types))
 					{
 						// do nothing we have already instantiated this function
@@ -1471,6 +1522,11 @@ namespace sabre
 				for (auto candidate: templated_candidates)
 				{
 					auto resolved_types = mn::map_with_allocator<Type*, Type*>(mn::memory::tmp());
+					for (size_t i = 0; i < e->call.template_args.count; ++i)
+					{
+						auto explicit_type = _typer_resolve_type_sign(self, e->call.template_args[i]);
+						mn::map_insert(resolved_types, candidate->type->template_args[i], explicit_type);
+					}
 					auto is_guess_ok = _typer_guess_template_func_call_types(self, candidate->type, e->call.args, resolved_types);
 					if (is_guess_ok == false)
 						continue;
@@ -1483,7 +1539,7 @@ namespace sabre
 						mn::buf_push(arg_types, it->value);
 					}
 
-					auto instantiated_type = _typer_template_instantiate(self, candidate->type, arg_types, e->loc, candidate);
+					auto instantiated_type = _typer_template_instantiate(self, candidate->type, arg_types, e->loc, candidate, false);
 					Decl* instantiated_decl = nullptr;
 					if (auto decl = type_interner_find_func_instantiation_decl(self.unit->parent_unit->type_interner, candidate->type, arg_types))
 					{
