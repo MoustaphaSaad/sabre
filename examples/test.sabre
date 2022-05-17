@@ -1,17 +1,8 @@
 package main
 
-func foo<T: type>(:T) {}
+func add<T: type, R: type = float>(a: T, b: T) {}
 
-func bar() {
-	foo<int>(1.5);
-}
-
-type LineStream struct<T: type> {}
-type PointStream struct<T: type> {}
-
-func emit<T: type>(:LineStream<T>, :T) {}
-func emit<T: type>(:PointStream<T>, :T) {}
-
-func baz(p: LineStream<int>) {
-	emit<float>(p, 1.5);
+func foo() {
+	// TODO: doesn't error on second parameter
+	add<float>(1.5, 1);
 }

@@ -1367,11 +1367,26 @@ namespace sabre
 				if (is_guess_ok)
 				{
 					auto arg_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-					for (auto template_arg: type->template_args)
+
+					for (size_t i = 0; i < type->template_args.count; ++i)
 					{
-						auto it = mn::map_lookup(resolved_types, template_arg);
-						mn_assert(it != nullptr);
-						mn::buf_push(arg_types, it->value);
+						auto template_arg = type->template_args[i];
+						if (auto it = mn::map_lookup(resolved_types, template_arg))
+						{
+							mn::buf_push(arg_types, it->value);
+						}
+						else
+						{
+							auto decl = symbol->func_sym.decl;
+							if (auto default_type = _typer_resolve_type_sign(self, decl->template_args[i].default_type))
+							{
+								mn::buf_push(arg_types, default_type);
+							}
+							else
+							{
+								mn::buf_push(arg_types, type_void);
+							}
+						}
 					}
 
 					auto instantiated_type = _typer_template_instantiate(self, type, arg_types, e->loc, e->call.func, false);
@@ -1457,10 +1472,13 @@ namespace sabre
 					{
 						if (auto it = mn::map_lookup(resolved_types, func_arg_type))
 						{
-							Err err{};
-							err.loc = e->call.args[i]->loc;
-							err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, *it->value, *arg_type);
-							unit_err(self.unit, err);
+							if (_typer_can_assign(it->value, e->call.args[i]) == false)
+							{
+								Err err{};
+								err.loc = e->call.args[i]->loc;
+								err.msg = mn::strf("function argument #{} type mismatch, expected '{}' but found '{}'", i, *it->value, *arg_type);
+								unit_err(self.unit, err);
+							}
 						}
 					}
 					else
@@ -1532,11 +1550,24 @@ namespace sabre
 						continue;
 
 					auto arg_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
-					for (auto template_arg: candidate->type->template_args)
+					for (size_t i = 0; i < candidate->type->template_args.count; ++i)
 					{
-						auto it = mn::map_lookup(resolved_types, template_arg);
-						mn_assert(it != nullptr);
-						mn::buf_push(arg_types, it->value);
+						auto template_arg = candidate->type->template_args[i];
+						if (auto it = mn::map_lookup(resolved_types, template_arg))
+						{
+							mn::buf_push(arg_types, it->value);
+						}
+						else
+						{
+							if (auto default_type = _typer_resolve_type_sign(self, candidate->template_args[i].default_type))
+							{
+								mn::buf_push(arg_types, default_type);
+							}
+							else
+							{
+								mn::buf_push(arg_types, type_void);
+							}
+						}
 					}
 
 					auto instantiated_type = _typer_template_instantiate(self, candidate->type, arg_types, e->loc, candidate, false);

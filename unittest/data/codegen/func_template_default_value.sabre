@@ -1,0 +1,10 @@
+package main
+
+func foo<T: type = float>() {}
+
+func bar<T: type = float>(a: T) {}
+
+func baz() {
+	foo();
+	bar(0);
+}
