@@ -111,6 +111,9 @@ namespace sabre
 		case Type::KIND_VOID:
 			res = spirv::module_type_void_new(self.out);
 			break;
+		case Type::KIND_BOOL:
+			res = spirv::module_type_bool_new(self.out);
+			break;
 		case Type::KIND_INT:
 			res = spirv::module_type_int_new(self.out, 32, true);
 			break;
@@ -165,6 +168,11 @@ namespace sabre
 		{
 			auto vt = _spirv_current_value_table(self);
 			return value_table_find(vt, expr->atom.tkn.str);
+		}
+		case Tkn::KIND_LITERAL_INTEGER:
+		{
+			auto type = _spirv_type_gen(self, expr->type);
+			return spirv::module_int_constant(self.out, type, expr->const_value.as_int);
 		}
 		default:
 			mn_unreachable();
@@ -329,7 +337,7 @@ namespace sabre
 		// later we can emit the constant and reference it here, it also works for globals
 		if (value && value->mode == ADDRESS_MODE_CONST)
 		{
-			// emit constant here
+			initial_value = _spirv_expr_gen(self, value);
 		}
 
 		auto res = spirv::basic_block_variable(bb, ptr_type, spirv::STORAGE_CLASS_FUNCTION, initial_value);

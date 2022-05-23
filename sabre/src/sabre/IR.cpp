@@ -163,6 +163,17 @@ namespace sabre::spirv
 	}
 
 	Type*
+	module_type_bool_new(Module* self)
+	{
+		auto type = mn::alloc_zerod_from<Type>(self->arena);
+		type->kind = Type::KIND_BOOL;
+		type->id = ++self->id_generator;
+
+		mn::map_insert(self->entities, type->id, entity_from_type(type));
+		return type;
+	}
+
+	Type*
 	module_type_int_new(Module* self, int bit_width, bool is_signed)
 	{
 		auto type = mn::alloc_zerod_from<Type>(self->arena);
@@ -207,6 +218,14 @@ namespace sabre::spirv
 		mn_assert(func->kind == Type::KIND_FUNC);
 
 		mn::buf_push(func->as_func.args, arg);
+	}
+
+	Value*
+	module_int_constant(Module* self, Type* type, int data)
+	{
+		auto value = _module_value_new(self, type);
+		mn::map_insert(self->entities, value->id, entity_from_constant(value, data));
+		return value;
 	}
 
 	Func*

@@ -39,6 +39,9 @@ namespace sabre::spirv
 		case Type::KIND_VOID:
 			res = mn::strf(res, "%{} = OpTypeVoid", type->id);
 			break;
+		case Type::KIND_BOOL:
+			res = mn::strf(res, "%{} = OpTypeBool", type->id);
+			break;
 		case Type::KIND_INT:
 			res = mn::strf(res, "%{} = OpTypeInt {} {}", type->id, type->as_int.bit_width, type->as_int.is_signed);
 			break;
@@ -67,6 +70,24 @@ namespace sabre::spirv
 		mn::print_to(self.out, "{}", res);
 		mn::set_insert(self.generated_entities, type->id);
 		return mn::str_tmpf("%{}", type->id);
+	}
+
+	inline static void
+	_ir_text_constant_gen(IR_Text& self, Value* value, Constant data)
+	{
+		_ir_text_newline(self);
+		auto type = _ir_text_type_gen(self, value->type);
+		mn::print_to(self.out, "%{} = OpConstant {}", value->id, type);
+
+		switch (value->type->kind)
+		{
+		case Type::KIND_INT:
+			mn::print_to(self.out, " {}", data.as_int);
+			break;
+		default:
+			mn_unreachable();
+			break;
+		}
 	}
 
 	inline static void
@@ -129,7 +150,7 @@ namespace sabre::spirv
 					_ir_text_storage_class(instruction.as_variable.storage_class)
 				);
 				if (instruction.as_variable.init)
-					mn::print_to(self.out, "%{}", instruction.as_variable.init->id);
+					mn::print_to(self.out, " %{}", instruction.as_variable.init->id);
 				break;
 			case Instruction::Op_Load:
 				mn::print_to(
@@ -199,6 +220,9 @@ namespace sabre::spirv
 		case Entity::KIND_TYPE:
 			_ir_text_type_gen(self, e.as_type);
 			break;
+		case Entity::KIND_CONSTANT:
+			_ir_text_constant_gen(self, e.as_constant.value, e.as_constant.data);
+			break;
 		case Entity::KIND_FUNC:
 			_ir_text_func_gen(self, e.as_func);
 			break;
@@ -234,8 +258,16 @@ namespace sabre::spirv
 		}
 		for (const auto& [_, e]: self.module->entities)
 		{
-			if (e.kind != Entity::KIND_TYPE)
+			if (e.kind == Entity::KIND_CONSTANT)
 				_ir_text_entity_gen(self, e);
+		}
+		for (const auto& [_, e]: self.module->entities)
+		{
+			if (e.kind != Entity::KIND_TYPE &&
+				e.kind != Entity::KIND_CONSTANT)
+			{
+				_ir_text_entity_gen(self, e);
+			}
 		}
 	}
 }

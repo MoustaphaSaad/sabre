@@ -17,6 +17,11 @@ namespace sabre::spirv
 	// represents a unique id of a SPIRV entity
 	using ID = uint32_t;
 
+	union Constant
+	{
+		int as_int;
+	};
+
 	// represents a spirv entity, it can hold types, functions, etc...
 	struct Entity
 	{
@@ -26,6 +31,7 @@ namespace sabre::spirv
 			KIND_FUNC,
 			KIND_BASIC_BLOCK,
 			KIND_VALUE,
+			KIND_CONSTANT,
 		};
 
 		KIND kind;
@@ -35,6 +41,11 @@ namespace sabre::spirv
 			Func* as_func;
 			Basic_Block* as_basic_block;
 			Value* as_value;
+			struct
+			{
+				Value* value;
+				Constant data;
+			} as_constant;
 		};
 	};
 
@@ -78,6 +89,17 @@ namespace sabre::spirv
 		return self;
 	}
 
+	// wraps the given constant in an entity
+	inline static Entity
+	entity_from_constant(Value* value, int data)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_CONSTANT;
+		self.as_constant.value = value;
+		self.as_constant.data.as_int = data;
+		return self;
+	}
+
 	enum STORAGE_CLASS
 	{
 		STORAGE_CLASS_FUNCTION,
@@ -89,6 +111,7 @@ namespace sabre::spirv
 		enum KIND
 		{
 			KIND_VOID,
+			KIND_BOOL,
 			KIND_INT,
 			KIND_FUNC,
 			KIND_PTR,
@@ -275,6 +298,10 @@ namespace sabre::spirv
 	SABRE_EXPORT Type*
 	module_type_void_new(Module* self);
 
+	// creates a new bool type instance
+	SABRE_EXPORT Type*
+	module_type_bool_new(Module* self);
+
 	// creates a new int type instance
 	SABRE_EXPORT Type*
 	module_type_int_new(Module* self, int bit_width, bool is_signed);
@@ -290,6 +317,10 @@ namespace sabre::spirv
 	// adds argument to function type
 	SABRE_EXPORT void
 	module_type_func_arg(Type* func, Type* arg);
+
+	// creates a new constant integer value
+	SABRE_EXPORT Value*
+	module_int_constant(Module* self, Type* type, int value);
 
 	// creates a new function instance
 	SABRE_EXPORT Func*

@@ -1,0 +1,10 @@
+
+%1 = OpTypeVoid
+%2 = OpTypeFunction %1
+%5 = OpTypeInt 32 1
+%6 = OpTypePointer Function %5
+%7 = OpConstant %5 7
+%3 = OpFunction %1 None %2
+	%4 = OpLabel
+	%8 = OpVariable %6 Function %7
+OpFunctionEnd
