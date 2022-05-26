@@ -24,6 +24,13 @@ option(SABRE_BUILD_TESTS       "Build sabre unit tests."                        
 option(SABRE_LOG_METRICS       "Measures and logs different performance metrics."                            ${MASTER_PROJECT})
 option(SABRE_INSTALL           "Generates the install target"                                                ${MASTER_PROJECT})
 
+# Treat all compiler warnings as errors and increase warning level.
+if(MSVC)
+    add_compile_options(-W4 -WX)
+else()
+    add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
+
 # external dependencies
 include(CPM)
 CPMAddPackage(
