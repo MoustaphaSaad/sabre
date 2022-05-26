@@ -1,1 +1,3 @@
-Error[var_missing_semicolon.sabre]: Expected a semicolon at the end of the statement
+>> var x = 12
+>> ^^^       
+Error[var_missing_semicolon.sabre:1:0]: Expected a semicolon at the end of the statement

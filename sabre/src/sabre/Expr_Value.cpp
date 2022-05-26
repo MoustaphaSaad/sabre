@@ -38,7 +38,7 @@ namespace sabre
 			else
 				return nullptr;
 		case Type::KIND_ARRAY:
-			if (index < type->array.count)
+			if ((int64_t)index < type->array.count)
 				return type->array.base;
 			else
 				return nullptr;
@@ -175,7 +175,7 @@ namespace sabre
 		int r = 0;
 		if (a.type == type_int && b.type == type_int)
 		{
-			r = a.as_int - b.as_int;
+			r = (int)(a.as_int - b.as_int);
 		}
 		else if (a.type == type_double && b.type == type_double)
 		{
@@ -188,7 +188,7 @@ namespace sabre
 		}
 		else if (a.type == type_int && b.type == type_double)
 		{
-			double a_double = a.as_int;
+			double a_double = (double)a.as_int;
 			if (a_double < b.as_double)
 				r = -1;
 			else if (a_double > b.as_double)
@@ -244,7 +244,7 @@ namespace sabre
 		}
 		else if (a.type == type_int && b.type == type_double)
 		{
-			double a_double = a.as_int;
+			double a_double = (double)a.as_int;
 			return expr_value_double(a_double + b.as_double);
 		}
 		else if (a.type == type_double && b.type == type_int)
@@ -271,7 +271,7 @@ namespace sabre
 		}
 		else if (a.type == type_int && b.type == type_double)
 		{
-			double a_double = a.as_int;
+			double a_double = (double)a.as_int;
 			return expr_value_double(a_double - b.as_double);
 		}
 		else if (a.type == type_double && b.type == type_int)
@@ -298,7 +298,7 @@ namespace sabre
 		}
 		else if (a.type == type_int && b.type == type_double)
 		{
-			double a_double = a.as_int;
+			double a_double = (double)a.as_int;
 			return expr_value_double(a_double * b.as_double);
 		}
 		else if (a.type == type_double && b.type == type_int)
@@ -325,7 +325,7 @@ namespace sabre
 		}
 		else if (a.type == type_int && b.type == type_double)
 		{
-			double a_double = a.as_int;
+			double a_double = (double)a.as_int;
 			return expr_value_double(a_double / b.as_double);
 		}
 		else if (a.type == type_double && b.type == type_int)
@@ -552,9 +552,9 @@ namespace sabre
 		else if (type_is_array(t))
 		{
 			auto res = expr_value_aggregate(arena, t);
-			for (size_t i = 0; i < t->array.count; ++i)
+			for (int64_t i = 0; i < t->array.count; ++i)
 			{
-				expr_value_aggregate_set(res, i, expr_value_zero(arena, t->array.base));
+				expr_value_aggregate_set(res, (size_t)i, expr_value_zero(arena, t->array.base));
 			}
 			return res;
 		}
@@ -606,11 +606,11 @@ namespace sabre
 		}
 		else if (a.type == type_int)
 		{
-			return mn::json::value_number_new(a.as_int);
+			return mn::json::value_number_new((float)a.as_int);
 		}
 		else if (a.type == type_double)
 		{
-			return mn::json::value_number_new(a.as_double);
+			return mn::json::value_number_new((float)a.as_double);
 		}
 		else if (type_is_vec(a.type))
 		{
@@ -627,9 +627,9 @@ namespace sabre
 		else if (type_is_array(a.type))
 		{
 			auto arr = mn::json::value_array_new();
-			for (size_t i = 0; i < a.type->array.count; ++i)
+			for (int64_t i = 0; i < a.type->array.count; ++i)
 			{
-				if (auto it = mn::map_lookup(a.as_aggregate, i))
+				if (auto it = mn::map_lookup(a.as_aggregate, (size_t)i))
 					mn::json::value_array_push(arr, expr_value_to_json(it->value));
 				else
 					mn::json::value_array_push(arr, expr_value_to_json(expr_value_zero(mn::memory::tmp(), a.type->array.base)));
@@ -659,7 +659,7 @@ namespace sabre
 		}
 		else if (type_is_enum(a.type))
 		{
-			return mn::json::value_number_new(a.as_int);
+			return mn::json::value_number_new((float)a.as_int);
 		}
 		else
 		{

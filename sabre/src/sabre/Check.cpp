@@ -4,6 +4,7 @@
 
 #include <mn/IO.h>
 #include <mn/Log.h>
+#include <mn/Buf.h>
 #include <mn/Defer.h>
 #include <mn/Assert.h>
 
@@ -326,8 +327,8 @@ namespace sabre
 		if (sym == nullptr || (sym->kind != Symbol::KIND_FUNC && sym->kind != Symbol::KIND_FUNC_OVERLOAD_SET))
 		{
 			// add symbol twice, once in file scope an another one in package scope
-			auto sym = symbol_func_new(self.unit->symbols_arena, decl->name, decl);
-			auto res = _typer_add_symbol(self, sym);
+			auto symbol = symbol_func_new(self.unit->symbols_arena, decl->name, decl);
+			auto res = _typer_add_symbol(self, symbol);
 			return res;
 		}
 
@@ -473,7 +474,7 @@ namespace sabre
 	inline static void
 	_typer_pop_expected_expression_type(Typer& self)
 	{
-		mn:buf_pop(self.expected_expr_type);
+		mn::buf_pop(self.expected_expr_type);
 	}
 
 	inline static Type*
@@ -677,18 +678,18 @@ namespace sabre
 						auto decl_args_indices = mn::buf_with_allocator<size_t>(mn::memory::tmp());
 						if (decl && decl->template_args.count > 0)
 						{
-							for (size_t i = 0; i < decl->template_args.count; ++i)
-								mn::buf_pushn(decl_args_indices, decl->template_args[i].names.count, i);
+							for (size_t j = 0; j < decl->template_args.count; ++j)
+								mn::buf_pushn(decl_args_indices, decl->template_args[j].names.count, j);
 						}
 
 						// we should do something with template arguments
 						auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
 						mn::buf_reserve(args_types, named_type->template_args.count);
-						for (size_t i = 0; i < named_type->template_args.count; ++i)
+						for (size_t j = 0; j < named_type->template_args.count; ++j)
 						{
-							if (decl && i < decl_args_indices.count)
+							if (decl && j < decl_args_indices.count)
 							{
-								auto decl_index = decl_args_indices[i];
+								auto decl_index = decl_args_indices[j];
 								auto default_type = decl->template_args[decl_index].default_type;
 
 								// missing template argument with no default value, stop processing template arguments at this point
@@ -728,20 +729,20 @@ namespace sabre
 							err.msg = mn::strf("array count should be >= but found '{}'", array_count);
 							unit_err(self.unit, err);
 						}
-						Array_Sign sign{};
-						sign.base = res;
-						sign.count = array_count;
-						res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+						Array_Sign array_sign{};
+						array_sign.base = res;
+						array_sign.count = array_count;
+						res = type_interner_array(self.unit->parent_unit->type_interner, array_sign);
 					}
 				}
 				else
 				{
 					// we have a dynamically sized array
 					// TODO(Moustapha): maybe add support for array slices later
-					Array_Sign sign{};
-					sign.base = res;
-					sign.count = -1;
-					res = type_interner_array(self.unit->parent_unit->type_interner, sign);
+					Array_Sign array_sign{};
+					array_sign.base = res;
+					array_sign.count = -1;
+					res = type_interner_array(self.unit->parent_unit->type_interner, array_sign);
 				}
 				break;
 			}
@@ -757,23 +758,23 @@ namespace sabre
 					auto decl_args_indices = mn::buf_with_allocator<size_t>(mn::memory::tmp());
 					if (decl && decl->template_args.count > 0)
 					{
-						for (size_t i = 0; i < decl->template_args.count; ++i)
-							mn::buf_pushn(decl_args_indices, decl->template_args[i].names.count, i);
+						for (size_t j = 0; j < decl->template_args.count; ++j)
+							mn::buf_pushn(decl_args_indices, decl->template_args[j].names.count, j);
 					}
 
 					// we should do something with template arguments
 					auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
 					mn::buf_reserve(args_types, named_type->template_args.count);
-					for (size_t i = 0; i < named_type->template_args.count; ++i)
+					for (size_t j = 0; j < named_type->template_args.count; ++j)
 					{
-						if (i < atom.templated.args.count)
+						if (j < atom.templated.args.count)
 						{
-							auto type = _typer_resolve_type_sign(self, atom.templated.args[i]);
+							auto type = _typer_resolve_type_sign(self, atom.templated.args[j]);
 							mn::buf_push(args_types, type);
 						}
-						else if (decl && i < decl_args_indices.count)
+						else if (decl && j < decl_args_indices.count)
 						{
-							auto decl_index = decl_args_indices[i];
+							auto decl_index = decl_args_indices[j];
 							auto default_type = decl->template_args[decl_index].default_type;
 
 							// missing template argument with no default value, stop processing template arguments at this point
@@ -1512,7 +1513,7 @@ namespace sabre
 				bool args_match = true;
 				for (size_t i = 0; i < e->call.args.count; ++i)
 				{
-					auto arg_type = _typer_resolve_expr(self, e->call.args[i]);
+					_typer_resolve_expr(self, e->call.args[i]);
 					if (_typer_can_assign(overload_type->as_func.sign.args.types[i], e->call.args[i]) == false)
 					{
 						args_match = false;
@@ -1854,13 +1855,13 @@ namespace sabre
 				return type_void;
 			}
 
-			while (auto r = mn::rune_read(it))
+			while (auto rune = mn::rune_read(it))
 			{
 				it = mn::rune_next(it);
 				++len;
 
-				outside_range |= _swizzle_style_contains(swizzle_style, type->vec.width, r) == false;
-				illegal |= _swizzle_style_contains(swizzle_style, 4, r) == false;
+				outside_range |= _swizzle_style_contains(swizzle_style, type->vec.width, rune) == false;
+				illegal |= _swizzle_style_contains(swizzle_style, 4, rune) == false;
 			}
 
 			if (illegal)
@@ -1880,15 +1881,15 @@ namespace sabre
 				return type_void;
 			}
 
-			auto res = type_vectorize(type->vec.base, len);
+			auto res = type_vectorize(type->vec.base, (int)len);
 			e->mode = e->dot.lhs->mode;
 
 			if (e->mode == ADDRESS_MODE_CONST)
 			{
 				e->const_value = expr_value_aggregate(e->loc.file->ast_arena, res);
-				for (auto r: mn::str_runes(e->dot.rhs->atom.tkn.str))
+				for (auto rune: mn::str_runes(e->dot.rhs->atom.tkn.str))
 				{
-					auto index = _swizzle_style_index(swizzle_style, 4, r);
+					auto index = _swizzle_style_index(swizzle_style, 4, rune);
 					auto src_value = expr_value_aggregate_get(e->dot.lhs->const_value, index);
 					expr_value_aggregate_set(e->const_value, index, src_value);
 				}
@@ -2053,7 +2054,7 @@ namespace sabre
 
 		if (e->indexed.index->mode == ADDRESS_MODE_CONST &&
 			e->indexed.index->const_value.type == type_int &&
-			e->indexed.index->const_value.as_int >= count)
+			(size_t)e->indexed.index->const_value.as_int >= count)
 		{
 			Err err{};
 			err.loc = e->indexed.index->loc;
@@ -2073,7 +2074,7 @@ namespace sabre
 			if ((e->indexed.base->const_value.type && type_is_array(e->indexed.base->const_value.type)) &&
 				e->indexed.index->const_value.type == type_int)
 			{
-				if (e->indexed.index->const_value.as_int < count)
+				if ((size_t)e->indexed.index->const_value.as_int < count)
 				{
 					e->mode = ADDRESS_MODE_CONST;
 					e->const_value = expr_value_aggregate_get(e->indexed.base->const_value, e->indexed.index->const_value.as_int);
@@ -2231,7 +2232,7 @@ namespace sabre
 				else if (type_it->kind == Type::KIND_ARRAY)
 				{
 					// array count can be -1, to indicate an array which we don't know the size of yet
-					if (type_field_index < type_it->array.count)
+					if (type_field_index < (size_t)type_it->array.count || type_it->array.count == -1)
 					{
 						type_it = type_it->array.base;
 						field.selector_index = type_field_index;
@@ -2434,9 +2435,9 @@ namespace sabre
 	{
 		for (auto& [_, tag]: tags.table)
 		{
-			for (auto& [_, kv]: tag.args)
+			for (auto& [__, kv]: tag.args)
 			{
-				auto type = _typer_resolve_expr(self, kv.value);
+				_typer_resolve_expr(self, kv.value);
 				auto mode = kv.value->mode;
 				if (mode != ADDRESS_MODE_CONST)
 				{
@@ -2788,7 +2789,7 @@ namespace sabre
 	}
 
 	inline static Type*
-	_typer_resolve_discard_stmt(Typer& self, Stmt* s)
+	_typer_resolve_discard_stmt([[maybe_unused]] Typer& self, [[maybe_unused]] Stmt* s)
 	{
 		return type_void;
 	}
@@ -3280,8 +3281,8 @@ namespace sabre
 					for (auto name: template_arg.names)
 					{
 						auto v = symbol_typename_new(self.unit->symbols_arena, name);
-						auto type = type_interner_typename(type_interner, v);
-						v->type = type;
+						auto t = type_interner_typename(type_interner, v);
+						v->type = t;
 						_typer_add_symbol(self, v);
 						mn::buf_push(template_args, v->type);
 					}
@@ -3454,7 +3455,7 @@ namespace sabre
 			if (auto name_it = mn::map_lookup(it->generated_names, interned_res))
 			{
 				res = mn::strf(res, "_{}", name_it->value + 1);
-				auto interned_res = unit_intern(self.unit->parent_unit, res.ptr);
+				unit_intern(self.unit->parent_unit, res.ptr);
 				++name_it->value;
 				collided = true;
 				break;
@@ -3912,7 +3913,7 @@ namespace sabre
 				if (value_expr->mode == ADDRESS_MODE_CONST &&
 					value_expr->const_value.type == type_int)
 				{
-					sym->var_sym.uniform_binding = value_expr->const_value.as_int;
+					sym->var_sym.uniform_binding = (int)value_expr->const_value.as_int;
 					if (sym->var_sym.uniform_binding > self.texture_binding_generator)
 						self.texture_binding_generator = sym->var_sym.uniform_binding + 1;
 				}
@@ -3952,7 +3953,7 @@ namespace sabre
 				if (value_expr->mode == ADDRESS_MODE_CONST &&
 					value_expr->const_value.type == type_int)
 				{
-					sym->var_sym.uniform_binding = value_expr->const_value.as_int;
+					sym->var_sym.uniform_binding = (int)value_expr->const_value.as_int;
 					if (sym->var_sym.uniform_binding > self.sampler_binding_generator)
 						self.sampler_binding_generator = sym->var_sym.uniform_binding + 1;
 				}
@@ -3992,7 +3993,7 @@ namespace sabre
 				if (value_expr->mode == ADDRESS_MODE_CONST &&
 					value_expr->const_value.type == type_int)
 				{
-					sym->var_sym.uniform_binding = value_expr->const_value.as_int;
+					sym->var_sym.uniform_binding = (int)value_expr->const_value.as_int;
 					if (sym->var_sym.uniform_binding > self.uniform_binding_generator)
 						self.uniform_binding_generator = sym->var_sym.uniform_binding + 1;
 				}
@@ -4066,12 +4067,12 @@ namespace sabre
 					auto entry = entry_point_new(sym, COMPILATION_MODE_PIXEL);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
-				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_GEOMETRY))
 				{
 					auto entry = entry_point_new(sym, COMPILATION_MODE_GEOMETRY);
 					mn::buf_push(self.unit->entry_points, entry);
 				}
-				else if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_COMPUTE))
+				else if (mn::map_lookup(decl->tags.table, KEYWORD_COMPUTE))
 				{
 					auto entry = entry_point_new(sym, COMPILATION_MODE_COMPUTE);
 					mn::buf_push(self.unit->entry_points, entry);
@@ -4096,7 +4097,7 @@ namespace sabre
 			mn::buf_push(stack, sym);
 			while (stack.count > 0)
 			{
-				auto sym = mn::buf_top(stack);
+				sym = mn::buf_top(stack);
 				mn::buf_pop(stack);
 
 				// process symbol here

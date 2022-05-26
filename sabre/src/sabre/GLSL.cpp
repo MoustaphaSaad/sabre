@@ -308,8 +308,6 @@ namespace sabre
 	inline static const char*
 	_glsl_symbol_name(Symbol* sym, Decl* decl = nullptr)
 	{
-		bool use_raw_name = false;
-
 		const char* res = sym->package_name;
 		switch (sym->kind)
 		{
@@ -351,9 +349,9 @@ namespace sabre
 			else
 			{
 				// NOTE(Moustapha): this is very bad, we should know which decl we're using
-				for (auto [decl, _]: sym->func_overload_set_sym.decls)
+				for (auto [func_overload_set_decl, _]: sym->func_overload_set_sym.decls)
 				{
-					if (auto tag = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN))
+					if (auto tag = mn::map_lookup(func_overload_set_decl->tags.table, KEYWORD_BUILTIN))
 					{
 						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_GLSL))
 						{
@@ -636,7 +634,7 @@ namespace sabre
 			break;
 		case Type::KIND_ARRAY:
 			mn::print_to(self.out, "{}(", _glsl_write_field(self, t, nullptr));
-			for (size_t i = 0; i < t->array.count; ++i)
+			for (int64_t i = 0; i < t->array.count; ++i)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
@@ -815,7 +813,7 @@ namespace sabre
 	}
 
 	inline static bool
-	_glsl_add_semicolon_after(GLSL& self, Stmt* s)
+	_glsl_add_semicolon_after([[maybe_unused]] GLSL& self, Stmt* s)
 	{
 		if (s->kind == Stmt::KIND_BREAK ||
 			s->kind == Stmt::KIND_CONTINUE ||
@@ -830,13 +828,13 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_gen_break_stmt(GLSL& self, Stmt* s)
+	_glsl_gen_break_stmt(GLSL& self, [[maybe_unused]] Stmt* s)
 	{
 		mn::print_to(self.out, "break");
 	}
 
 	inline static void
-	_glsl_gen_continue_stmt(GLSL& self, Stmt* s)
+	_glsl_gen_continue_stmt(GLSL& self, [[maybe_unused]] Stmt* s)
 	{
 		if (auto post = _glsl_current_loop_post_stmt(self))
 		{
@@ -851,7 +849,7 @@ namespace sabre
 	}
 
 	inline static void
-	_glsl_gen_discard_stmt(GLSL& self, Stmt* s)
+	_glsl_gen_discard_stmt(GLSL& self, [[maybe_unused]] Stmt* s)
 	{
 		mn::print_to(self.out, "discard");
 	}
@@ -1039,11 +1037,11 @@ namespace sabre
 		for (auto arg: d->func_decl.args)
 		{
 			auto arg_type = t->as_func.sign.args.types[i];
-			for (auto name: arg.names)
+			for (auto arg_name: arg.names)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				mn::print_to(self.out, "{}", _glsl_write_field(self, arg_type, name.str));
+				mn::print_to(self.out, "{}", _glsl_write_field(self, arg_type, arg_name.str));
 				++i;
 			}
 		}
@@ -1232,7 +1230,6 @@ namespace sabre
 			if (self.entry == nullptr)
 			{
 				auto package = sym->package_sym.package;
-				
 				if (package->stage == COMPILATION_STAGE_CODEGEN)
 				{
 					for (size_t i = 0; i < package->reachable_symbols.count; ++i)
@@ -1355,11 +1352,11 @@ namespace sabre
 			auto tmp_name = _glsl_tmp_name(self);
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 			mn::print_to(self.out, "{} = {}(", _glsl_write_field(self, e->type, tmp_name), _glsl_write_field(self, e->type, nullptr));
-			for (size_t i = 0; i < e->type->array.count; ++i)
+			for (int64_t i = 0; i < e->type->array.count; ++i)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				if (i < e->complit.fields.count)
+				if (i < (int64_t)e->complit.fields.count)
 					glsl_expr_gen(self, e->complit.fields[i].value);
 				else
 					_glsl_zero_value(self, e->type->array.base);
@@ -1648,9 +1645,9 @@ namespace sabre
 			{
 			case Type::KIND_STRUCT:
 			{
-				auto decl = symbol_decl(ret_type->struct_type.symbol);
+				auto decl_struct = symbol_decl(ret_type->struct_type.symbol);
 				size_t field_index = 0;
-				for (auto field: decl->struct_decl.fields)
+				for (auto field: decl_struct->struct_decl.fields)
 				{
 					for (auto name: field.names)
 					{
@@ -1700,11 +1697,11 @@ namespace sabre
 				{
 				case Type::KIND_STRUCT:
 				{
-					auto decl = symbol_decl(arg_type->struct_type.symbol);
+					auto decl_struct = symbol_decl(arg_type->struct_type.symbol);
 					size_t field_index = 0;
-					for (auto field: decl->struct_decl.fields)
+					for (auto field: decl_struct->struct_decl.fields)
 					{
-						for (auto name: field.names)
+						for (size_t j = 0; j < field.names.count; ++j)
 						{
 							if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
 							{
@@ -1754,9 +1751,9 @@ namespace sabre
 			{
 			case Type::KIND_STRUCT:
 			{
-				auto decl = symbol_decl(ret_type->struct_type.symbol);
+				auto decl_struct = symbol_decl(ret_type->struct_type.symbol);
 				size_t field_index = 0;
-				for (auto field: decl->struct_decl.fields)
+				for (auto field: decl_struct->struct_decl.fields)
 				{
 					for (auto name: field.names)
 					{

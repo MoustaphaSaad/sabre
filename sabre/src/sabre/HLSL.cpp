@@ -518,8 +518,6 @@ namespace sabre
 	inline static const char*
 	_hlsl_symbol_name(HLSL& self, Symbol* sym, Decl* decl)
 	{
-		bool use_raw_name = false;
-
 		const char* res = sym->package_name;
 		switch (sym->kind)
 		{
@@ -602,9 +600,9 @@ namespace sabre
 			else
 			{
 				// NOTE(Moustapha): this is very bad, we should know which decl we're using
-				for (auto [decl, _]: sym->func_overload_set_sym.decls)
+				for (auto [func_overload_decl, _]: sym->func_overload_set_sym.decls)
 				{
-					if (auto tag = mn::map_lookup(decl->tags.table, KEYWORD_BUILTIN))
+					if (auto tag = mn::map_lookup(func_overload_decl->tags.table, KEYWORD_BUILTIN))
 					{
 						if (auto arg = mn::map_lookup(tag->value.args, KEYWORD_HLSL))
 						{
@@ -914,7 +912,7 @@ namespace sabre
 			break;
 		case Type::KIND_ARRAY:
 			mn::print_to(self.out, "{{");
-			for (size_t i = 0; i < t->array.count; ++i)
+			for (int64_t i = 0; i < t->array.count; ++i)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
@@ -1185,11 +1183,11 @@ namespace sabre
 			auto tmp_name = _hlsl_tmp_name(self);
 			mn::map_insert(self.symbol_to_names, (void*)e, tmp_name);
 			mn::print_to(self.out, "{} = {{", _hlsl_write_field(self, e->type, tmp_name));
-			for (size_t i = 0; i < e->type->array.count; ++i)
+			for (int64_t i = 0; i < e->type->array.count; ++i)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
-				if (i < e->complit.fields.count)
+				if (i < (int64_t)e->complit.fields.count)
 					hlsl_expr_gen(self, e->complit.fields[i].value);
 				else
 					_hlsl_zero_value(self, e->type->array.base);
@@ -1432,7 +1430,7 @@ namespace sabre
 	}
 
 	inline static bool
-	_hlsl_add_semicolon_after(HLSL& self, Stmt* s)
+	_hlsl_add_semicolon_after([[maybe_unused]] HLSL& self, Stmt* s)
 	{
 		if (s->kind == Stmt::KIND_BREAK ||
 			s->kind == Stmt::KIND_CONTINUE ||
@@ -1447,13 +1445,13 @@ namespace sabre
 	}
 
 	inline static void
-	_hlsl_gen_break_stmt(HLSL& self, Stmt* s)
+	_hlsl_gen_break_stmt(HLSL& self, [[maybe_unused]] Stmt* s)
 	{
 		mn::print_to(self.out, "break");
 	}
 
 	inline static void
-	_hlsl_gen_continue_stmt(HLSL& self, Stmt* s)
+	_hlsl_gen_continue_stmt(HLSL& self, [[maybe_unused]] Stmt* s)
 	{
 		if (auto post = _hlsl_current_loop_post_stmt(self))
 		{
@@ -1468,7 +1466,7 @@ namespace sabre
 	}
 
 	inline static void
-	_hlsl_gen_discard_stmt(HLSL& self, Stmt* s)
+	_hlsl_gen_discard_stmt(HLSL& self, [[maybe_unused]] Stmt* s)
 	{
 		mn::print_to(self.out, "discard");
 	}
@@ -1700,7 +1698,7 @@ namespace sabre
 		for (auto arg: d->func_decl.args)
 		{
 			auto arg_type = t->as_func.sign.args.types[i];
-			for (auto name: arg.names)
+			for (auto arg_name: arg.names)
 			{
 				if (i > 0)
 					mn::print_to(self.out, ", ");
@@ -1719,7 +1717,7 @@ namespace sabre
 				else if (mn::map_lookup(arg.tags.table, KEYWORD_INOUT))
 					mn::print_to(self.out, "inout ");
 
-				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, arg_name.str));
 				++i;
 			}
 		}
@@ -2053,7 +2051,7 @@ namespace sabre
 
 			for (const auto& name: arg.names)
 			{
-				auto input_name = _hlsl_name(self, name.str);
+				_hlsl_name(self, name.str);
 				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
@@ -2092,7 +2090,7 @@ namespace sabre
 
 			for (const auto& name: arg.names)
 			{
-				auto input_name = _hlsl_name(self, name.str);
+				_hlsl_name(self, name.str);
 				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
@@ -2136,7 +2134,7 @@ namespace sabre
 
 			for (const auto& name: arg.names)
 			{
-				auto input_name = _hlsl_name(self, name.str);
+				_hlsl_name(self, name.str);
 				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch(arg_type->kind)
 				{
@@ -2197,21 +2195,21 @@ namespace sabre
 			{
 				auto const_x = compute_x->value.value->const_value;
 				mn_assert(const_x.type == type_int);
-				x = const_x.as_int;
+				x = (int)const_x.as_int;
 			}
 
 			if (auto compute_y = mn::map_lookup(compute_tag->value.args, KEYWORD_Y))
 			{
 				auto const_y = compute_y->value.value->const_value;
 				mn_assert(const_y.type == type_int);
-				y = const_y.as_int;
+				y = (int)const_y.as_int;
 			}
 
 			if (auto compute_z = mn::map_lookup(compute_tag->value.args, KEYWORD_Z))
 			{
 				auto const_z = compute_z->value.value->const_value;
 				mn_assert(const_z.type == type_int);
-				z = const_z.as_int;
+				z = (int)const_z.as_int;
 			}
 
 			mn::print_to(self.out, "[numthreads({}, {}, {})]", x, y, z);
@@ -2267,7 +2265,6 @@ namespace sabre
 		i = 0;
 		for (auto arg: d->func_decl.args)
 		{
-			auto arg_type = t->as_func.sign.args.types[i];
 			for (auto name: arg.names)
 			{
 				if (i > 0)

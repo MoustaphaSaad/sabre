@@ -172,7 +172,7 @@ namespace sabre
 		case Tkn::KIND_LITERAL_INTEGER:
 		{
 			auto type = _spirv_type_gen(self, expr->type);
-			return spirv::module_int_constant(self.out, type, expr->const_value.as_int);
+			return spirv::module_int_constant(self.out, type, (int)expr->const_value.as_int);
 		}
 		default:
 			mn_unreachable();

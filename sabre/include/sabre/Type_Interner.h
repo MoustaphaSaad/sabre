@@ -832,7 +832,7 @@ namespace sabre
 				return t->struct_type.fields[index].type;
 			return nullptr;
 		case Type::KIND_ARRAY:
-			if (index < t->array.count)
+			if ((int64_t)index < t->array.count)
 				return t->array.base;
 			return nullptr;
 		case Type::KIND_ENUM:

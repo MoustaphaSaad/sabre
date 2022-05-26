@@ -314,7 +314,7 @@ namespace sabre
 				mn::json::Value value{};
 				if (arg_value.value->const_value.type == type_int)
 				{
-					value = mn::json::value_number_new(arg_value.value->const_value.as_int);
+					value = mn::json::value_number_new((float)arg_value.value->const_value.as_int);
 				}
 				else if (arg_value.value->const_value.type == type_lit_string)
 				{
@@ -727,7 +727,7 @@ namespace sabre
 	}
 
 	Unit*
-	unit_from_file(const mn::Str& filepath, const mn::Str& entry, BACKEND_MODE backend)
+	unit_from_file(const mn::Str& filepath, [[maybe_unused]] const mn::Str& entry, BACKEND_MODE backend)
 	{
 		auto self = mn::alloc_zerod<Unit>();
 
@@ -868,7 +868,7 @@ namespace sabre
 	}
 
 	bool
-	unit_reflect(Unit* self, Entry_Point* entry)
+	unit_reflect([[maybe_unused]] Unit* self, Entry_Point* entry)
 	{
 		if (entry == nullptr)
 			return false;
@@ -918,10 +918,10 @@ namespace sabre
 				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", symbol->package->name.str, symbol->name));
 				mn::json::value_object_insert(json_uniform, "name", uniform_name);
 			}
-			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new(binding));
+			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new((float)binding));
 			mn::json::value_object_insert(json_uniform, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
 			mn::json::value_object_insert(json_uniform, "tags", _decl_tags_to_json(symbol_decl(symbol)));
-			mn::json::value_object_insert(json_uniform, "size", mn::json::value_number_new(symbol->type->unaligned_size));
+			mn::json::value_object_insert(json_uniform, "size", mn::json::value_number_new((float)symbol->type->unaligned_size));
 
 			mn::json::value_array_push(json_uniforms, json_uniform);
 
@@ -944,7 +944,7 @@ namespace sabre
 				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", symbol->package->name.str, symbol->name));
 				mn::json::value_object_insert(json_texture, "name", uniform_name);
 			}
-			mn::json::value_object_insert(json_texture, "binding", mn::json::value_number_new(binding));
+			mn::json::value_object_insert(json_texture, "binding", mn::json::value_number_new((float)binding));
 			mn::json::value_object_insert(json_texture, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
 			mn::json::value_object_insert(json_texture, "tags", _decl_tags_to_json(symbol_decl(symbol)));
 			mn::json::value_array_push(json_textures, json_texture);
@@ -959,9 +959,9 @@ namespace sabre
 			mn::json::value_object_insert(json_type, "name", mn::json::value_string_new(_type_to_reflect_json(type, false)));
 			mn::json::value_object_insert(json_type, "raw_name", mn::json::value_string_new(_type_to_reflect_json(type, true)));
 			mn::json::value_object_insert(json_type, "kind", mn::json::value_string_new(_type_kind(type)));
-			mn::json::value_object_insert(json_type, "aligned_size", mn::json::value_number_new(_type_aligned_size(type)));
-			mn::json::value_object_insert(json_type, "unaligned_size", mn::json::value_number_new(type->unaligned_size));
-			mn::json::value_object_insert(json_type, "alignment", mn::json::value_number_new(type->alignment));
+			mn::json::value_object_insert(json_type, "aligned_size", mn::json::value_number_new((float)_type_aligned_size(type)));
+			mn::json::value_object_insert(json_type, "unaligned_size", mn::json::value_number_new((float)type->unaligned_size));
+			mn::json::value_object_insert(json_type, "alignment", mn::json::value_number_new((float)type->alignment));
 
 			mn::json::Value tags{};
 			if (auto symbol = type_symbol(type))
@@ -984,7 +984,7 @@ namespace sabre
 					auto json_field = mn::json::value_object_new();
 					mn::json::value_object_insert(json_field, "name", mn::json::value_string_new(field.name.str));
 					mn::json::value_object_insert(json_field, "type", mn::json::value_string_new(_type_to_reflect_json(field.type, false)));
-					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new(field.offset));
+					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new((float)field.offset));
 					mn::json::value_array_push(json_fields, json_field);
 				}
 				mn::json::value_object_insert(json_type, "fields", json_fields);
@@ -993,8 +993,8 @@ namespace sabre
 			case Type::KIND_ARRAY:
 			{
 				mn::json::value_object_insert(json_type, "array_base_type", mn::json::value_string_new(_type_to_reflect_json(type->array.base, false)));
-				mn::json::value_object_insert(json_type, "array_count", mn::json::value_number_new(type->array.count));
-				mn::json::value_object_insert(json_type, "array_stride", mn::json::value_number_new(type->unaligned_size / type->array.count));
+				mn::json::value_object_insert(json_type, "array_count", mn::json::value_number_new((float)type->array.count));
+				mn::json::value_object_insert(json_type, "array_stride", mn::json::value_number_new((float)(type->unaligned_size / type->array.count)));
 				break;
 			}
 			default:

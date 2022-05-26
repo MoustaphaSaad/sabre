@@ -636,21 +636,21 @@ namespace sabre
 		auto expr = _parser_parse_expr_cmp(self);
 		while (true)
 		{
-			auto tkn = _parser_eat_kind(self, Tkn::KIND_LOGICAL_AND);
-			if (tkn)
+			auto tkn_next = _parser_eat_kind(self, Tkn::KIND_LOGICAL_AND);
+			if (tkn_next)
 			{
 				auto rhs = _parser_parse_expr_cmp(self);
 				if (rhs == nullptr)
 				{
 					Err err{};
-					err.loc = tkn.loc;
+					err.loc = tkn_next.loc;
 					err.msg = mn::strf("missing right handside");
 					unit_err(self.unit, err);
 					break;
 				}
-				expr = expr_binary_new(self.unit->ast_arena, expr, tkn, rhs);
-				expr->loc.pos = tkn.loc.pos;
-				expr->loc.rng = Rng{tkn.loc.rng.begin, _parser_last_token(self).loc.rng.end};
+				expr = expr_binary_new(self.unit->ast_arena, expr, tkn_next, rhs);
+				expr->loc.pos = tkn_next.loc.pos;
+				expr->loc.rng = Rng{tkn_next.loc.rng.begin, _parser_last_token(self).loc.rng.end};
 				expr->loc.file = self.unit;
 			}
 			else
@@ -675,19 +675,19 @@ namespace sabre
 		auto expr = _parser_parse_expr_and(self);
 		while (true)
 		{
-			auto tkn = _parser_eat_kind(self, Tkn::KIND_LOGICAL_OR);
-			if (tkn)
+			auto tkn_next = _parser_eat_kind(self, Tkn::KIND_LOGICAL_OR);
+			if (tkn_next)
 			{
 				auto rhs = _parser_parse_expr_and(self);
 				if (rhs == nullptr)
 				{
 					Err err{};
-					err.loc = tkn.loc;
+					err.loc = tkn_next.loc;
 					err.msg = mn::strf("missing right handside");
 					unit_err(self.unit, err);
 					break;
 				}
-				expr = expr_binary_new(self.unit->ast_arena, expr, tkn, rhs);
+				expr = expr_binary_new(self.unit->ast_arena, expr, tkn_next, rhs);
 			}
 			else
 			{
@@ -957,7 +957,7 @@ namespace sabre
 		// there should be a semicolon here if we don't find it we skip to it
 		if (accept_semicolon && expect_semicolon)
 		{
-			if (auto tkn = _parser_look(self); tkn.kind == Tkn::KIND_SEMICOLON)
+			if (_parser_look_kind(self, Tkn::KIND_SEMICOLON))
 			{
 				_parser_eat(self); // eat the semicolon
 			}
@@ -971,8 +971,8 @@ namespace sabre
 
 				while (true)
 				{
-					auto tkn = _parser_eat(self);
-					if (parser_eof(self) || tkn.kind == Tkn::KIND_SEMICOLON)
+					auto tkn_semicolon = _parser_eat(self);
+					if (parser_eof(self) || tkn_semicolon.kind == Tkn::KIND_SEMICOLON)
 						break;
 				}
 			}
@@ -1312,8 +1312,8 @@ namespace sabre
 		{
 			if (_parser_eat_kind(self, Tkn::KIND_KEYWORD_IF))
 			{
-				auto if_cond = parser_parse_expr(self);
-				auto if_body = _parser_parse_decl_group(self);
+				if_cond = parser_parse_expr(self);
+				if_body = _parser_parse_decl_group(self);
 				mn::buf_push(cond, if_cond);
 				mn::buf_push(body, if_body);
 			}

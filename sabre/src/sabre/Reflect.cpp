@@ -18,7 +18,7 @@ namespace sabre
 		{
 			auto& arg = decl->func_decl.args[i];
 
-			for (const auto& name: arg.names)
+			for (size_t j = 0; j < arg.names.count; ++j)
 			{
 				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
 				switch (arg_type->kind)
@@ -26,8 +26,8 @@ namespace sabre
 				case Type::KIND_STRUCT:
 				{
 					size_t field_index = 0;
-					auto decl = symbol_decl(arg_type->struct_type.symbol);
-					for (auto& field: decl->struct_decl.fields)
+					auto decl_struct = symbol_decl(arg_type->struct_type.symbol);
+					for (auto& field: decl_struct->struct_decl.fields)
 					{
 						for (auto name: field.names)
 						{

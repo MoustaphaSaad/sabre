@@ -12,7 +12,7 @@ namespace sabre
 		self.unaligned_size = size;
 		self.alignment = alignment;
 		self.vec.base = base;
-		self.vec.width = width;
+		self.vec.width = (int)width;
 		return self;
 	}
 
@@ -24,7 +24,7 @@ namespace sabre
 		self.unaligned_size = size;
 		self.alignment = alignment;
 		self.mat.base = base;
-		self.mat.width = width;
+		self.mat.width = (int)width;
 		return self;
 	}
 
@@ -469,7 +469,7 @@ namespace sabre
 	}
 
 	void
-	type_interner_complete_enum(Type_Interner* self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
+	type_interner_complete_enum([[maybe_unused]] Type_Interner* self, Type* type, mn::Buf<Enum_Field_Type> fields, mn::Map<const char*, size_t> fields_table)
 	{
 		mn_assert(type->kind == Type::KIND_COMPLETING);
 		type->kind = Type::KIND_ENUM;
