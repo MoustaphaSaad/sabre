@@ -27,8 +27,6 @@ option(SABRE_INSTALL           "Generates the install target"                   
 # Treat all compiler warnings as errors and increase warning level.
 if(MSVC)
     add_compile_options(-W4 -WX)
-else()
-    add_compile_options(-Wall -Wextra -pedantic -Werror)
 endif()
 
 # external dependencies
