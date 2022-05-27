@@ -1,0 +1,6 @@
+package main
+
+func foo(x: uint): bool {
+	var index = :uvec3{1, 2, 3};
+	return x == 0;
+}

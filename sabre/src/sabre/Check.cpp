@@ -164,10 +164,6 @@ namespace sabre
 				return true;
 		}
 
-		// if we have different types then we can't assign
-		if (type_is_equal(lhs, rhs->type) == false)
-			return false;
-
 		if (rhs->type == type_lit_int)
 		{
 			if (lhs == type_int || lhs == type_lit_int)
@@ -205,10 +201,6 @@ namespace sabre
 			else if (lhs == type_double)
 			{
 				return true;
-			}
-			else
-			{
-				return false;
 			}
 		}
 		else if (rhs->type == type_lit_float)
@@ -270,15 +262,10 @@ namespace sabre
 			{
 				return true;
 			}
-			else
-			{
-				return false;
-			}
 		}
-		else
-		{
-			return true;
-		}
+
+		// if we have different types then we can't assign
+		return type_is_equal(lhs, rhs->type);
 	}
 
 	inline static void
@@ -1053,6 +1040,36 @@ namespace sabre
 					err.loc = e->binary.right->loc;
 					err.msg = mn::strf("type '{}' is not compatible with '{}' in a bitwise shift operation", *lhs_type, *rhs_type);
 					unit_err(self.unit, err);
+				}
+			}
+			else if (type_is_equal(lhs_type, type_lit_int) && type_is_equal(rhs_type, type_uint))
+			{
+				if (e->binary.left->mode == ADDRESS_MODE_CONST && e->binary.left->const_value.as_int >= 0)
+				{
+					// we permit this because it's a positive constant literal
+				}
+				else
+				{
+					Err err{};
+					err.loc = e->loc;
+					err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", *lhs_type, *rhs_type);
+					unit_err(self.unit, err);
+					failed = true;
+				}
+			}
+			else if (type_is_equal(lhs_type, type_uint), type_is_equal(rhs_type, type_lit_int))
+			{
+				if (e->binary.right->mode == ADDRESS_MODE_CONST && e->binary.right->const_value.as_int >= 0)
+				{
+					// we permit this because it's a positive constant literal
+				}
+				else
+				{
+					Err err{};
+					err.loc = e->loc;
+					err.msg = mn::strf("type mismatch in binary expression, lhs is '{}' and rhs is '{}'", *lhs_type, *rhs_type);
+					unit_err(self.unit, err);
+					failed = true;
 				}
 			}
 			else
