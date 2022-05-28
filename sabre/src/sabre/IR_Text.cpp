@@ -66,15 +66,19 @@ namespace sabre::spirv
 			break;
 		}
 
+		mn::set_insert(self.generated_entities, type->id);
+
 		_ir_text_newline(self);
 		mn::print_to(self.out, "{}", res);
-		mn::set_insert(self.generated_entities, type->id);
 		return mn::str_tmpf("%{}", type->id);
 	}
 
 	inline static void
 	_ir_text_constant_gen(IR_Text& self, Value* value, Constant data)
 	{
+		if (mn::set_lookup(self.generated_entities, value->id))
+			return;
+
 		_ir_text_newline(self);
 		auto type = _ir_text_type_gen(self, value->type);
 
@@ -93,11 +97,16 @@ namespace sabre::spirv
 			mn_unreachable();
 			break;
 		}
+
+		mn::set_insert(self.generated_entities, value->id);
 	}
 
 	inline static void
 	_ir_text_bb_gen(IR_Text& self, Basic_Block* bb)
 	{
+		if (mn::set_lookup(self.generated_entities, bb->id))
+			return;
+
 		_ir_text_newline(self);
 		mn::print_to(self.out, "%{} = OpLabel", bb->id);
 
@@ -216,17 +225,39 @@ namespace sabre::spirv
 					instruction.as_branch_conditional.true_branch->id,
 					instruction.as_branch_conditional.false_branch->id
 				);
+				_ir_text_bb_gen(self, instruction.as_branch_conditional.true_branch);
+				_ir_text_bb_gen(self, instruction.as_branch_conditional.false_branch);
+				_ir_text_bb_gen(self, instruction.as_branch_conditional.merge_branch);
+				break;
+			case Instruction::Op_Branch:
+				mn::print_to(
+					self.out,
+					"OpBranch %{}",
+					instruction.as_branch.branch->id
+				);
+				_ir_text_bb_gen(self, instruction.as_branch.branch);
+				break;
+			case Instruction::Op_Unreachable:
+				mn::print_to(
+					self.out,
+					"OpUnreachable"
+				);
 				break;
 			default:
 				mn_unreachable();
 				break;
 			}
 		}
+
+		mn::set_insert(self.generated_entities, bb->id);
 	}
 
 	inline static void
 	_ir_text_func_gen(IR_Text& self, Func* func)
 	{
+		if (mn::set_lookup(self.generated_entities, func->id))
+			return;
+
 		_ir_text_newline(self);
 		mn::print_to(
 			self.out,
@@ -248,12 +279,13 @@ namespace sabre::spirv
 			);
 		}
 
-		for (auto bb: func->blocks)
-			_ir_text_bb_gen(self, bb);
+		_ir_text_bb_gen(self, func->entry);
 
 		--self.indent;
 		_ir_text_newline(self);
 		mn::print_to(self.out, "OpFunctionEnd");
+
+		mn::set_insert(self.generated_entities, func->id);
 	}
 
 	inline static void
@@ -266,6 +298,9 @@ namespace sabre::spirv
 			break;
 		case Entity::KIND_CONSTANT:
 			_ir_text_constant_gen(self, e.as_constant.value, e.as_constant.data);
+			break;
+		case Entity::KIND_BASIC_BLOCK:
+			_ir_text_bb_gen(self, e.as_basic_block);
 			break;
 		case Entity::KIND_FUNC:
 			_ir_text_func_gen(self, e.as_func);
@@ -307,11 +342,8 @@ namespace sabre::spirv
 		}
 		for (const auto& [_, e]: self.module->entities)
 		{
-			if (e.kind != Entity::KIND_TYPE &&
-				e.kind != Entity::KIND_CONSTANT)
-			{
+			if (e.kind == Entity::KIND_FUNC)
 				_ir_text_entity_gen(self, e);
-			}
 		}
 	}
 }

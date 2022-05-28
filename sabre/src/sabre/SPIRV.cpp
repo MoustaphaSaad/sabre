@@ -241,25 +241,69 @@ namespace sabre
 	_spirv_stmt_if_gen(SPIRV& self, Stmt* stmt)
 	{
 		auto func = _spirv_current_func(self);
-		auto current_bb = _spirv_current_bb(self);
-		auto cond = _spirv_expr_gen(self, stmt->if_stmt.cond[0]);
 
-		auto true_bb = spirv::func_basic_block_new(func);
-		auto merge_bb = spirv::func_basic_block_new(func);
-
-		spirv::basic_block_branch(current_bb, cond, true_bb, merge_bb);
-
-		_spirv_enter_bb(self, true_bb);
+		spirv::Basic_Block* false_bb = nullptr;
+		auto merge_bbs = mn::buf_with_allocator<spirv::Basic_Block*>(mn::memory::tmp());
+		for (size_t i = 0; i < stmt->if_stmt.cond.count; ++i)
 		{
-			_spirv_stmt_gen(self, stmt->if_stmt.body[0]);
+			auto cond = _spirv_expr_gen(self, stmt->if_stmt.cond[0]);
+
+			auto true_bb = spirv::func_basic_block_new(func);
+			spirv::Basic_Block* merge_bb = nullptr;
+
+			if (i + 1 < stmt->if_stmt.cond.count)
+			{
+				false_bb = spirv::func_basic_block_new(func);
+				merge_bb = spirv::func_basic_block_new(func);
+				mn::buf_push(merge_bbs, merge_bb);
+			}
+			else
+			{
+				// if we have else branch we'll generate two blocks as usual
+				if (stmt->if_stmt.else_body)
+				{
+					false_bb = spirv::func_basic_block_new(func);
+					merge_bb = spirv::func_basic_block_new(func);
+					mn::buf_push(merge_bbs, merge_bb);
+				}
+				// if we don't have an else, the false will be the merge branch
+				else
+				{
+					false_bb = spirv::func_basic_block_new(func);
+					merge_bb = false_bb;
+				}
+			}
+
+			auto current_bb = _spirv_current_bb(self);
+			spirv::basic_block_branch_conditional(current_bb, cond, true_bb, false_bb, merge_bb);
+
+			_spirv_enter_bb(self, true_bb);
+			{
+				_spirv_stmt_gen(self, stmt->if_stmt.body[0]);
+			}
+			_spirv_leave_bb(self);
+
+			// continue with the false branch
+			_spirv_enter_bb(self, false_bb);
 		}
-		_spirv_leave_bb(self);
 
-		// continue with the merge branch
-		_spirv_enter_bb(self, merge_bb);
+		if (stmt->if_stmt.else_body)
+			_spirv_stmt_gen(self, stmt->if_stmt.else_body);
 
-		// create false bb when you have at least one else branch
-		// auto false_bb = spirv::func_basic_block_new(func);
+		for (size_t i = 1; i < merge_bbs.count; ++i)
+		{
+			auto top_bb = merge_bbs[merge_bbs.count - i - 1 + 1];
+			auto prev_bb = merge_bbs[merge_bbs.count - i - 1];
+
+			_spirv_enter_bb(self, top_bb);
+			{
+				spirv::basic_block_branch(top_bb, prev_bb);
+			}
+			_spirv_leave_bb(self);
+		}
+
+		if (merge_bbs.count > 0)
+			_spirv_enter_bb(self, merge_bbs[0]);
 	}
 
 	inline static void
@@ -354,8 +398,8 @@ namespace sabre
 
 		if (d->func_decl.body)
 		{
-			auto entry = spirv::func_basic_block_new(func);
-			_spirv_enter_bb(self, entry);
+			func->entry = spirv::func_basic_block_new(func);
+			_spirv_enter_bb(self, func->entry);
 			mn_defer{_spirv_leave_bb(self);};
 
 			_spirv_stmt_gen(self, d->func_decl.body);
@@ -492,6 +536,15 @@ namespace sabre
 		for (auto sym: self.unit->reachable_symbols)
 		{
 			_spirv_symbol_gen(self, sym);
+		}
+
+		for (auto& [_, e]: self.out->entities)
+		{
+			if (e.kind == spirv::Entity::KIND_BASIC_BLOCK &&
+				e.as_basic_block->instructions.count == 0)
+			{
+				spirv::basic_block_unreachable(e.as_basic_block);
+			}
 		}
 	}
 }
