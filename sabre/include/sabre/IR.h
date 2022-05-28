@@ -20,6 +20,7 @@ namespace sabre::spirv
 	union Constant
 	{
 		int as_int;
+		bool as_bool;
 	};
 
 	// represents a spirv entity, it can hold types, functions, etc...
@@ -35,6 +36,7 @@ namespace sabre::spirv
 		};
 
 		KIND kind;
+		ID id;
 		union
 		{
 			Type* as_type;
@@ -50,55 +52,28 @@ namespace sabre::spirv
 	};
 
 	// wraps the given type in an entity
-	inline static Entity
-	entity_from_type(Type* type)
-	{
-		Entity self{};
-		self.kind = Entity::KIND_TYPE;
-		self.as_type = type;
-		return self;
-	}
+	SABRE_EXPORT Entity
+	entity_from_type(Type* type);
 
 	// wraps the given func in an entity
-	inline static Entity
-	entity_from_func(Func* func)
-	{
-		Entity self{};
-		self.kind = Entity::KIND_FUNC;
-		self.as_func = func;
-		return self;
-	}
+	SABRE_EXPORT Entity
+	entity_from_func(Func* func);
 
 	// wraps the given basic block in an entity
-	inline static Entity
-	entity_from_basic_block(Basic_Block* basic_block)
-	{
-		Entity self{};
-		self.kind = Entity::KIND_BASIC_BLOCK;
-		self.as_basic_block = basic_block;
-		return self;
-	}
+	SABRE_EXPORT Entity
+	entity_from_basic_block(Basic_Block* basic_block);
 
 	// wraps the given value in an entity
-	inline static Entity
-	entity_from_value(Value* value)
-	{
-		Entity self{};
-		self.kind = Entity::KIND_VALUE;
-		self.as_value = value;
-		return self;
-	}
+	SABRE_EXPORT Entity
+	entity_from_value(Value* value);
 
-	// wraps the given constant in an entity
-	inline static Entity
-	entity_from_constant(Value* value, int data)
-	{
-		Entity self{};
-		self.kind = Entity::KIND_CONSTANT;
-		self.as_constant.value = value;
-		self.as_constant.data.as_int = data;
-		return self;
-	}
+	// wraps the given constant int in an entity
+	SABRE_EXPORT Entity
+	entity_from_constant(Value* value, int data);
+
+	// wraps the given constant bool in an entity
+	SABRE_EXPORT Entity
+	entity_from_constant(Value* value, bool data);
 
 	enum STORAGE_CLASS
 	{
@@ -139,6 +114,54 @@ namespace sabre::spirv
 				STORAGE_CLASS storage_class;
 			} as_ptr;
 		};
+
+		bool
+		operator==(const Type& other) const
+		{
+			if (kind != other.kind)
+				return false;
+
+			switch (kind)
+			{
+			case KIND_VOID:
+			case KIND_BOOL:
+				return true;
+			case KIND_INT:
+				return (
+					as_int.bit_width == other.as_int.bit_width &&
+					as_int.is_signed == other.as_int.is_signed
+				);
+			case KIND_FUNC:
+			{
+				if (as_func.return_type != other.as_func.return_type)
+					return false;
+
+				if (as_func.args.count != other.as_func.args.count)
+					return false;
+
+				for (size_t i = 0; i < as_func.args.count; ++i)
+					if (as_func.args[i] != other.as_func.args[i])
+						return false;
+
+				return true;
+			}
+			case KIND_PTR:
+				return (
+					as_ptr.base == other.as_ptr.base &&
+					as_ptr.storage_class == other.as_ptr.storage_class
+				);
+			default:
+				mn_unreachable();
+				break;
+			}
+			return false;
+		}
+
+		bool
+		operator!=(const Type& other) const
+		{
+			return !operator==(other);
+		}
 	};
 
 	inline static bool
@@ -162,10 +185,16 @@ namespace sabre::spirv
 			Op_ISub,
 			Op_IMul,
 			Op_SDiv,
+			Op_BitwiseAnd,
+			Op_IEqual,
 			Op_Variable,
 			Op_Load,
 			Op_Store,
 			Op_ReturnValue,
+			Op_SelectionMerge,
+			Op_BranchConditional,
+			Op_Branch,
+			Op_Unreachable,
 		};
 
 		Op kind;
@@ -201,6 +230,20 @@ namespace sabre::spirv
 
 			struct
 			{
+				Value* op1;
+				Value* op2;
+				Value* res;
+			} as_bitwise_and;
+
+			struct
+			{
+				Value* op1;
+				Value* op2;
+				Value* res;
+			} as_iequal;
+
+			struct
+			{
 				Type* type;
 				STORAGE_CLASS storage_class;
 				Value* init;
@@ -224,6 +267,24 @@ namespace sabre::spirv
 			{
 				Value* value;
 			} as_return;
+
+			struct
+			{
+				Basic_Block* merge_branch;
+			} as_selection_merge;
+
+			struct
+			{
+				Value* cond;
+				Basic_Block* true_branch;
+				Basic_Block* false_branch;
+				Basic_Block* merge_branch;
+			} as_branch_conditional;
+
+			struct
+			{
+				Basic_Block* branch;
+			} as_branch;
 		};
 	};
 
@@ -233,24 +294,33 @@ namespace sabre::spirv
 		Func* func;
 		ID id;
 		mn::Buf<Instruction> instructions;
+		bool terminated;
 	};
 
-	// generates the correct add instruction for the given 2 values and
+	// generates add instruction for the given 2 values and
 	// returns the output value
 	SABRE_EXPORT Value*
 	basic_block_add(Basic_Block* self, Value* op1, Value* op2);
 
-	// generates the correct sub instruction for the given 2 values and returns the output value
+	// generates sub instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_sub(Basic_Block* self, Value* op1, Value* op2);
 
-	// generates the correct mul instruction for the given 2 values and returns the output value
+	// generates mul instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_mul(Basic_Block* self, Value* op1, Value* op2);
 
-	// generates the correct div instruction for the given 2 values and returns the output value
+	// generates div instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_div(Basic_Block* self, Value* op1, Value* op2);
+
+	// generates bitwise and instruction for the given 2 values and returns the output value
+	SABRE_EXPORT Value*
+	basic_block_bitwise_and(Basic_Block* self, Value* op1, Value* op2);
+
+	// generates equal instruction for the given 2 values and returns the output value
+	SABRE_EXPORT Value*
+	basic_block_equal(Basic_Block* self, Value* op1, Value* op2);
 
 	// returns the given value from the given basic block
 	SABRE_EXPORT Value*
@@ -268,6 +338,18 @@ namespace sabre::spirv
 	SABRE_EXPORT void
 	basic_block_store(Basic_Block* self, Value* src, Value* dst);
 
+	// branches conditionally on the given value either to true branch or false branch
+	SABRE_EXPORT void
+	basic_block_branch_conditional(Basic_Block* self, Value* cond, Basic_Block* true_branch, Basic_Block* false_branch, Basic_Block* merge_branch);
+
+	// branch unconditionally to the given basic block
+	SABRE_EXPORT void
+	basic_block_branch(Basic_Block* self, Basic_Block* branch);
+
+	// makes this basic block unreachable, this will happen if the basic block is empty
+	SABRE_EXPORT void
+	basic_block_unreachable(Basic_Block* self);
+
 	// represents a SPIRV function
 	struct Func
 	{
@@ -276,6 +358,54 @@ namespace sabre::spirv
 		Type* type;
 		mn::Buf<Value*> args;
 		mn::Buf<Basic_Block*> blocks;
+		Basic_Block* entry;
+	};
+
+	struct Type_Key_Hasher
+	{
+		inline size_t
+		operator()(const Type& v)
+		{
+			return mn::murmur_hash(&v, sizeof(v));
+		}
+	};
+
+	struct Constant_Key
+	{
+		Type* type;
+		Constant value;
+
+		bool
+		operator==(const Constant_Key& other) const
+		{
+			if (type != other.type)
+				return false;
+			switch (type->kind)
+			{
+			case Type::KIND_BOOL:
+				return value.as_bool == other.value.as_bool;
+			case Type::KIND_INT:
+				return value.as_int == other.value.as_int;
+			default:
+				mn_unreachable();
+				return false;
+			}
+		}
+
+		bool
+		operator!=(const Constant_Key& other) const
+		{
+			return !operator==(other);
+		}
+	};
+
+	struct Constant_Key_Hasher
+	{
+		inline size_t
+		operator()(const Constant_Key& v)
+		{
+			return mn::murmur_hash(&v, sizeof(v));
+		}
 	};
 
 	// represents a SPIRV module, which is a SPIRV compilation unit
@@ -284,6 +414,8 @@ namespace sabre::spirv
 		mn::Allocator arena;
 		uint32_t id_generator;
 		mn::Map<ID, Entity> entities;
+		mn::Map<Type, Type*, Type_Key_Hasher> type_cache;
+		mn::Map<Constant_Key, Value*, Constant_Key_Hasher> constant_cache;
 	};
 
 	// creates a new module instance
@@ -321,6 +453,10 @@ namespace sabre::spirv
 	// creates a new constant integer value
 	SABRE_EXPORT Value*
 	module_int_constant(Module* self, Type* type, int value);
+
+	// creates a new constant bool value
+	SABRE_EXPORT Value*
+	module_bool_constant(Module* self, bool value);
 
 	// creates a new function instance
 	SABRE_EXPORT Func*

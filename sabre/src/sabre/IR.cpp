@@ -16,9 +16,73 @@ namespace sabre::spirv
 	}
 
 	// API
+	Entity
+	entity_from_type(Type* type)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_TYPE;
+		self.id = type->id;
+		self.as_type = type;
+		return self;
+	}
+
+	Entity
+	entity_from_func(Func* func)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_FUNC;
+		self.id = func->id;
+		self.as_func = func;
+		return self;
+	}
+
+	Entity
+	entity_from_basic_block(Basic_Block* basic_block)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_BASIC_BLOCK;
+		self.id = basic_block->id;
+		self.as_basic_block = basic_block;
+		return self;
+	}
+
+	Entity
+	entity_from_value(Value* value)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_VALUE;
+		self.id = value->id;
+		self.as_value = value;
+		return self;
+	}
+
+	Entity
+	entity_from_constant(Value* value, int data)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_CONSTANT;
+		self.id = value->id;
+		self.as_constant.value = value;
+		self.as_constant.data.as_int = data;
+		return self;
+	}
+
+	Entity
+	entity_from_constant(Value* value, bool data)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_CONSTANT;
+		self.id = value->id;
+		self.as_constant.value = value;
+		self.as_constant.data.as_bool = data;
+		return self;
+	}
+
 	Value*
 	basic_block_add(Basic_Block* self, Value* op1, Value* op2)
 	{
+		mn_assert(self->terminated == false);
+
 		if (type_is_int(op1->type) && type_is_int(op2->type))
 		{
 			Instruction ins{};
@@ -30,12 +94,18 @@ namespace sabre::spirv
 
 			return ins.as_iadd.res;
 		}
-		return nullptr;
+		else
+		{
+			mn_unreachable();
+			return nullptr;
+		}
 	}
 
 	Value*
 	basic_block_sub(Basic_Block* self, Value* op1, Value* op2)
 	{
+		mn_assert(self->terminated == false);
+
 		if (type_is_int(op1->type) && type_is_int(op2->type))
 		{
 			Instruction ins{};
@@ -47,12 +117,18 @@ namespace sabre::spirv
 
 			return ins.as_isub.res;
 		}
-		return nullptr;
+		else
+		{
+			mn_unreachable();
+			return nullptr;
+		}
 	}
 
 	Value*
 	basic_block_mul(Basic_Block* self, Value* op1, Value* op2)
 	{
+		mn_assert(self->terminated == false);
+
 		if (type_is_int(op1->type) && type_is_int(op2->type))
 		{
 			Instruction ins{};
@@ -64,12 +140,18 @@ namespace sabre::spirv
 
 			return ins.as_imul.res;
 		}
-		return nullptr;
+		else
+		{
+			mn_unreachable();
+			return nullptr;
+		}
 	}
 
 	Value*
 	basic_block_div(Basic_Block* self, Value* op1, Value* op2)
 	{
+		mn_assert(self->terminated == false);
+
 		if (type_is_int(op1->type) && type_is_int(op2->type))
 		{
 			Instruction ins{};
@@ -81,16 +163,70 @@ namespace sabre::spirv
 
 			return ins.as_imul.res;
 		}
-		return nullptr;
+		else
+		{
+			mn_unreachable();
+			return nullptr;
+		}
+	}
+
+	Value*
+	basic_block_bitwise_and(Basic_Block* self, Value* op1, Value* op2)
+	{
+		mn_assert(self->terminated == false);
+
+		if (type_is_int(op1->type) && type_is_int(op2->type))
+		{
+			Instruction ins{};
+			ins.kind = Instruction::Op_BitwiseAnd;
+			ins.as_bitwise_and.op1 = op1;
+			ins.as_bitwise_and.op2 = op2;
+			ins.as_bitwise_and.res = _module_value_new(self->func->module, op1->type);
+			mn::buf_push(self->instructions, ins);
+
+			return ins.as_bitwise_and.res;
+		}
+		else
+		{
+			mn_unreachable();
+			return nullptr;
+		}
+	}
+
+	Value*
+	basic_block_equal(Basic_Block* self, Value* op1, Value* op2)
+	{
+		mn_assert(self->terminated == false);
+
+		if (type_is_int(op1->type) && type_is_int(op2->type))
+		{
+			Instruction ins{};
+			ins.kind = Instruction::Op_IEqual;
+			ins.as_iequal.op1 = op1;
+			ins.as_iequal.op2 = op2;
+			ins.as_iequal.res = _module_value_new(self->func->module, module_type_bool_new(self->func->module));
+			mn::buf_push(self->instructions, ins);
+
+			return ins.as_iequal.res;
+		}
+		else
+		{
+			mn_unreachable();
+			return nullptr;
+		}
 	}
 
 	Value*
 	basic_block_ret(Basic_Block* self, Value* res)
 	{
+		mn_assert(self->terminated == false);
+
 		Instruction ins{};
 		ins.kind = Instruction::Op_ReturnValue;
 		ins.as_return.value = res;
 		mn::buf_push(self->instructions, ins);
+
+		self->terminated = true;
 
 		return ins.as_return.value;
 	}
@@ -98,6 +234,8 @@ namespace sabre::spirv
 	Value*
 	basic_block_variable(Basic_Block* self, Type* type, STORAGE_CLASS storage_class, Value* init)
 	{
+		mn_assert(self->terminated == false);
+
 		Instruction ins{};
 		ins.kind = Instruction::Op_Variable;
 		ins.as_variable.type = type;
@@ -112,6 +250,8 @@ namespace sabre::spirv
 	Value*
 	basic_block_load(Basic_Block* self, Type* type, Value* src)
 	{
+		mn_assert(self->terminated == false);
+
 		Instruction ins{};
 		ins.kind = Instruction::Op_Load;
 		ins.as_load.type = type;
@@ -125,11 +265,59 @@ namespace sabre::spirv
 	void
 	basic_block_store(Basic_Block* self, Value* src, Value* dst)
 	{
+		mn_assert(self->terminated == false);
+
 		Instruction ins{};
 		ins.kind = Instruction::Op_Store;
 		ins.as_store.src = src;
 		ins.as_store.dst = dst;
 		mn::buf_push(self->instructions, ins);
+	}
+
+	void
+	basic_block_branch_conditional(Basic_Block* self, Value* cond, Basic_Block* true_branch, Basic_Block* false_branch, Basic_Block* merge_branch)
+	{
+		mn_assert(self->terminated == false);
+
+		Instruction ins{};
+		ins.kind = Instruction::Op_SelectionMerge;
+		ins.as_selection_merge.merge_branch = merge_branch;
+		mn::buf_push(self->instructions, ins);
+
+		ins.kind = Instruction::Op_BranchConditional;
+		ins.as_branch_conditional.cond = cond;
+		ins.as_branch_conditional.true_branch = true_branch;
+		ins.as_branch_conditional.false_branch = false_branch;
+		ins.as_branch_conditional.merge_branch = merge_branch;
+		mn::buf_push(self->instructions, ins);
+
+		self->terminated = true;
+	}
+
+	void
+	basic_block_branch(Basic_Block* self, Basic_Block* branch)
+	{
+		mn_assert(self->terminated == false);
+
+		Instruction ins{};
+		ins.kind = Instruction::Op_Branch;
+		ins.as_branch.branch = branch;
+		mn::buf_push(self->instructions, ins);
+
+		self->terminated = true;
+	}
+
+	void
+	basic_block_unreachable(Basic_Block* self)
+	{
+		mn_assert(self->terminated == false);
+		mn_assert(self->instructions.count == 0);
+
+		Instruction ins{};
+		ins.kind = Instruction::Op_Unreachable;
+		mn::buf_push(self->instructions, ins);
+
+		self->terminated = true;
 	}
 
 	Module*
@@ -147,6 +335,8 @@ namespace sabre::spirv
 		{
 			mn::allocator_free(self->arena);
 			mn::map_free(self->entities);
+			mn::map_free(self->type_cache);
+			mn::map_free(self->constant_cache);
 			mn::free(self);
 		}
 	}
@@ -154,28 +344,47 @@ namespace sabre::spirv
 	Type*
 	module_type_void_new(Module* self)
 	{
+		Type key{};
+		key.kind = Type::KIND_VOID;
+		if (auto it = mn::map_lookup(self->type_cache, key))
+			return it->value;
+
 		auto type = mn::alloc_zerod_from<Type>(self->arena);
 		type->kind = Type::KIND_VOID;
 		type->id = ++self->id_generator;
 
 		mn::map_insert(self->entities, type->id, entity_from_type(type));
+		mn::map_insert(self->type_cache, key, type);
 		return type;
 	}
 
 	Type*
 	module_type_bool_new(Module* self)
 	{
+		Type key{};
+		key.kind = Type::KIND_BOOL;
+		if (auto it = mn::map_lookup(self->type_cache, key))
+			return it->value;
+
 		auto type = mn::alloc_zerod_from<Type>(self->arena);
 		type->kind = Type::KIND_BOOL;
 		type->id = ++self->id_generator;
 
 		mn::map_insert(self->entities, type->id, entity_from_type(type));
+		mn::map_insert(self->type_cache, key, type);
 		return type;
 	}
 
 	Type*
 	module_type_int_new(Module* self, int bit_width, bool is_signed)
 	{
+		Type key{};
+		key.kind = Type::KIND_INT;
+		key.as_int.bit_width = bit_width;
+		key.as_int.is_signed = is_signed;
+		if (auto it = mn::map_lookup(self->type_cache, key))
+			return it->value;
+
 		auto type = mn::alloc_zerod_from<Type>(self->arena);
 		type->kind = Type::KIND_INT;
 		type->id = ++self->id_generator;
@@ -183,12 +392,20 @@ namespace sabre::spirv
 		type->as_int.is_signed = is_signed ? 1 : 0;
 
 		mn::map_insert(self->entities, type->id, entity_from_type(type));
+		mn::map_insert(self->type_cache, key, type);
 		return type;
 	}
 
 	Type*
 	module_type_pointer_new(Module* self, Type* base, STORAGE_CLASS storage_class)
 	{
+		Type key{};
+		key.kind = Type::KIND_PTR;
+		key.as_ptr.base = base;
+		key.as_ptr.storage_class = storage_class;
+		if (auto it = mn::map_lookup(self->type_cache, key))
+			return it->value;
+
 		auto type = mn::alloc_zerod_from<Type>(self->arena);
 		type->kind = Type::KIND_PTR;
 		type->id = ++self->id_generator;
@@ -196,6 +413,7 @@ namespace sabre::spirv
 		type->as_ptr.storage_class = storage_class;
 
 		mn::map_insert(self->entities, type->id, entity_from_type(type));
+		mn::map_insert(self->type_cache, key, type);
 		return type;
 	}
 
@@ -223,8 +441,33 @@ namespace sabre::spirv
 	Value*
 	module_int_constant(Module* self, Type* type, int data)
 	{
+		Constant_Key key{};
+		key.type = type;
+		key.value.as_int = data;
+		if (auto it = mn::map_lookup(self->constant_cache, key))
+			return it->value;
+
 		auto value = _module_value_new(self, type);
 		mn::map_insert(self->entities, value->id, entity_from_constant(value, data));
+
+		mn::map_insert(self->constant_cache, key, value);
+		return value;
+	}
+
+	Value*
+	module_bool_constant(Module* self, bool data)
+	{
+		Constant_Key key{};
+		key.type = module_type_bool_new(self);
+		key.value.as_bool = data;
+		if (auto it = mn::map_lookup(self->constant_cache, key))
+			return it->value;
+
+		auto bool_type = module_type_bool_new(self);
+		auto value = _module_value_new(self, bool_type);
+		mn::map_insert(self->entities, value->id, entity_from_constant(value, data));
+
+		mn::map_insert(self->constant_cache, key, value);
 		return value;
 	}
 
