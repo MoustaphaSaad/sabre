@@ -205,7 +205,8 @@ namespace sabre
 				Expr* lhs;
 				Expr* rhs;
 				// offset of rhs inside lhs, if it's applicable
-				size_t offset;
+				size_t unaligned_offset;
+				size_t aligned_offset;
 				bool has_offset;
 			} dot;
 

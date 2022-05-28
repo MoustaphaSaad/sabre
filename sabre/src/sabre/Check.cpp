@@ -1914,12 +1914,14 @@ namespace sabre
 			if (len == 1)
 			{
 				auto r = mn::rune_read(e->dot.rhs->atom.tkn.str);
-				e->dot.offset = _swizzle_style_index(swizzle_style, type->vec.width, r) * type->vec.base->unaligned_size;
+				e->dot.unaligned_offset = _swizzle_style_index(swizzle_style, type->vec.width, r) * type->vec.base->unaligned_size;
+				e->dot.aligned_offset = e->dot.unaligned_offset;
 				e->dot.has_offset = true;
 			}
 			else
 			{
-				e->dot.offset = 0;
+				e->dot.unaligned_offset = 0;
+				e->dot.aligned_offset = e->dot.unaligned_offset;
 				e->dot.has_offset = true;
 			}
 			return res;
@@ -1949,7 +1951,8 @@ namespace sabre
 			if (e->mode == ADDRESS_MODE_CONST)
 				e->const_value = expr_value_aggregate_get(e->dot.lhs->const_value, it->value);
 			e->symbol = type->struct_type.symbol;
-			e->dot.offset = type->struct_type.fields[it->value].offset;
+			e->dot.unaligned_offset = type->struct_type.fields[it->value].unaligned_offset;
+			e->dot.aligned_offset = type->struct_type.fields[it->value].aligned_offset;
 			e->dot.has_offset = true;
 			return type->struct_type.fields[it->value].type;
 		}

@@ -24,6 +24,7 @@ namespace sabre
 	{
 		Expr* buffer_name_expr;
 		size_t offset;
+		Expr* offset_expr;
 		size_t size;
 	};
 

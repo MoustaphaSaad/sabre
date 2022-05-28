@@ -985,7 +985,7 @@ namespace sabre
 					auto json_field = mn::json::value_object_new();
 					mn::json::value_object_insert(json_field, "name", mn::json::value_string_new(field.name.str));
 					mn::json::value_object_insert(json_field, "type", mn::json::value_string_new(_type_to_reflect_json(field.type, false)));
-					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new(field.offset));
+					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new(field.aligned_offset));
 					mn::json::value_array_push(json_fields, json_field);
 				}
 				mn::json::value_object_insert(json_type, "fields", json_fields);

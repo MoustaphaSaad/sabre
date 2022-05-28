@@ -98,10 +98,11 @@ namespace sabre
 		{
 			if (field.type->alignment > type->alignment)
 				type->alignment = field.type->alignment;
+			field.unaligned_offset = type->unaligned_size;
 			if (field.type->alignment > 0)
 				if (type->unaligned_size % field.type->alignment != 0)
 					type->unaligned_size = _round_up(type->unaligned_size, field.type->alignment);
-			field.offset = type->unaligned_size;
+			field.aligned_offset = type->unaligned_size;
 			type->unaligned_size += field.type->unaligned_size;
 		}
 		type->alignment = _round_up(type->alignment, type_vec4->alignment);

@@ -1,4 +1,3 @@
-// numbers.op1.x
 package main
 
 type Numbers struct {
