@@ -1,8 +1,18 @@
+// numbers.op1.x
 package main
 
-func add<T: type, R: type = float>(a: T, b: T) {}
+type Numbers struct {
+	op1, op2: vec4,
+	op3, op4: int,
+	values: [10]int
+}
 
-func foo() {
-	// TODO: doesn't error on second parameter
-	add<float>(1.5, 1);
+@buffer
+var numbers: Numbers;
+
+@compute
+func main() {
+	var res = numbers.op1.yx + numbers.op2.zw;
+	var res2 = numbers.op3 + numbers.op4;
+	var koko = numbers.values[numbers.op3];
 }

@@ -770,6 +770,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Y));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Z));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILD_BACKEND));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUFFER));
 
 		unit_add_package(self, self->root_package);
 

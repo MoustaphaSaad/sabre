@@ -1910,6 +1910,18 @@ namespace sabre
 					expr_value_aggregate_set(e->const_value, index, src_value);
 				}
 			}
+
+			if (len == 1)
+			{
+				auto r = mn::rune_read(e->dot.rhs->atom.tkn.str);
+				e->dot.offset = _swizzle_style_index(swizzle_style, type->vec.width, r) * type->vec.base->unaligned_size;
+				e->dot.has_offset = true;
+			}
+			else
+			{
+				e->dot.offset = 0;
+				e->dot.has_offset = true;
+			}
 			return res;
 		}
 		else if (type->kind == Type::KIND_STRUCT)
@@ -1937,6 +1949,8 @@ namespace sabre
 			if (e->mode == ADDRESS_MODE_CONST)
 				e->const_value = expr_value_aggregate_get(e->dot.lhs->const_value, it->value);
 			e->symbol = type->struct_type.symbol;
+			e->dot.offset = type->struct_type.fields[it->value].offset;
+			e->dot.has_offset = true;
 			return type->struct_type.fields[it->value].type;
 		}
 		else if (type->kind == Type::KIND_PACKAGE)
@@ -2672,6 +2686,20 @@ namespace sabre
 			{
 				sym->var_sym.is_uniform = true;
 				mn::buf_push(self.unit->parent_unit->all_uniforms, sym);
+			}
+		}
+		else if (auto buffer_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_BUFFER))
+		{
+			if (_typer_check_type_suitable_for_uniform(self, res, 0) == false)
+			{
+				Err err{};
+				err.loc = symbol_location(sym);
+				err.msg = mn::strf("buffer variable type '{}' contains types which cannot be used in a uniform", *res);
+				unit_err(self.unit, err);
+			}
+			else
+			{
+				sym->var_sym.is_buffer = true;
 			}
 		}
 

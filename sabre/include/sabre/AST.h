@@ -204,6 +204,9 @@ namespace sabre
 			{
 				Expr* lhs;
 				Expr* rhs;
+				// offset of rhs inside lhs, if it's applicable
+				size_t offset;
+				bool has_offset;
 			} dot;
 
 			struct

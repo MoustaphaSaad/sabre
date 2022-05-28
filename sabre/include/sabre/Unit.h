@@ -59,6 +59,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_Y = "y";
 	inline constexpr const char* KEYWORD_Z = "z";
 	inline constexpr const char* KEYWORD_BUILD_BACKEND = "build_backend";
+	inline constexpr const char* KEYWORD_BUFFER = "buffer";
 
 	enum COMPILATION_STAGE
 	{

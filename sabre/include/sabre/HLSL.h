@@ -20,6 +20,13 @@ namespace sabre
 		ENTRY_IO_FLAG_PIXEL_OUT,
 	};
 
+	struct Buffer_Access_Info
+	{
+		Expr* buffer_name_expr;
+		size_t offset;
+		size_t size;
+	};
+
 	struct HLSL
 	{
 		Unit_Package* unit;
@@ -44,6 +51,8 @@ namespace sabre
 		mn::Str geometry_stream_name;
 		// contains the type names of all the template names in mangled form
 		mn::Map<Type*, const char*> template_mangled_names;
+		// contains the offset and size info of a buffer dot expression
+		mn::Map<Expr*, Buffer_Access_Info> buffer_access_info;
 	};
 
 	// creates a new HLSL generator instance

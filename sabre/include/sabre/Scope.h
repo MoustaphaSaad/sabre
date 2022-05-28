@@ -68,6 +68,8 @@ namespace sabre
 				int uniform_binding;
 				bool is_uniform;
 				bool uniform_binding_processed;
+				// used with compute shader buffers
+				bool is_buffer;
 			} var_sym;
 
 			struct
