@@ -20,6 +20,7 @@ namespace sabre::spirv
 	union Constant
 	{
 		int as_int;
+		bool as_bool;
 	};
 
 	// represents a spirv entity, it can hold types, functions, etc...
@@ -89,7 +90,7 @@ namespace sabre::spirv
 		return self;
 	}
 
-	// wraps the given constant in an entity
+	// wraps the given constant int in an entity
 	inline static Entity
 	entity_from_constant(Value* value, int data)
 	{
@@ -97,6 +98,17 @@ namespace sabre::spirv
 		self.kind = Entity::KIND_CONSTANT;
 		self.as_constant.value = value;
 		self.as_constant.data.as_int = data;
+		return self;
+	}
+
+	// wraps the given constant bool in an entity
+	inline static Entity
+	entity_from_constant(Value* value, bool data)
+	{
+		Entity self{};
+		self.kind = Entity::KIND_CONSTANT;
+		self.as_constant.value = value;
+		self.as_constant.data.as_bool = data;
 		return self;
 	}
 
@@ -162,10 +174,14 @@ namespace sabre::spirv
 			Op_ISub,
 			Op_IMul,
 			Op_SDiv,
+			Op_BitwiseAnd,
+			Op_IEqual,
 			Op_Variable,
 			Op_Load,
 			Op_Store,
 			Op_ReturnValue,
+			Op_SelectionMerge,
+			Op_BranchConditional,
 		};
 
 		Op kind;
@@ -201,6 +217,20 @@ namespace sabre::spirv
 
 			struct
 			{
+				Value* op1;
+				Value* op2;
+				Value* res;
+			} as_bitwise_and;
+
+			struct
+			{
+				Value* op1;
+				Value* op2;
+				Value* res;
+			} as_iequal;
+
+			struct
+			{
 				Type* type;
 				STORAGE_CLASS storage_class;
 				Value* init;
@@ -224,6 +254,18 @@ namespace sabre::spirv
 			{
 				Value* value;
 			} as_return;
+
+			struct
+			{
+				Basic_Block* merge_branch;
+			} as_selection_merge;
+
+			struct
+			{
+				Value* cond;
+				Basic_Block* true_branch;
+				Basic_Block* false_branch;
+			} as_branch_conditional;
 		};
 	};
 
@@ -233,24 +275,33 @@ namespace sabre::spirv
 		Func* func;
 		ID id;
 		mn::Buf<Instruction> instructions;
+		bool terminated;
 	};
 
-	// generates the correct add instruction for the given 2 values and
+	// generates add instruction for the given 2 values and
 	// returns the output value
 	SABRE_EXPORT Value*
 	basic_block_add(Basic_Block* self, Value* op1, Value* op2);
 
-	// generates the correct sub instruction for the given 2 values and returns the output value
+	// generates sub instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_sub(Basic_Block* self, Value* op1, Value* op2);
 
-	// generates the correct mul instruction for the given 2 values and returns the output value
+	// generates mul instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_mul(Basic_Block* self, Value* op1, Value* op2);
 
-	// generates the correct div instruction for the given 2 values and returns the output value
+	// generates div instruction for the given 2 values and returns the output value
 	SABRE_EXPORT Value*
 	basic_block_div(Basic_Block* self, Value* op1, Value* op2);
+
+	// generates bitwise and instruction for the given 2 values and returns the output value
+	SABRE_EXPORT Value*
+	basic_block_bitwise_and(Basic_Block* self, Value* op1, Value* op2);
+
+	// generates equal instruction for the given 2 values and returns the output value
+	SABRE_EXPORT Value*
+	basic_block_equal(Basic_Block* self, Value* op1, Value* op2);
 
 	// returns the given value from the given basic block
 	SABRE_EXPORT Value*
@@ -267,6 +318,10 @@ namespace sabre::spirv
 	// stores data from src to dst
 	SABRE_EXPORT void
 	basic_block_store(Basic_Block* self, Value* src, Value* dst);
+
+	// branches conditionally on the given value either to true branch or false branch
+	SABRE_EXPORT void
+	basic_block_branch(Basic_Block* self, Value* cond, Basic_Block* true_branch, Basic_Block* false_branch);
 
 	// represents a SPIRV function
 	struct Func
@@ -321,6 +376,10 @@ namespace sabre::spirv
 	// creates a new constant integer value
 	SABRE_EXPORT Value*
 	module_int_constant(Module* self, Type* type, int value);
+
+	// creates a new constant bool value
+	SABRE_EXPORT Value*
+	module_bool_constant(Module* self, bool value);
 
 	// creates a new function instance
 	SABRE_EXPORT Func*

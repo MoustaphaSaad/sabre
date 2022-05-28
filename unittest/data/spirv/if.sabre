@@ -1,0 +1,8 @@
+package main
+
+func is_power_of_two(a: int): bool {
+	if a & 1 == 1 {
+		return false;
+	}
+	return true;
+}

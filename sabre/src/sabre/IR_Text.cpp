@@ -77,12 +77,17 @@ namespace sabre::spirv
 	{
 		_ir_text_newline(self);
 		auto type = _ir_text_type_gen(self, value->type);
-		mn::print_to(self.out, "%{} = OpConstant {}", value->id, type);
 
 		switch (value->type->kind)
 		{
 		case Type::KIND_INT:
-			mn::print_to(self.out, " {}", data.as_int);
+			mn::print_to(self.out, "%{} = OpConstant {} {}", value->id, type, data.as_int);
+			break;
+		case Type::KIND_BOOL:
+			if (data.as_bool)
+				mn::print_to(self.out, "%{} = OpConstantTrue {}", value->id, type);
+			else
+				mn::print_to(self.out, "%{} = OpConstantFalse {}", value->id, type);
 			break;
 		default:
 			mn_unreachable();
@@ -141,6 +146,26 @@ namespace sabre::spirv
 					instruction.as_sdiv.op2->id
 				);
 				break;
+			case Instruction::Op_BitwiseAnd:
+				mn::print_to(
+					self.out,
+					"%{} = OpBitwiseAnd {} %{} %{}",
+					instruction.as_bitwise_and.res->id,
+					_ir_text_type_gen(self, instruction.as_bitwise_and.res->type),
+					instruction.as_bitwise_and.op1->id,
+					instruction.as_bitwise_and.op2->id
+				);
+				break;
+			case Instruction::Op_IEqual:
+				mn::print_to(
+					self.out,
+					"%{} = OpIEqual {} %{} %{}",
+					instruction.as_iequal.res->id,
+					_ir_text_type_gen(self, instruction.as_iequal.res->type),
+					instruction.as_iequal.op1->id,
+					instruction.as_iequal.op2->id
+				);
+				break;
 			case Instruction::Op_Variable:
 				mn::print_to(
 					self.out,
@@ -175,6 +200,25 @@ namespace sabre::spirv
 					"OpReturnValue %{}",
 					instruction.as_return.value->id
 				);
+				break;
+			case Instruction::Op_SelectionMerge:
+				mn::print_to(
+					self.out,
+					"OpSelectionMerge %{} None",
+					instruction.as_selection_merge.merge_branch->id
+				);
+				break;
+			case Instruction::Op_BranchConditional:
+				mn::print_to(
+					self.out,
+					"OpBranchConditional %{} %{} %{}",
+					instruction.as_branch_conditional.cond->id,
+					instruction.as_branch_conditional.true_branch->id,
+					instruction.as_branch_conditional.false_branch->id
+				);
+				break;
+			default:
+				mn_unreachable();
 				break;
 			}
 		}

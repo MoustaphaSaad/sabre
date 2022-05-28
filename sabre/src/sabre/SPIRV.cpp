@@ -153,6 +153,10 @@ namespace sabre
 			return spirv::basic_block_mul(bb, lhs, rhs);
 		case Tkn::KIND_DIVIDE:
 			return spirv::basic_block_div(bb, lhs, rhs);
+		case Tkn::KIND_BIT_AND:
+			return spirv::basic_block_bitwise_and(bb, lhs, rhs);
+		case Tkn::KIND_EQUAL_EQUAL:
+			return spirv::basic_block_equal(bb, lhs, rhs);
 		default:
 			break;
 		}
@@ -173,6 +177,14 @@ namespace sabre
 		{
 			auto type = _spirv_type_gen(self, expr->type);
 			return spirv::module_int_constant(self.out, type, expr->const_value.as_int);
+		}
+		case Tkn::KIND_KEYWORD_TRUE:
+		{
+			return spirv::module_bool_constant(self.out, true);
+		}
+		case Tkn::KIND_KEYWORD_FALSE:
+		{
+			return spirv::module_bool_constant(self.out, false);
 		}
 		default:
 			mn_unreachable();
@@ -219,10 +231,35 @@ namespace sabre
 			_spirv_stmt_gen(self, s);
 	}
 
-	inline static void
+	inline static spirv::Value*
 	_spirv_stmt_expr_gen(SPIRV& self, Stmt* stmt)
 	{
-		_spirv_expr_gen(self, stmt->expr_stmt);
+		return _spirv_expr_gen(self, stmt->expr_stmt);
+	}
+
+	inline static void
+	_spirv_stmt_if_gen(SPIRV& self, Stmt* stmt)
+	{
+		auto func = _spirv_current_func(self);
+		auto current_bb = _spirv_current_bb(self);
+		auto cond = _spirv_expr_gen(self, stmt->if_stmt.cond[0]);
+
+		auto true_bb = spirv::func_basic_block_new(func);
+		auto merge_bb = spirv::func_basic_block_new(func);
+
+		spirv::basic_block_branch(current_bb, cond, true_bb, merge_bb);
+
+		_spirv_enter_bb(self, true_bb);
+		{
+			_spirv_stmt_gen(self, stmt->if_stmt.body[0]);
+		}
+		_spirv_leave_bb(self);
+
+		// continue with the merge branch
+		_spirv_enter_bb(self, merge_bb);
+
+		// create false bb when you have at least one else branch
+		// auto false_bb = spirv::func_basic_block_new(func);
 	}
 
 	inline static void
@@ -252,6 +289,9 @@ namespace sabre
 			break;
 		case Stmt::KIND_EXPR:
 			_spirv_stmt_expr_gen(self, stmt);
+			break;
+		case Stmt::KIND_IF:
+			_spirv_stmt_if_gen(self, stmt);
 			break;
 		case Stmt::KIND_DECL:
 			_spirv_stmt_decl_gen(self, stmt);
