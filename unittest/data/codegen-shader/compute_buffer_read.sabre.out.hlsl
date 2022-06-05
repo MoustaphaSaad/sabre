@@ -17,8 +17,9 @@ void main_main() {
 	int _tmp_6 = int(main_numbers.Load(36));
 	int res3 = _tmp_5 + _tmp_6;
 	int _tmp_7 = int(main_numbers.Load(32));
-	int _tmp_8 = int(main_numbers.Load(40 + _tmp_7 * 4));
-	int koko = _tmp_8;
+	int _tmp_8 = int(main_numbers.Load(36));
+	int _tmp_9 = int(main_numbers.Load(40 + ((_tmp_7 + _tmp_8) * 4)));
+	int koko = _tmp_9;
 }
 
 [numthreads(1, 1, 1)]

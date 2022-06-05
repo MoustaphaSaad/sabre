@@ -1818,10 +1818,9 @@ namespace sabre
 				mn::print_to(self.out, ".Load({}", info.offset);
 				if (info.offset_expr)
 				{
-					mn::print_to(self.out, " + ");
+					mn::print_to(self.out, " + ((");
 					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, " * {}", e->type->unaligned_size);
-
+					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
 				}
 				mn::print_to(self.out, ")");
 			}
@@ -1830,9 +1829,9 @@ namespace sabre
 				mn::print_to(self.out, ".Load2({}", info.offset);
 				if (info.offset_expr)
 				{
-					mn::print_to(self.out, " + ");
+					mn::print_to(self.out, " + ((");
 					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, " * {}", e->type->unaligned_size);
+					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
 				}
 				mn::print_to(self.out, ")");
 			}
@@ -1841,9 +1840,9 @@ namespace sabre
 				mn::print_to(self.out, ".Load3({}", info.offset);
 				if (info.offset_expr)
 				{
-					mn::print_to(self.out, " + ");
+					mn::print_to(self.out, " + ((");
 					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, " * {}", e->type->unaligned_size);
+					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
 				}
 				mn::print_to(self.out, ")");
 			}
@@ -1852,9 +1851,9 @@ namespace sabre
 				mn::print_to(self.out, ".Load4({}", info.offset);
 				if (info.offset_expr)
 				{
-					mn::print_to(self.out, " + ");
+					mn::print_to(self.out, " + ((");
 					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, " * {}", e->type->unaligned_size);
+					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
 				}
 				mn::print_to(self.out, ")");
 			}
