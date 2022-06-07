@@ -17,5 +17,5 @@ func main() {
 	var koko = numbers.values[numbers.op3 + numbers.op4];
 	numbers.values[9] = numbers.values[numbers.op3 + numbers.op4];
 	numbers.values[9] += 42;
-
+	--numbers.values[9];
 }

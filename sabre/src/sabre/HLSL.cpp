@@ -999,6 +999,118 @@ namespace sabre
 	inline static void
 	_hlsl_gen_unary_expr(HLSL& self, Expr* e)
 	{
+		if (e->unary.op.kind == Tkn::KIND_INC ||
+			e->unary.op.kind == Tkn::KIND_DEC)
+		{
+			if (auto it = mn::map_lookup(self.buffer_access_info, e->unary.base); it && it->value.is_write)
+			{
+				auto load_name = mn::map_lookup(self.symbol_to_names, (void*)e->unary.base)->value;
+
+				auto& info = it->value;
+				mn_assert(info.size <= 16);
+
+				hlsl_expr_gen(self, info.buffer_name_expr);
+				if (info.size == 4)
+				{
+					mn::print_to(self.out, ".Store({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ", ");
+					switch (e->unary.op.kind)
+					{
+					case Tkn::KIND_INC:
+						mn::print_to(self.out, "{} + 1", load_name);
+						break;
+					case Tkn::KIND_DEC:
+						mn::print_to(self.out, "{} - 1", load_name);
+						break;
+					default:
+						mn_unreachable();
+						break;
+					}
+				}
+				else if (info.size == 8)
+				{
+					mn::print_to(self.out, ".Store2({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ", ");
+					switch (e->unary.op.kind)
+					{
+					case Tkn::KIND_INC:
+						mn::print_to(self.out, "{} + 1", load_name);
+						break;
+					case Tkn::KIND_DEC:
+						mn::print_to(self.out, "{} - 1", load_name);
+						break;
+					default:
+						mn_unreachable();
+						break;
+					}
+				}
+				else if (info.size == 12)
+				{
+					mn::print_to(self.out, ".Store3({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ", ");
+					switch (e->unary.op.kind)
+					{
+					case Tkn::KIND_INC:
+						mn::print_to(self.out, "{} + 1", load_name);
+						break;
+					case Tkn::KIND_DEC:
+						mn::print_to(self.out, "{} - 1", load_name);
+						break;
+					default:
+						mn_unreachable();
+						break;
+					}
+				}
+				else if (info.size == 16)
+				{
+					mn::print_to(self.out, ".Store4({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ", ");
+					switch (e->unary.op.kind)
+					{
+					case Tkn::KIND_INC:
+						mn::print_to(self.out, "{} + 1", load_name);
+						break;
+					case Tkn::KIND_DEC:
+						mn::print_to(self.out, "{} - 1", load_name);
+						break;
+					default:
+						mn_unreachable();
+						break;
+					}
+				}
+				else
+				{
+					mn_unreachable();
+				}
+				mn::print_to(self.out, ")");
+				return;
+			}
+		}
+
 		mn::print_to(self.out, "{}", e->unary.op.str);
 		hlsl_expr_gen(self, e->unary.base);
 	}
@@ -1458,7 +1570,15 @@ namespace sabre
 	inline static void
 	_hlsl_rewrite_buffer_access_in_unary_expr(HLSL& self, Expr* e, bool is_write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr(self, e->unary.base, is_write);
+		if (e->unary.op.kind == Tkn::KIND_INC ||
+			e->unary.op.kind == Tkn::KIND_DEC)
+		{
+			_hlsl_rewrite_buffer_access_in_expr(self, e->unary.base, true);
+		}
+		else
+		{
+			_hlsl_rewrite_buffer_access_in_expr(self, e->unary.base, is_write);
+		}
 	}
 
 	inline static bool
@@ -2360,6 +2480,12 @@ namespace sabre
 				case Tkn::KIND_BIT_NOT_EQUAL:
 					mn::print_to(self.out, "{} ~ ", load_name);
 					break;
+				case Tkn::KIND_EQUAL:
+					// equal is pure store with no loads
+					break;
+				default:
+					mn_unreachable();
+					break;
 				}
 				hlsl_expr_gen(self, rhs);
 			}
@@ -2407,6 +2533,12 @@ namespace sabre
 					break;
 				case Tkn::KIND_BIT_NOT_EQUAL:
 					mn::print_to(self.out, "{} ~ ", load_name);
+					break;
+				case Tkn::KIND_EQUAL:
+					// equal is pure store with no loads
+					break;
+				default:
+					mn_unreachable();
 					break;
 				}
 				hlsl_expr_gen(self, rhs);
@@ -2456,6 +2588,12 @@ namespace sabre
 				case Tkn::KIND_BIT_NOT_EQUAL:
 					mn::print_to(self.out, "{} ~ ", load_name);
 					break;
+				case Tkn::KIND_EQUAL:
+					// equal is pure store with no loads
+					break;
+				default:
+					mn_unreachable();
+					break;
 				}
 				hlsl_expr_gen(self, rhs);
 			}
@@ -2503,6 +2641,12 @@ namespace sabre
 					break;
 				case Tkn::KIND_BIT_NOT_EQUAL:
 					mn::print_to(self.out, "{} ~ ", load_name);
+					break;
+				case Tkn::KIND_EQUAL:
+					// equal is pure store with no loads
+					break;
+				default:
+					mn_unreachable();
 					break;
 				}
 				hlsl_expr_gen(self, rhs);
