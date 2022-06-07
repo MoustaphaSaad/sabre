@@ -20,12 +20,19 @@ namespace sabre
 		ENTRY_IO_FLAG_PIXEL_OUT,
 	};
 
+	struct Buffer_Access_Runtime_Offset
+	{
+		Expr* offset;
+		Type* type;
+	};
+
 	struct Buffer_Access_Info
 	{
 		Expr* buffer_name_expr;
-		size_t offset;
-		Expr* offset_expr;
+		size_t compile_time_offset;
+		mn::Buf<Buffer_Access_Runtime_Offset> runtime_offsets;
 		size_t size;
+		bool is_write;
 	};
 
 	struct HLSL

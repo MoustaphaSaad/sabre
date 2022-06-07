@@ -1446,19 +1446,19 @@ namespace sabre
 	_hlsl_rewrite_buffer_access_in_stmt(HLSL& self, Stmt* s);
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_expr(HLSL& self, Expr* e);
+	_hlsl_rewrite_buffer_access_in_expr(HLSL& self, Expr* e, bool is_write);
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_binary_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_binary_expr(HLSL& self, Expr* e, bool is_write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr(self, e->binary.left);
-		_hlsl_rewrite_buffer_access_in_expr(self, e->binary.right);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->binary.left, is_write);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->binary.right, is_write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_unary_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_unary_expr(HLSL& self, Expr* e, bool is_write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr(self, e->unary.base);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->unary.base, is_write);
 	}
 
 	inline static bool
@@ -1472,12 +1472,12 @@ namespace sabre
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_dot_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_dot_expr(HLSL& self, Expr* e, bool is_write)
 	{
 		if (e->dot.lhs == nullptr)
 			return;
 
-		_hlsl_rewrite_buffer_access_in_expr(self, e->dot.lhs);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->dot.lhs, is_write);
 
 		if (auto it = mn::map_lookup(self.buffer_access_info, e->dot.lhs))
 		{
@@ -1491,9 +1491,10 @@ namespace sabre
 			{
 				Buffer_Access_Info info{};
 				info.buffer_name_expr = it->value.buffer_name_expr;
-				info.offset = it->value.offset + e->dot.unaligned_offset;
-				info.offset_expr = it->value.offset_expr;
+				info.compile_time_offset = it->value.compile_time_offset + e->dot.unaligned_offset;
+				info.runtime_offsets = mn::buf_memcpy_clone(it->value.runtime_offsets);
 				info.size = e->type->unaligned_size;
+				info.is_write = it->value.is_write;
 				mn::map_insert(self.buffer_access_info, e, info);
 			}
 		}
@@ -1503,52 +1504,59 @@ namespace sabre
 
 			Buffer_Access_Info info{};
 			info.buffer_name_expr = e->dot.lhs;
-			info.offset = e->dot.unaligned_offset;
+			info.compile_time_offset = e->dot.unaligned_offset;
 			info.size = e->type->unaligned_size;
+			info.is_write = is_write;
 			mn::map_insert(self.buffer_access_info, e, info);
 		}
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_indexed_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_indexed_expr(HLSL& self, Expr* e, bool is_write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr(self, e->indexed.base);
-		_hlsl_rewrite_buffer_access_in_expr(self, e->indexed.index);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->indexed.base, is_write);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->indexed.index, is_write);
 
 		if (auto it = mn::map_lookup(self.buffer_access_info, e->indexed.base))
 		{
 			Buffer_Access_Info info{};
 			info.buffer_name_expr = it->value.buffer_name_expr;
-			info.offset = it->value.offset;
-			info.offset_expr = e->indexed.index;
+			info.compile_time_offset = it->value.compile_time_offset;
+
+			Buffer_Access_Runtime_Offset runtime_offset{};
+			runtime_offset.offset = e->indexed.index;
+			runtime_offset.type = e->type;
+			mn::buf_push(info.runtime_offsets, runtime_offset);
+
 			info.size = e->type->unaligned_size;
+			info.is_write = it->value.is_write;
 			mn::map_insert(self.buffer_access_info, e, info);
 		}
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_call_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_call_expr(HLSL& self, Expr* e, bool is_write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr(self, e->call.base);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->call.base, is_write);
 		for (auto arg: e->call.args)
-			_hlsl_rewrite_buffer_access_in_expr(self, arg);
+			_hlsl_rewrite_buffer_access_in_expr(self, arg, is_write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_cast_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_cast_expr(HLSL& self, Expr* e, bool is_write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr(self, e->cast.base);
+		_hlsl_rewrite_buffer_access_in_expr(self, e->cast.base, is_write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_complit_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_complit_expr(HLSL& self, Expr* e, bool is_write)
 	{
 		for (auto field: e->complit.fields)
-			_hlsl_rewrite_buffer_access_in_expr(self, field.value);
+			_hlsl_rewrite_buffer_access_in_expr(self, field.value, is_write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_expr(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_expr(HLSL& self, Expr* e, bool is_write)
 	{
 		switch (e->kind)
 		{
@@ -1556,25 +1564,25 @@ namespace sabre
 			// do nothing, no buffer access here
 			break;
 		case Expr::KIND_BINARY:
-			_hlsl_rewrite_buffer_access_in_binary_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_binary_expr(self, e, is_write);
 			break;
 		case Expr::KIND_UNARY:
-			_hlsl_rewrite_buffer_access_in_unary_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_unary_expr(self, e, is_write);
 			break;
 		case Expr::KIND_DOT:
-			_hlsl_rewrite_buffer_access_in_dot_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_dot_expr(self, e, is_write);
 			break;
 		case Expr::KIND_INDEXED:
-			_hlsl_rewrite_buffer_access_in_indexed_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_indexed_expr(self, e, is_write);
 			break;
 		case Expr::KIND_CALL:
-			_hlsl_rewrite_buffer_access_in_call_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_call_expr(self, e, is_write);
 			break;
 		case Expr::KIND_CAST:
-			_hlsl_rewrite_buffer_access_in_cast_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_cast_expr(self, e, is_write);
 			break;
 		case Expr::KIND_COMPLIT:
-			_hlsl_rewrite_buffer_access_in_complit_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_complit_expr(self, e, is_write);
 			break;
 		default:
 			mn_unreachable();
@@ -1586,14 +1594,14 @@ namespace sabre
 	_hlsl_rewrite_buffer_access_in_return_stmt(HLSL& self, Stmt* s)
 	{
 		if (s->return_stmt)
-			_hlsl_rewrite_buffer_access_in_expr(self, s->return_stmt);
+			_hlsl_rewrite_buffer_access_in_expr(self, s->return_stmt, false);
 	}
 
 	inline static void
 	_hlsl_rewrite_buffer_access_in_if_stmt(HLSL& self, Stmt* s)
 	{
 		for (auto cond: s->if_stmt.cond)
-			_hlsl_rewrite_buffer_access_in_expr(self, cond);
+			_hlsl_rewrite_buffer_access_in_expr(self, cond, false);
 		for (auto body: s->if_stmt.body)
 			_hlsl_rewrite_buffer_access_in_stmt(self, body);
 		if (s->if_stmt.else_body)
@@ -1606,7 +1614,7 @@ namespace sabre
 		if (s->for_stmt.init)
 			_hlsl_rewrite_buffer_access_in_stmt(self, s->for_stmt.init);
 		if (s->for_stmt.cond)
-			_hlsl_rewrite_buffer_access_in_expr(self, s->for_stmt.cond);
+			_hlsl_rewrite_buffer_access_in_expr(self, s->for_stmt.cond, false);
 		if (s->for_stmt.post)
 			_hlsl_rewrite_buffer_access_in_stmt(self, s->for_stmt.post);
 		if (s->for_stmt.body)
@@ -1617,10 +1625,10 @@ namespace sabre
 	_hlsl_rewrite_buffer_access_in_assign_stmt(HLSL& self, Stmt* s)
 	{
 		for (auto e: s->assign_stmt.lhs)
-			_hlsl_rewrite_buffer_access_in_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_expr(self, e, true);
 
 		for (auto e: s->assign_stmt.rhs)
-			_hlsl_rewrite_buffer_access_in_expr(self, e);
+			_hlsl_rewrite_buffer_access_in_expr(self, e, false);
 	}
 
 	inline static void
@@ -1639,7 +1647,7 @@ namespace sabre
 		case Decl::KIND_VAR:
 		{
 			for (auto e: d->var_decl.values)
-				_hlsl_rewrite_buffer_access_in_expr(self, e);
+				_hlsl_rewrite_buffer_access_in_expr(self, e, false);
 			break;
 		}
 		case Decl::KIND_CONST:
@@ -1677,7 +1685,7 @@ namespace sabre
 			_hlsl_rewrite_buffer_access_in_assign_stmt(self, s);
 			break;
 		case Stmt::KIND_EXPR:
-			_hlsl_rewrite_buffer_access_in_expr(self, s->expr_stmt);
+			_hlsl_rewrite_buffer_access_in_expr(self, s->expr_stmt, false);
 			break;
 		case Stmt::KIND_BLOCK:
 			_hlsl_rewrite_buffer_access_in_block_stmt(self, s);
@@ -1693,209 +1701,228 @@ namespace sabre
 
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_expr_gen(HLSL& self, Expr* e);
+	_hlsl_rewrite_buffer_access_in_expr_gen(HLSL& self, Expr* e, bool write);
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_binary_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_binary_expr_gen(HLSL& self, Expr* e, bool write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->binary.left);
-		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->binary.right);
+		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->binary.left, write);
+		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->binary.right, write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_unary_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_unary_expr_gen(HLSL& self, Expr* e, bool write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->unary.base);
+		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->unary.base, write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_dot_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_dot_expr_gen(HLSL& self, Expr* e, bool write)
 	{
 		if (e->dot.lhs == nullptr)
 			return;
 
 		if (auto it = mn::map_lookup(self.buffer_access_info, e))
 		{
-			auto& info = it->value;
-			mn_assert(info.size <= 16);
+			if (write == false)
+			{
+				auto& info = it->value;
+				mn_assert(info.size <= 16);
 
-			auto name = _hlsl_tmp_name(self);
+				auto name = _hlsl_tmp_name(self);
 
-			mn::print_to(self.out, "{} = ", _hlsl_write_field(self, e->type, name));
-			if (type_is_equal(e->type, type_float))
-			{
-				mn::print_to(self.out, "asfloat");
-			}
-			else if (type_is_equal(e->type, type_int))
-			{
-				mn::print_to(self.out, "int");
-			}
+				mn::print_to(self.out, "{} = ", _hlsl_write_field(self, e->type, name));
+				if (type_is_equal(e->type, type_float))
+				{
+					mn::print_to(self.out, "asfloat");
+				}
+				else if (type_is_equal(e->type, type_int))
+				{
+					mn::print_to(self.out, "int");
+				}
 
-			mn::print_to(self.out, "(");
-			hlsl_expr_gen(self, info.buffer_name_expr);
-			if (info.size == 4)
-			{
-				mn::print_to(self.out, ".Load({}", info.offset);
-				if (info.offset_expr)
+				mn::print_to(self.out, "(");
+				hlsl_expr_gen(self, info.buffer_name_expr);
+				if (info.size == 4)
 				{
-					mn::print_to(self.out, "+");
-					hlsl_expr_gen(self, info.offset_expr);
+					mn::print_to(self.out, ".Load({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 8)
+				{
+					mn::print_to(self.out, ".Load2({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 12)
+				{
+					mn::print_to(self.out, ".Load3({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 16)
+				{
+					mn::print_to(self.out, ".Load4({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else
+				{
+					mn_unreachable();
 				}
 				mn::print_to(self.out, ")");
-			}
-			else if (info.size == 8)
-			{
-				mn::print_to(self.out, ".Load2({}", info.offset);
-				if (info.offset_expr)
-				{
-					mn::print_to(self.out, "+");
-					hlsl_expr_gen(self, info.offset_expr);
-				}
-				mn::print_to(self.out, ")");
-			}
-			else if (info.size == 12)
-			{
-				mn::print_to(self.out, ".Load3({}", info.offset);
-				if (info.offset_expr)
-				{
-					mn::print_to(self.out, "+");
-					hlsl_expr_gen(self, info.offset_expr);
-				}
-				mn::print_to(self.out, ")");
-			}
-			else if (info.size == 16)
-			{
-				mn::print_to(self.out, ".Load4({}", info.offset);
-				if (info.offset_expr)
-				{
-					mn::print_to(self.out, "+");
-					hlsl_expr_gen(self, info.offset_expr);
-				}
-				mn::print_to(self.out, ")");
+				mn::print_to(self.out, ";");
+				_hlsl_newline(self);
+
+				mn::map_insert(self.symbol_to_names, (void*)e, name);
 			}
 			else
 			{
-				mn_unreachable();
+				// mn::map_insert(self.symbol_to_names, (void*)e, (const char*)"WRITE");
 			}
-			mn::print_to(self.out, ")");
-			mn::print_to(self.out, ";");
-			_hlsl_newline(self);
-
-			mn::map_insert(self.symbol_to_names, (void*)e, name);
 		}
 		else
 		{
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, e->dot.lhs);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, e->dot.lhs, write);
 		}
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_indexed_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_indexed_expr_gen(HLSL& self, Expr* e, bool write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->indexed.index);
+		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->indexed.index, false);
 
 		if (auto it = mn::map_lookup(self.buffer_access_info, e))
 		{
-			auto& info = it->value;
-			mn_assert(info.size <= 16);
+			if (write == false)
+			{
+				auto& info = it->value;
+				mn_assert(info.size <= 16);
 
-			auto name = _hlsl_tmp_name(self);
+				auto name = _hlsl_tmp_name(self);
 
-			mn::print_to(self.out, "{} = ", _hlsl_write_field(self, e->type, name));
-			if (type_is_equal(e->type, type_float))
-			{
-				mn::print_to(self.out, "asfloat");
-			}
-			else if (type_is_equal(e->type, type_int))
-			{
-				mn::print_to(self.out, "int");
-			}
+				mn::print_to(self.out, "{} = ", _hlsl_write_field(self, e->type, name));
+				if (type_is_equal(e->type, type_float))
+				{
+					mn::print_to(self.out, "asfloat");
+				}
+				else if (type_is_equal(e->type, type_int))
+				{
+					mn::print_to(self.out, "int");
+				}
 
-			mn::print_to(self.out, "(");
-			hlsl_expr_gen(self, info.buffer_name_expr);
-			if (info.size == 4)
-			{
-				mn::print_to(self.out, ".Load({}", info.offset);
-				if (info.offset_expr)
+				mn::print_to(self.out, "(");
+				hlsl_expr_gen(self, info.buffer_name_expr);
+				if (info.size == 4)
 				{
-					mn::print_to(self.out, " + ((");
-					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
+					mn::print_to(self.out, ".Load({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 8)
+				{
+					mn::print_to(self.out, ".Load2({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 12)
+				{
+					mn::print_to(self.out, ".Load3({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 16)
+				{
+					mn::print_to(self.out, ".Load4({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else
+				{
+					mn_unreachable();
 				}
 				mn::print_to(self.out, ")");
-			}
-			else if (info.size == 8)
-			{
-				mn::print_to(self.out, ".Load2({}", info.offset);
-				if (info.offset_expr)
-				{
-					mn::print_to(self.out, " + ((");
-					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
-				}
-				mn::print_to(self.out, ")");
-			}
-			else if (info.size == 12)
-			{
-				mn::print_to(self.out, ".Load3({}", info.offset);
-				if (info.offset_expr)
-				{
-					mn::print_to(self.out, " + ((");
-					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
-				}
-				mn::print_to(self.out, ")");
-			}
-			else if (info.size == 16)
-			{
-				mn::print_to(self.out, ".Load4({}", info.offset);
-				if (info.offset_expr)
-				{
-					mn::print_to(self.out, " + ((");
-					hlsl_expr_gen(self, info.offset_expr);
-					mn::print_to(self.out, ") * {})", e->type->unaligned_size);
-				}
-				mn::print_to(self.out, ")");
+				mn::print_to(self.out, ";");
+				_hlsl_newline(self);
+
+				mn::map_insert(self.symbol_to_names, (void*)e, name);
 			}
 			else
 			{
-				mn_unreachable();
+				// mn::map_insert(self.symbol_to_names, (void*)e, (const char*)"WRITE");
+				// mn::print_to(self.out, "WRITE");
 			}
-			mn::print_to(self.out, ")");
-			mn::print_to(self.out, ";");
-			_hlsl_newline(self);
-
-			mn::map_insert(self.symbol_to_names, (void*)e, name);
 		}
 		else
 		{
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, e->indexed.base);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, e->indexed.base, false);
 		}
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_call_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_call_expr_gen(HLSL& self, Expr* e, bool write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->call.base);
+		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->call.base, write);
 		for (auto arg: e->call.args)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, arg);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, arg, write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_cast_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_cast_expr_gen(HLSL& self, Expr* e, bool write)
 	{
-		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->cast.base);
+		_hlsl_rewrite_buffer_access_in_expr_gen(self, e->cast.base, write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_complit_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_complit_expr_gen(HLSL& self, Expr* e, bool write)
 	{
 		for (auto field: e->complit.fields)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, field.value);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, field.value, write);
 	}
 
 	inline static void
-	_hlsl_rewrite_buffer_access_in_expr_gen(HLSL& self, Expr* e)
+	_hlsl_rewrite_buffer_access_in_expr_gen(HLSL& self, Expr* e, bool write)
 	{
 		switch (e->kind)
 		{
@@ -1903,25 +1930,25 @@ namespace sabre
 			// do nothing, no buffer access here
 			break;
 		case Expr::KIND_BINARY:
-			_hlsl_rewrite_buffer_access_in_binary_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_binary_expr_gen(self, e, write);
 			break;
 		case Expr::KIND_UNARY:
-			_hlsl_rewrite_buffer_access_in_unary_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_unary_expr_gen(self, e, write);
 			break;
 		case Expr::KIND_DOT:
-			_hlsl_rewrite_buffer_access_in_dot_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_dot_expr_gen(self, e, write);
 			break;
 		case Expr::KIND_INDEXED:
-			_hlsl_rewrite_buffer_access_in_indexed_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_indexed_expr_gen(self, e, write);
 			break;
 		case Expr::KIND_CALL:
-			_hlsl_rewrite_buffer_access_in_call_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_call_expr_gen(self, e, write);
 			break;
 		case Expr::KIND_CAST:
-			_hlsl_rewrite_buffer_access_in_cast_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_cast_expr_gen(self, e, write);
 			break;
 		case Expr::KIND_COMPLIT:
-			_hlsl_rewrite_buffer_access_in_complit_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_complit_expr_gen(self, e, write);
 			break;
 		default:
 			mn_unreachable();
@@ -1936,14 +1963,14 @@ namespace sabre
 	_hlsl_rewrite_buffer_access_in_return_stmt_gen(HLSL& self, Stmt* s)
 	{
 		if (s->return_stmt)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, s->return_stmt);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, s->return_stmt, false);
 	}
 
 	inline static void
 	_hlsl_rewrite_buffer_access_in_if_stmt_gen(HLSL& self, Stmt* s)
 	{
 		for (auto cond: s->if_stmt.cond)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, cond);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, cond, false);
 		for (auto body: s->if_stmt.body)
 			_hlsl_rewrite_buffer_access_in_stmt_gen(self, body);
 		if (s->if_stmt.else_body)
@@ -1956,7 +1983,7 @@ namespace sabre
 		if (s->for_stmt.init)
 			_hlsl_rewrite_buffer_access_in_stmt_gen(self, s->for_stmt.init);
 		if (s->for_stmt.cond)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, s->for_stmt.cond);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, s->for_stmt.cond, false);
 		if (s->for_stmt.post)
 			_hlsl_rewrite_buffer_access_in_stmt_gen(self, s->for_stmt.post);
 		if (s->for_stmt.body)
@@ -1967,10 +1994,10 @@ namespace sabre
 	_hlsl_rewrite_buffer_access_in_assign_stmt_gen(HLSL& self, Stmt* s)
 	{
 		for (auto e: s->assign_stmt.lhs)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, e, true);
 
 		for (auto e: s->assign_stmt.rhs)
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, e);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, e, false);
 	}
 
 	inline static void
@@ -1989,7 +2016,7 @@ namespace sabre
 		case Decl::KIND_VAR:
 		{
 			for (auto e: d->var_decl.values)
-				_hlsl_rewrite_buffer_access_in_expr_gen(self, e);
+				_hlsl_rewrite_buffer_access_in_expr_gen(self, e, false);
 			break;
 		}
 		case Decl::KIND_CONST:
@@ -2027,7 +2054,7 @@ namespace sabre
 			_hlsl_rewrite_buffer_access_in_assign_stmt_gen(self, s);
 			break;
 		case Stmt::KIND_EXPR:
-			_hlsl_rewrite_buffer_access_in_expr_gen(self, s->expr_stmt);
+			_hlsl_rewrite_buffer_access_in_expr_gen(self, s->expr_stmt, false);
 			break;
 		case Stmt::KIND_BLOCK:
 			_hlsl_rewrite_buffer_access_in_block_stmt_gen(self, s);
@@ -2211,9 +2238,73 @@ namespace sabre
 	inline static void
 	_hlsl_assign(HLSL& self, Expr* lhs, const char* op, Expr* rhs)
 	{
-		hlsl_expr_gen(self, lhs);
-		mn::print_to(self.out, " {} ", op);
-		hlsl_expr_gen(self, rhs);
+		if (auto it = mn::map_lookup(self.buffer_access_info, lhs); it && it->value.is_write)
+		{
+			auto& info = it->value;
+			mn_assert(info.size <= 16);
+
+			// ignore such thing
+			hlsl_expr_gen(self, info.buffer_name_expr);
+			if (info.size == 4)
+			{
+				mn::print_to(self.out, ".Store({}", info.compile_time_offset);
+				for (auto runtime_offset: info.runtime_offsets)
+				{
+					mn::print_to(self.out, " + ((");
+					hlsl_expr_gen(self, runtime_offset.offset);
+					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+				}
+				mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, rhs);
+			}
+			else if (info.size == 8)
+			{
+				mn::print_to(self.out, ".Store2({}", info.compile_time_offset);
+				for (auto runtime_offset: info.runtime_offsets)
+				{
+					mn::print_to(self.out, " + ((");
+					hlsl_expr_gen(self, runtime_offset.offset);
+					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+				}
+				mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, rhs);
+			}
+			else if (info.size == 12)
+			{
+				mn::print_to(self.out, ".Store3({}", info.compile_time_offset);
+				for (auto runtime_offset: info.runtime_offsets)
+				{
+					mn::print_to(self.out, " + ((");
+					hlsl_expr_gen(self, runtime_offset.offset);
+					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+				}
+				mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, rhs);
+			}
+			else if (info.size == 16)
+			{
+				mn::print_to(self.out, ".Store4({}", info.compile_time_offset);
+				for (auto runtime_offset: info.runtime_offsets)
+				{
+					mn::print_to(self.out, " + ((");
+					hlsl_expr_gen(self, runtime_offset.offset);
+					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+				}
+				mn::print_to(self.out, ", ");
+				hlsl_expr_gen(self, rhs);
+			}
+			else
+			{
+				mn_unreachable();
+			}
+			mn::print_to(self.out, ")");
+		}
+		else
+		{
+			hlsl_expr_gen(self, lhs);
+			mn::print_to(self.out, " {} ", op);
+			hlsl_expr_gen(self, rhs);
+		}
 	}
 
 	inline static void

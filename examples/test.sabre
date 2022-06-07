@@ -6,7 +6,7 @@ type Numbers struct {
 	values: [10]int
 }
 
-@buffer
+@read_write @buffer
 var numbers: Numbers;
 
 @compute
@@ -15,4 +15,5 @@ func main() {
 	var res2 = numbers.op1.yx + numbers.op2.wz;
 	var res3 = numbers.op3 + numbers.op4;
 	var koko = numbers.values[numbers.op3 + numbers.op4];
+	numbers.values[9] = numbers.values[numbers.op3 + numbers.op4];
 }
