@@ -2236,12 +2236,82 @@ namespace sabre
 	}
 
 	inline static void
-	_hlsl_assign(HLSL& self, Expr* lhs, const char* op, Expr* rhs)
+	_hlsl_assign(HLSL& self, Expr* lhs, const Tkn& op, Expr* rhs)
 	{
 		if (auto it = mn::map_lookup(self.buffer_access_info, lhs); it && it->value.is_write)
 		{
 			auto& info = it->value;
 			mn_assert(info.size <= 16);
+
+			const char* load_name = nullptr;
+			if (op.kind != Tkn::KIND_EQUAL)
+			{
+				load_name = _hlsl_tmp_name(self);
+
+				mn::print_to(self.out, "{} = ", _hlsl_write_field(self, lhs->type, load_name));
+				if (type_is_equal(lhs->type, type_float))
+				{
+					mn::print_to(self.out, "asfloat");
+				}
+				else if (type_is_equal(lhs->type, type_int))
+				{
+					mn::print_to(self.out, "int");
+				}
+
+				mn::print_to(self.out, "(");
+				hlsl_expr_gen(self, info.buffer_name_expr);
+				if (info.size == 4)
+				{
+					mn::print_to(self.out, ".Load({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 8)
+				{
+					mn::print_to(self.out, ".Load2({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 12)
+				{
+					mn::print_to(self.out, ".Load3({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else if (info.size == 16)
+				{
+					mn::print_to(self.out, ".Load4({}", info.compile_time_offset);
+					for (auto runtime_offset: info.runtime_offsets)
+					{
+						mn::print_to(self.out, " + ((");
+						hlsl_expr_gen(self, runtime_offset.offset);
+						mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
+					}
+					mn::print_to(self.out, ")");
+				}
+				else
+				{
+					mn_unreachable();
+				}
+				mn::print_to(self.out, ")");
+				mn::print_to(self.out, ";");
+				_hlsl_newline(self);
+			}
 
 			// ignore such thing
 			hlsl_expr_gen(self, info.buffer_name_expr);
@@ -2255,6 +2325,42 @@ namespace sabre
 					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 				}
 				mn::print_to(self.out, ", ");
+				switch (op.kind)
+				{
+				case Tkn::KIND_PLUS_EQUAL:
+					mn::print_to(self.out, "{} + ", load_name);
+					break;
+				case Tkn::KIND_MINUS_EQUAL:
+					mn::print_to(self.out, "{} - ", load_name);
+					break;
+				case Tkn::KIND_STAR_EQUAL:
+					mn::print_to(self.out, "{} * ", load_name);
+					break;
+				case Tkn::KIND_DIVIDE_EQUAL:
+					mn::print_to(self.out, "{} / ", load_name);
+					break;
+				case Tkn::KIND_MODULUS_EQUAL:
+					mn::print_to(self.out, "{} % ", load_name);
+					break;
+				case Tkn::KIND_BIT_OR_EQUAL:
+					mn::print_to(self.out, "{} | ", load_name);
+					break;
+				case Tkn::KIND_BIT_AND_EQUAL:
+					mn::print_to(self.out, "{} & ", load_name);
+					break;
+				case Tkn::KIND_BIT_XOR_EQUAL:
+					mn::print_to(self.out, "{} ^ ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_LEFT_EQUAL:
+					mn::print_to(self.out, "{} >> ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL:
+					mn::print_to(self.out, "{} << ", load_name);
+					break;
+				case Tkn::KIND_BIT_NOT_EQUAL:
+					mn::print_to(self.out, "{} ~ ", load_name);
+					break;
+				}
 				hlsl_expr_gen(self, rhs);
 			}
 			else if (info.size == 8)
@@ -2267,6 +2373,42 @@ namespace sabre
 					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 				}
 				mn::print_to(self.out, ", ");
+				switch (op.kind)
+				{
+				case Tkn::KIND_PLUS_EQUAL:
+					mn::print_to(self.out, "{} + ", load_name);
+					break;
+				case Tkn::KIND_MINUS_EQUAL:
+					mn::print_to(self.out, "{} - ", load_name);
+					break;
+				case Tkn::KIND_STAR_EQUAL:
+					mn::print_to(self.out, "{} * ", load_name);
+					break;
+				case Tkn::KIND_DIVIDE_EQUAL:
+					mn::print_to(self.out, "{} / ", load_name);
+					break;
+				case Tkn::KIND_MODULUS_EQUAL:
+					mn::print_to(self.out, "{} % ", load_name);
+					break;
+				case Tkn::KIND_BIT_OR_EQUAL:
+					mn::print_to(self.out, "{} | ", load_name);
+					break;
+				case Tkn::KIND_BIT_AND_EQUAL:
+					mn::print_to(self.out, "{} & ", load_name);
+					break;
+				case Tkn::KIND_BIT_XOR_EQUAL:
+					mn::print_to(self.out, "{} ^ ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_LEFT_EQUAL:
+					mn::print_to(self.out, "{} >> ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL:
+					mn::print_to(self.out, "{} << ", load_name);
+					break;
+				case Tkn::KIND_BIT_NOT_EQUAL:
+					mn::print_to(self.out, "{} ~ ", load_name);
+					break;
+				}
 				hlsl_expr_gen(self, rhs);
 			}
 			else if (info.size == 12)
@@ -2279,6 +2421,42 @@ namespace sabre
 					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 				}
 				mn::print_to(self.out, ", ");
+				switch (op.kind)
+				{
+				case Tkn::KIND_PLUS_EQUAL:
+					mn::print_to(self.out, "{} + ", load_name);
+					break;
+				case Tkn::KIND_MINUS_EQUAL:
+					mn::print_to(self.out, "{} - ", load_name);
+					break;
+				case Tkn::KIND_STAR_EQUAL:
+					mn::print_to(self.out, "{} * ", load_name);
+					break;
+				case Tkn::KIND_DIVIDE_EQUAL:
+					mn::print_to(self.out, "{} / ", load_name);
+					break;
+				case Tkn::KIND_MODULUS_EQUAL:
+					mn::print_to(self.out, "{} % ", load_name);
+					break;
+				case Tkn::KIND_BIT_OR_EQUAL:
+					mn::print_to(self.out, "{} | ", load_name);
+					break;
+				case Tkn::KIND_BIT_AND_EQUAL:
+					mn::print_to(self.out, "{} & ", load_name);
+					break;
+				case Tkn::KIND_BIT_XOR_EQUAL:
+					mn::print_to(self.out, "{} ^ ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_LEFT_EQUAL:
+					mn::print_to(self.out, "{} >> ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL:
+					mn::print_to(self.out, "{} << ", load_name);
+					break;
+				case Tkn::KIND_BIT_NOT_EQUAL:
+					mn::print_to(self.out, "{} ~ ", load_name);
+					break;
+				}
 				hlsl_expr_gen(self, rhs);
 			}
 			else if (info.size == 16)
@@ -2291,6 +2469,42 @@ namespace sabre
 					mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 				}
 				mn::print_to(self.out, ", ");
+				switch (op.kind)
+				{
+				case Tkn::KIND_PLUS_EQUAL:
+					mn::print_to(self.out, "{} + ", load_name);
+					break;
+				case Tkn::KIND_MINUS_EQUAL:
+					mn::print_to(self.out, "{} - ", load_name);
+					break;
+				case Tkn::KIND_STAR_EQUAL:
+					mn::print_to(self.out, "{} * ", load_name);
+					break;
+				case Tkn::KIND_DIVIDE_EQUAL:
+					mn::print_to(self.out, "{} / ", load_name);
+					break;
+				case Tkn::KIND_MODULUS_EQUAL:
+					mn::print_to(self.out, "{} % ", load_name);
+					break;
+				case Tkn::KIND_BIT_OR_EQUAL:
+					mn::print_to(self.out, "{} | ", load_name);
+					break;
+				case Tkn::KIND_BIT_AND_EQUAL:
+					mn::print_to(self.out, "{} & ", load_name);
+					break;
+				case Tkn::KIND_BIT_XOR_EQUAL:
+					mn::print_to(self.out, "{} ^ ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_LEFT_EQUAL:
+					mn::print_to(self.out, "{} >> ", load_name);
+					break;
+				case Tkn::KIND_BIT_SHIFT_RIGHT_EQUAL:
+					mn::print_to(self.out, "{} << ", load_name);
+					break;
+				case Tkn::KIND_BIT_NOT_EQUAL:
+					mn::print_to(self.out, "{} ~ ", load_name);
+					break;
+				}
 				hlsl_expr_gen(self, rhs);
 			}
 			else
@@ -2302,13 +2516,13 @@ namespace sabre
 		else
 		{
 			hlsl_expr_gen(self, lhs);
-			mn::print_to(self.out, " {} ", op);
+			mn::print_to(self.out, " {} ", op.str);
 			hlsl_expr_gen(self, rhs);
 		}
 	}
 
 	inline static void
-	_hlsl_assign(HLSL& self, Symbol* lhs, const char* op, Expr* rhs)
+	_hlsl_assign(HLSL& self, Symbol* lhs, const Tkn& op, Expr* rhs)
 	{
 		auto e = expr_atom_new(self.unit->symbols_arena, lhs->var_sym.name);
 		e->type = lhs->type;
@@ -2330,7 +2544,7 @@ namespace sabre
 			auto lhs = s->assign_stmt.lhs[i];
 			auto rhs = s->assign_stmt.rhs[i];
 
-			_hlsl_assign(self, lhs, s->assign_stmt.op.str, rhs);
+			_hlsl_assign(self, lhs, s->assign_stmt.op, rhs);
 		}
 	}
 

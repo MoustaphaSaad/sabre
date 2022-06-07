@@ -16,4 +16,6 @@ func main() {
 	var res3 = numbers.op3 + numbers.op4;
 	var koko = numbers.values[numbers.op3 + numbers.op4];
 	numbers.values[9] = numbers.values[numbers.op3 + numbers.op4];
+	numbers.values[9] += 42;
+
 }
