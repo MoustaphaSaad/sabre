@@ -1,0 +1,17 @@
+package main
+
+type Numbers struct {
+	op1, op2: vec4,
+	op3, op4: int,
+	values: [10]int
+}
+
+@buffer
+var numbers: Numbers;
+
+@compute
+func main() {
+	numbers.values[9] = numbers.values[numbers.op3 + numbers.op4];
+	numbers.values[9] += 42;
+	--numbers.values[9];
+}
