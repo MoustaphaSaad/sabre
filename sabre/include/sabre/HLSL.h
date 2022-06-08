@@ -42,6 +42,8 @@ namespace sabre
 		mn::Stream out;
 		size_t indent;
 
+		mn::memory::Arena* arena;
+
 		Entry_Point* entry;
 		mn::Buf<Scope*> scope_stack;
 		// we use this stack to track the post statement of for loops bodies we enter
@@ -56,7 +58,7 @@ namespace sabre
 		size_t tmp_id;
 		// geometry shader specific data
 		// holds the name of geometry shader stream variable name
-		mn::Str geometry_stream_name;
+		const char* geometry_stream_name;
 		// contains the type names of all the template names in mangled form
 		mn::Map<Type*, const char*> template_mangled_names;
 		// contains the offset and size info of a buffer dot expression

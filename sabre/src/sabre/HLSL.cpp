@@ -1612,7 +1612,7 @@ namespace sabre
 				Buffer_Access_Info info{};
 				info.buffer_name_expr = it->value.buffer_name_expr;
 				info.compile_time_offset = it->value.compile_time_offset + e->dot.unaligned_offset;
-				info.runtime_offsets = mn::buf_memcpy_clone(it->value.runtime_offsets);
+				info.runtime_offsets = mn::buf_memcpy_clone(it->value.runtime_offsets, self.arena);
 				info.size = e->type->unaligned_size;
 				info.is_write = it->value.is_write;
 				mn::map_insert(self.buffer_access_info, e, info);
@@ -1625,6 +1625,7 @@ namespace sabre
 			Buffer_Access_Info info{};
 			info.buffer_name_expr = e->dot.lhs;
 			info.compile_time_offset = e->dot.unaligned_offset;
+			info.runtime_offsets = mn::buf_with_allocator<Buffer_Access_Runtime_Offset>(self.arena);
 			info.size = e->type->unaligned_size;
 			info.is_write = is_write;
 			mn::map_insert(self.buffer_access_info, e, info);
@@ -1646,6 +1647,7 @@ namespace sabre
 			Buffer_Access_Runtime_Offset runtime_offset{};
 			runtime_offset.offset = e->indexed.index;
 			runtime_offset.type = e->type;
+			info.runtime_offsets = mn::buf_with_allocator<Buffer_Access_Runtime_Offset>(self.arena);
 			mn::buf_push(info.runtime_offsets, runtime_offset);
 
 			info.size = e->type->unaligned_size;
@@ -3190,7 +3192,7 @@ namespace sabre
 
 		// extract geometry shader data
 		// generate name for geometry shader output stream
-		self.geometry_stream_name = mn::str_from_c(_hlsl_tmp_name(self));
+		self.geometry_stream_name = _hlsl_tmp_name(self);
 
 		size_t type_index = 0;
 		// generate input
@@ -3355,6 +3357,14 @@ namespace sabre
 		HLSL self{};
 		self.unit = unit;
 		self.out = out;
+		self.arena = mn::allocator_arena_new();
+		self.scope_stack = mn::buf_with_allocator<Scope*>(self.arena);
+		self.loop_post_stmt_stack = mn::buf_with_allocator<Stmt*>(self.arena);
+		self.reserved_to_alternative = mn::map_with_allocator<const char*, const char*>(self.arena);
+		self.symbol_to_names = mn::map_with_allocator<void*, const char*>(self.arena);
+		self.io_structs = mn::map_with_allocator<Symbol*, ENTRY_IO_FLAG>(self.arena);
+		self.template_mangled_names = mn::map_with_allocator<Type*, const char*>(self.arena);
+		self.buffer_access_info = mn::map_with_allocator<Expr*, Buffer_Access_Info>(self.arena);
 
 		// push global scope as first entry in scope stack
 		auto global_scope = self.unit->global_scope;
@@ -3374,14 +3384,7 @@ namespace sabre
 	void
 	hlsl_free(HLSL& self)
 	{
-		mn::buf_free(self.scope_stack);
-		mn::buf_free(self.loop_post_stmt_stack);
-		mn::map_free(self.reserved_to_alternative);
-		mn::map_free(self.symbol_to_names);
-		mn::set_free(self.io_structs);
-		mn::str_free(self.geometry_stream_name);
-		mn::map_free(self.buffer_access_info);
-		destruct(self.template_mangled_names);
+		mn::allocator_free(self.arena);
 	}
 
 	void
