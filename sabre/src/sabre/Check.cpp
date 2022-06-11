@@ -848,11 +848,11 @@ namespace sabre
 				{
 					if (sym->var_sym.is_buffer && sym->var_sym.is_read_write == false)
 					{
-						e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+						e->mode = ADDRESS_MODE_READ_ONLY;
 					}
 					else if (sym->var_sym.is_uniform)
 					{
-						e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+						e->mode = ADDRESS_MODE_READ_ONLY;
 					}
 					else
 					{
@@ -3062,6 +3062,14 @@ namespace sabre
 				Err err{};
 				err.loc = s->assign_stmt.lhs[i]->loc;
 				err.msg = mn::strf("cannot assign into a computed value");
+				unit_err(self.unit, err);
+				break;
+			}
+			case ADDRESS_MODE_READ_ONLY:
+			{
+				Err err{};
+				err.loc = s->assign_stmt.lhs[i]->loc;
+				err.msg = mn::strf("cannot assign into a read only value");
 				unit_err(self.unit, err);
 				break;
 			}

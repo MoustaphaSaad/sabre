@@ -113,6 +113,9 @@ namespace sabre
 		ADDRESS_MODE_COMPUTED_VALUE,
 		// expression is a variable (something with an address)
 		ADDRESS_MODE_VARIABLE,
+		// read only is used with uniforms and read only compute buffers, host data in general
+		// that's not marked as write
+		ADDRESS_MODE_READ_ONLY,
 	};
 
 	// represents a compound literal field

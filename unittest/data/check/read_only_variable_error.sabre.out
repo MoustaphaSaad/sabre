@@ -1,0 +1,6 @@
+>> 	numbers.op1 = 1;
+>> 	^^^^^^^^^^^     
+Error[read_only_variable_error.sabre:15:2]: cannot assign into a read only value
+>> 	numbers2.op1 = 1;
+>> 	^^^^^^^^^^^^     
+Error[read_only_variable_error.sabre:16:2]: cannot assign into a read only value
