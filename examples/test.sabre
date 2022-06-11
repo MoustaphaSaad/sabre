@@ -6,8 +6,11 @@ type Numbers struct {
 	values: [10]int
 }
 
-@buffer
+@read_write @buffer
 var numbers: Numbers;
+
+@uniform
+var numbers2: Numbers;
 
 @compute
 func main() {
@@ -19,4 +22,5 @@ func main() {
 	numbers.values[9] = numbers.values[numbers.op3 + numbers.op4];
 	numbers.values[9] += 42;
 	--numbers.values[9];
+	numbers2.op3 = 12;
 }

@@ -850,6 +850,10 @@ namespace sabre
 					{
 						e->mode = ADDRESS_MODE_COMPUTED_VALUE;
 					}
+					else if (sym->var_sym.is_uniform)
+					{
+						e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+					}
 					else
 					{
 						e->mode = ADDRESS_MODE_VARIABLE;
