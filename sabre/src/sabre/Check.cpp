@@ -2076,15 +2076,18 @@ namespace sabre
 
 		auto res = type_void;
 		size_t count = 0;
+		bool is_bounded = false;
 		if (type_is_array(base_type))
 		{
 			res = base_type->array.base;
 			count = base_type->array.count;
+			is_bounded = type_is_bounded_array(base_type);
 		}
 		else if (type_is_matrix(base_type))
 		{
 			res = type_vectorize(base_type->mat.base, base_type->mat.width);
 			count = base_type->mat.width;
+			is_bounded = true;
 		}
 		else
 		{
@@ -2104,7 +2107,8 @@ namespace sabre
 
 		if (e->indexed.index->mode == ADDRESS_MODE_CONST &&
 			e->indexed.index->const_value.type == type_int &&
-			e->indexed.index->const_value.as_int >= count)
+			e->indexed.index->const_value.as_int >= count &&
+			is_bounded)
 		{
 			Err err{};
 			err.loc = e->indexed.index->loc;
@@ -2630,6 +2634,52 @@ namespace sabre
 		}
 	}
 
+	inline static bool
+	_typer_check_type_suitable_for_buffer(Typer& self, Type* type, size_t depth, bool last_field)
+	{
+		if (type_is_struct(type))
+		{
+			bool res = true;
+			for (size_t i = 0; i < type->struct_type.fields.count; ++i)
+			{
+				auto field = type->struct_type.fields[i];
+				bool field_res = _typer_check_type_suitable_for_buffer(self, field.type, depth + 1, i + 1 == type->struct_type.fields.count);
+				res &= field_res;
+
+				if (field_res == false)
+				{
+					Err err{};
+					err.loc = field.name.loc;
+					err.msg = mn::strf("field type '{}' cannot be used for buffer", *field.type);
+					unit_err(self.unit, err);
+				}
+			}
+			return res;
+		}
+		else if (type_is_unbounded_array(type))
+		{
+			if (depth > 1 || last_field == false)
+			{
+				Err err{};
+				err.msg = mn::strf("'{}' unbounded arrays cannot be used in buffers", *type);
+				unit_err(self.unit, err);
+				return false;
+			}
+			else
+			{
+				return _typer_check_type_suitable_for_buffer(self, type->array.base, depth + 1, last_field);
+			}
+		}
+		else if (type_is_bounded_array(type))
+		{
+			return _typer_check_type_suitable_for_buffer(self, type->array.base, depth + 1, last_field);
+		}
+		else
+		{
+			return type_is_uniform(type);
+		}
+	}
+
 	inline static Type*
 	_typer_resolve_var(Typer& self, Symbol* sym)
 	{
@@ -2710,7 +2760,7 @@ namespace sabre
 		}
 		else if (auto buffer_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_BUFFER))
 		{
-			if (_typer_check_type_suitable_for_uniform(self, res, 0) == false)
+			if (_typer_check_type_suitable_for_buffer(self, res, 0, false) == false)
 			{
 				Err err{};
 				err.loc = symbol_location(sym);

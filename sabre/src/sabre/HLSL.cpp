@@ -806,7 +806,10 @@ namespace sabre
 		case Type::KIND_ARRAY:
 		{
 			auto str_name = mn::str_lit(name);
-			auto array_name = mn::str_tmpf("{}[{}]", str_name, type->array.count);
+			size_t count = 0;
+			if (type_is_bounded_array(type))
+				count = type->array.count;
+			auto array_name = mn::str_tmpf("{}[{}]", str_name, count);
 			str = _hlsl_write_field(self, str, type->array.base, array_name.ptr);
 			break;
 		}
