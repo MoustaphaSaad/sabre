@@ -806,7 +806,7 @@ namespace sabre
 		case Type::KIND_ARRAY:
 		{
 			auto str_name = mn::str_lit(name);
-			size_t count = 0;
+			size_t count = 1;
 			if (type_is_bounded_array(type))
 				count = type->array.count;
 			auto array_name = mn::str_tmpf("{}[{}]", str_name, count);
@@ -1033,6 +1033,45 @@ namespace sabre
 		{
 			mn::print_to(self.out, "int");
 		}
+		if (type_is_vec(type))
+		{
+			switch (type->vec.width)
+			{
+			case 2:
+				if (type_is_equal(type, type_float))
+				{
+					mn::print_to(self.out, "asfloat");
+				}
+				else if (type_is_equal(type, type_int))
+				{
+					mn::print_to(self.out, "int2");
+				}
+				break;
+			case 3:
+				if (type_is_equal(type, type_float))
+				{
+					mn::print_to(self.out, "asfloat");
+				}
+				else if (type_is_equal(type, type_int))
+				{
+					mn::print_to(self.out, "int3");
+				}
+				break;
+			case 4:
+				if (type_is_equal(type, type_float))
+				{
+					mn::print_to(self.out, "asfloat");
+				}
+				else if (type_is_equal(type, type_int))
+				{
+					mn::print_to(self.out, "int4");
+				}
+				break;
+			default:
+				mn_unreachable();
+				break;
+			}
+		}
 
 		mn::print_to(self.out, "(");
 		hlsl_expr_gen(self, info.buffer_name_expr);
@@ -1152,7 +1191,7 @@ namespace sabre
 	}
 
 	inline static void
-	_hlsl_gen_compute_buffer_store(HLSL& self, const Buffer_Access_Info& info, const char* load_name, Tkn::KIND op, Expr* rhs)
+	_hlsl_gen_compute_buffer_store(HLSL& self, const Buffer_Access_Info& info, const char* load_name, Tkn::KIND op, Expr* rhs, Type* store_type)
 	{
 		mn_assert(info.size <= 16);
 
@@ -1167,7 +1206,17 @@ namespace sabre
 				mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 			}
 			mn::print_to(self.out, ", ");
+
+			if (store_type == type_float || store_type == type_lit_float)
+			{
+				mn::print_to(self.out, "asuint(");
+			}
+			else if (store_type == type_int || store_type == type_lit_int)
+			{
+				mn::print_to(self.out, "uint(");
+			}
 			_hlsl_gen_compute_buffer_store_operator(self, op, load_name, rhs);
+			mn::print_to(self.out, ")");
 		}
 		else if (info.size == 8)
 		{
@@ -1179,7 +1228,17 @@ namespace sabre
 				mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 			}
 			mn::print_to(self.out, ", ");
+
+			if (store_type == type_float || store_type == type_lit_float)
+			{
+				mn::print_to(self.out, "asuint(");
+			}
+			else if (store_type == type_int || store_type == type_lit_int)
+			{
+				mn::print_to(self.out, "uint2(");
+			}
 			_hlsl_gen_compute_buffer_store_operator(self, op, load_name, rhs);
+			mn::print_to(self.out, ")");
 		}
 		else if (info.size == 12)
 		{
@@ -1191,7 +1250,17 @@ namespace sabre
 				mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 			}
 			mn::print_to(self.out, ", ");
+
+			if (store_type == type_float || store_type == type_lit_float)
+			{
+				mn::print_to(self.out, "asuint(");
+			}
+			else if (store_type == type_int || store_type == type_lit_int)
+			{
+				mn::print_to(self.out, "uint3(");
+			}
 			_hlsl_gen_compute_buffer_store_operator(self, op, load_name, rhs);
+			mn::print_to(self.out, ")");
 		}
 		else if (info.size == 16)
 		{
@@ -1203,7 +1272,17 @@ namespace sabre
 				mn::print_to(self.out, ") * {})", runtime_offset.type->unaligned_size);
 			}
 			mn::print_to(self.out, ", ");
+
+			if (store_type == type_float || store_type == type_lit_float)
+			{
+				mn::print_to(self.out, "asuint(");
+			}
+			else if (store_type == type_int || store_type == type_lit_int)
+			{
+				mn::print_to(self.out, "uint4(");
+			}
 			_hlsl_gen_compute_buffer_store_operator(self, op, load_name, rhs);
+			mn::print_to(self.out, ")");
 		}
 		else
 		{
@@ -1221,7 +1300,7 @@ namespace sabre
 			if (auto it = mn::map_lookup(self.buffer_access_info, e->unary.base); it && it->value.is_write)
 			{
 				auto load_name = mn::map_lookup(self.symbol_to_names, (void*)e->unary.base)->value;
-				_hlsl_gen_compute_buffer_store(self, it->value, load_name, e->unary.op.kind, nullptr);
+				_hlsl_gen_compute_buffer_store(self, it->value, load_name, e->unary.op.kind, nullptr, e->type);
 				return;
 			}
 		}
@@ -2316,7 +2395,7 @@ namespace sabre
 				load_name = _hlsl_gen_compute_buffer_load(self, nullptr, info, lhs->type);
 
 			// ignore such thing
-			_hlsl_gen_compute_buffer_store(self, info, load_name, op.kind, rhs);
+			_hlsl_gen_compute_buffer_store(self, info, load_name, op.kind, rhs, rhs->type);
 		}
 		else
 		{
