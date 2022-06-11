@@ -2881,6 +2881,8 @@ namespace sabre
 		else if (sym->var_sym.is_buffer)
 		{
 			auto buffer_name = _hlsl_name(self, _hlsl_symbol_name(self, sym));
+			if (sym->var_sym.is_read_write)
+				mn::print_to(self.out, "RW");
 			mn::print_to(self.out, "ByteAddressBuffer {}", buffer_name);
 		}
 		else

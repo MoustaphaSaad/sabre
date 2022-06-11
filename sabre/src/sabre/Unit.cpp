@@ -763,7 +763,6 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_POINT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_LINE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_TRIANGLE));
-		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_WRITE_ONLY));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_READ_WRITE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_COMPUTE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_X));

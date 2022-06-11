@@ -2703,6 +2703,11 @@ namespace sabre
 			else
 			{
 				sym->var_sym.is_buffer = true;
+
+				if (auto write_it = mn::map_lookup(decl->tags.table, KEYWORD_READ_WRITE))
+					sym->var_sym.is_read_write = true;
+				else
+					sym->var_sym.is_read_write = false;
 			}
 		}
 
