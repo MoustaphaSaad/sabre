@@ -841,11 +841,24 @@ namespace sabre
 				}
 
 				if (sym->kind == Symbol::KIND_CONST || sym->kind == Symbol::KIND_PACKAGE)
+				{
 					e->mode = ADDRESS_MODE_CONST;
+				}
 				else if (sym->kind == Symbol::KIND_VAR)
-					e->mode = ADDRESS_MODE_VARIABLE;
+				{
+					if (sym->var_sym.is_buffer && sym->var_sym.is_read_write == false)
+					{
+						e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+					}
+					else
+					{
+						e->mode = ADDRESS_MODE_VARIABLE;
+					}
+				}
 				else if (sym->kind == Symbol::KIND_FUNC && sym->type->as_func.sign.return_type != type_void)
+				{
 					e->mode = ADDRESS_MODE_COMPUTED_VALUE;
+				}
 
 				e->symbol = sym;
 				return sym->type;
@@ -2100,7 +2113,7 @@ namespace sabre
 		}
 
 		// arrays have variable mode by default, unless they are constants
-		e->mode = ADDRESS_MODE_VARIABLE;
+		e->mode = e->indexed.base->mode;
 		if (e->indexed.base->mode == ADDRESS_MODE_CONST &&
 			e->indexed.index->mode == ADDRESS_MODE_CONST)
 		{
