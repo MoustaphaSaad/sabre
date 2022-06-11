@@ -1,0 +1,18 @@
+package main
+
+type Numbers struct {
+	values: []int,
+}
+
+@read_write @buffer
+var numbers: Numbers;
+
+type ComputeInput struct {
+	index: uvec3,
+}
+
+@compute
+func main(input: ComputeInput) {
+	numbers.values[input.index.x] += 1;
+	numbers.values[4] += 1;
+}

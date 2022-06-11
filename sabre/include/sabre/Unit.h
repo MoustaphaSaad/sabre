@@ -38,6 +38,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_SV_POSITION = "system_position";
 	inline constexpr const char* KEYWORD_SV_DEPTH = "system_depth";
 	inline constexpr const char* KEYWORD_SV_PRIMITIVE_ID = "system_primitive_id";
+	inline constexpr const char* KEYWORD_SV_THREAD_ID = "system_thread_id";
 	inline constexpr const char* KEYWORD_GLSL = "glsl";
 	inline constexpr const char* KEYWORD_REFLECT = "reflect";
 	inline constexpr const char* KEYWORD_HLSL = "hlsl";
@@ -52,13 +53,13 @@ namespace sabre
 	inline constexpr const char* KEYWORD_POINT = "point";
 	inline constexpr const char* KEYWORD_LINE = "line";
 	inline constexpr const char* KEYWORD_TRIANGLE = "triangle";
-	inline constexpr const char* KEYWORD_WRITE_ONLY = "write_only";
 	inline constexpr const char* KEYWORD_READ_WRITE = "read_write";
 	inline constexpr const char* KEYWORD_COMPUTE = "compute";
 	inline constexpr const char* KEYWORD_X = "x";
 	inline constexpr const char* KEYWORD_Y = "y";
 	inline constexpr const char* KEYWORD_Z = "z";
 	inline constexpr const char* KEYWORD_BUILD_BACKEND = "build_backend";
+	inline constexpr const char* KEYWORD_BUFFER = "buffer";
 
 	enum COMPILATION_STAGE
 	{

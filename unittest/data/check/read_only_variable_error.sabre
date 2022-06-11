@@ -1,0 +1,17 @@
+package main
+
+type Numbers struct {
+	op1: int,
+}
+
+@buffer
+var numbers: Numbers;
+
+@uniform
+var numbers2: Numbers;
+
+@compute
+func main() {
+	numbers.op1 = 1;
+	numbers2.op1 = 1;
+}

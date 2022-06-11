@@ -163,7 +163,8 @@ namespace sabre
 		Tkn name;
 		Type* type;
 		Expr* default_value;
-		size_t offset;
+		size_t aligned_offset;
+		size_t unaligned_offset;
 	};
 
 	struct Enum_Field_Type

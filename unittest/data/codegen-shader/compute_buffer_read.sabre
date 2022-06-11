@@ -1,0 +1,18 @@
+package main
+
+type Numbers struct {
+	op1, op2: vec4,
+	op3, op4: int,
+	values: [10]int
+}
+
+@buffer
+var numbers: Numbers;
+
+@compute
+func main() {
+	var res = numbers.op1.x + numbers.op2.z;
+	var res2 = numbers.op1.yx + numbers.op2.wz;
+	var res3 = numbers.op3 + numbers.op4;
+	var koko = numbers.values[numbers.op3 + numbers.op4];
+}

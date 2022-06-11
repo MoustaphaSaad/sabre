@@ -749,6 +749,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_POSITION));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_DEPTH));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_PRIMITIVE_ID));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_THREAD_ID));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GLSL));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_REFLECT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_HLSL));
@@ -763,13 +764,13 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_POINT));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_LINE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_TRIANGLE));
-		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_WRITE_ONLY));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_READ_WRITE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_COMPUTE));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_X));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Y));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Z));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILD_BACKEND));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUFFER));
 
 		unit_add_package(self, self->root_package);
 
@@ -984,7 +985,7 @@ namespace sabre
 					auto json_field = mn::json::value_object_new();
 					mn::json::value_object_insert(json_field, "name", mn::json::value_string_new(field.name.str));
 					mn::json::value_object_insert(json_field, "type", mn::json::value_string_new(_type_to_reflect_json(field.type, false)));
-					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new(field.offset));
+					mn::json::value_object_insert(json_field, "offset", mn::json::value_number_new(field.aligned_offset));
 					mn::json::value_array_push(json_fields, json_field);
 				}
 				mn::json::value_object_insert(json_type, "fields", json_fields);

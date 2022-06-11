@@ -7,7 +7,8 @@ type Numbers struct {
 @read_write @buffer
 var numbers: Numbers;
 
-@compute{x = 10}
-func main(@system_thread_id index: uvec3) {
+@compute
+func main(index: uvec3) {
 	numbers.values[index.x] += 1;
+	numbers.values[4] += 1;
 }

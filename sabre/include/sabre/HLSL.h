@@ -20,12 +20,29 @@ namespace sabre
 		ENTRY_IO_FLAG_PIXEL_OUT,
 	};
 
+	struct Buffer_Access_Runtime_Offset
+	{
+		Expr* offset;
+		Type* type;
+	};
+
+	struct Buffer_Access_Info
+	{
+		Expr* buffer_name_expr;
+		size_t compile_time_offset;
+		mn::Buf<Buffer_Access_Runtime_Offset> runtime_offsets;
+		size_t size;
+		bool is_write;
+	};
+
 	struct HLSL
 	{
 		Unit_Package* unit;
 
 		mn::Stream out;
 		size_t indent;
+
+		mn::memory::Arena* arena;
 
 		Entry_Point* entry;
 		mn::Buf<Scope*> scope_stack;
@@ -41,9 +58,11 @@ namespace sabre
 		size_t tmp_id;
 		// geometry shader specific data
 		// holds the name of geometry shader stream variable name
-		mn::Str geometry_stream_name;
+		const char* geometry_stream_name;
 		// contains the type names of all the template names in mangled form
 		mn::Map<Type*, const char*> template_mangled_names;
+		// contains the offset and size info of a buffer dot expression
+		mn::Map<Expr*, Buffer_Access_Info> buffer_access_info;
 	};
 
 	// creates a new HLSL generator instance
