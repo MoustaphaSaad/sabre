@@ -2616,6 +2616,10 @@ namespace sabre
 					{
 						mn::print_to(self.out, ": SV_PrimitiveID");
 					}
+					else if (mn::map_lookup(field.tags.table, KEYWORD_SV_THREAD_ID) != nullptr)
+					{
+						mn::print_to(self.out, ": SV_DispatchThreadID");
+					}
 					else if (io_flags_it->value == ENTRY_IO_FLAG_PIXEL_OUT)
 					{
 						mn::print_to(self.out, ": SV_TARGET{}", i);
@@ -2902,6 +2906,53 @@ namespace sabre
 	}
 
 	inline static void
+	_hlsl_generate_compute_shader_io(HLSL& self, Symbol* entry)
+	{
+		auto decl = entry->func_sym.decl;
+		auto entry_type = entry->type;
+
+		size_t type_index = 0;
+		// generate input
+		for (size_t i = 0; i < decl->func_decl.args.count; ++i)
+		{
+			const auto& arg = decl->func_decl.args[i];
+
+			for (const auto& name: arg.names)
+			{
+				auto input_name = _hlsl_name(self, name.str);
+				auto arg_type = entry_type->as_func.sign.args.types[type_index++];
+				switch(arg_type->kind)
+				{
+				case Type::KIND_STRUCT:
+					mn::map_insert(self.io_structs, arg_type->struct_type.symbol, ENTRY_IO_FLAG_NONE);
+					break;
+				case Type::KIND_ARRAY:
+					if (auto sym = type_symbol(arg_type->array.base))
+						mn::map_insert(self.io_structs, sym, ENTRY_IO_FLAG_NONE);
+					break;
+				case Type::KIND_VEC:
+					// do nothing
+					break;
+				default:
+					mn_unreachable();
+					break;
+				}
+			}
+		}
+
+		size_t out_location = 0;
+		if (entry_type->as_func.sign.return_type != type_void)
+		{
+			auto ret_type = entry_type->as_func.sign.return_type;
+			if (auto sym = type_symbol(ret_type))
+				mn::map_insert(self.io_structs, sym, ENTRY_IO_FLAG_NONE);
+		}
+
+		if (out_location > 0)
+			_hlsl_newline(self);
+	}
+
+	inline static void
 	_hlsl_generate_main_func(HLSL& self, Symbol* entry)
 	{
 		mn_assert(entry->kind == Symbol::KIND_FUNC);
@@ -2975,6 +3026,9 @@ namespace sabre
 					mn::print_to(self.out, "inout ");
 
 				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+
+				if (mn::map_lookup(arg.tags.table, KEYWORD_SV_THREAD_ID))
+					mn::print_to(self.out, ": SV_DispatchThreadID");
 				++i;
 			}
 		}
@@ -3156,7 +3210,7 @@ namespace sabre
 			_hlsl_generate_geometry_shader_io(self, entry->symbol);
 			break;
 		case COMPILATION_MODE_COMPUTE:
-			// compute doesn't have a shader io
+			_hlsl_generate_compute_shader_io(self, entry->symbol);
 			break;
 		case COMPILATION_MODE_LIBRARY:
 			// library mode is not allowed

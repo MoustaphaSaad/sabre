@@ -8,7 +8,7 @@ type Numbers struct {
 var numbers: Numbers;
 
 type ComputeInput struct {
-	@system_thread_id index: uvec3
+	index: uvec3,
 }
 
 @compute

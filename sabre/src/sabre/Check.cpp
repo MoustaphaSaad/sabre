@@ -3807,7 +3807,7 @@ namespace sabre
 	}
 
 	inline static void
-	_typer_check_entry_struct_input(Typer& self, Type* type)
+	_typer_check_entry_struct_input(Typer& self, Type* type, COMPILATION_MODE compilation_mode)
 	{
 		auto struct_decl = symbol_decl(type->struct_type.symbol);
 		size_t struct_type_index = 0;
@@ -3815,7 +3815,7 @@ namespace sabre
 		{
 			const auto& struct_field = type->struct_type.fields[struct_type_index];
 
-			if (mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION) != nullptr)
+			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_POSITION))
 			{
 				if (struct_field.type != type_vec4)
 				{
@@ -3824,9 +3824,19 @@ namespace sabre
 					err.msg = mn::strf("system position type is '{}', but it should be 'vec4'", *struct_field.type);
 					unit_err(self.unit, err);
 				}
+
+				if (compilation_mode != COMPILATION_MODE_VERTEX &&
+					compilation_mode != COMPILATION_MODE_PIXEL &&
+					compilation_mode != COMPILATION_MODE_GEOMETRY)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system position is only available in vertex, pixel, and geometry shaders");
+					unit_err(self.unit, err);
+				}
 			}
 
-			if (mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH) != nullptr)
+			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_DEPTH))
 			{
 				if (struct_field.type != type_float)
 				{
@@ -3835,9 +3845,17 @@ namespace sabre
 					err.msg = mn::strf("system depth type is '{}', but it should be 'float'", *struct_field.type);
 					unit_err(self.unit, err);
 				}
+
+				if (compilation_mode != COMPILATION_MODE_PIXEL)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system depth is only available in pixel shaders");
+					unit_err(self.unit, err);
+				}
 			}
 
-			if (mn::map_lookup(field.tags.table, KEYWORD_SV_PRIMITIVE_ID) != nullptr)
+			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_PRIMITIVE_ID))
 			{
 				if (struct_field.type != type_uint)
 				{
@@ -3846,15 +3864,60 @@ namespace sabre
 					err.msg = mn::strf("system primitive id type is '{}', but it should be 'uint'", *struct_field.type);
 					unit_err(self.unit, err);
 				}
+
+				if (compilation_mode != COMPILATION_MODE_VERTEX &&
+					compilation_mode != COMPILATION_MODE_PIXEL &&
+					compilation_mode != COMPILATION_MODE_GEOMETRY)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system primitive id is only available in vertex, pixel, and geometry shaders");
+					unit_err(self.unit, err);
+				}
 			}
 
-			if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
+			bool is_supported_compute = false;
+			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_THREAD_ID))
 			{
-				Err err{};
-				err.loc = struct_field.name.loc;
-				err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
-				unit_err(self.unit, err);
+				is_supported_compute = true;
+				if (type_is_equal(struct_field.type, type_uvec3) == false)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("system thread id type is '{}', but it should be 'uvec3'", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+
+				if (compilation_mode != COMPILATION_MODE_COMPUTE)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system thread id is only available in compute shaders");
+					unit_err(self.unit, err);
+				}
 			}
+
+			if (compilation_mode == COMPILATION_MODE_COMPUTE)
+			{
+				if (is_supported_compute == false)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("compute shader only supports 'system_thread_id' arguments");
+					unit_err(self.unit, err);
+				}
+			}
+			else
+			{
+				if (type_is_shader_api(struct_field.type, SHADER_API_DEFAULT) == false)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("type '{}' cannot be used as shader input", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+			}
+
 			struct_type_index += field.names.count;
 		}
 	}
@@ -3876,48 +3939,14 @@ namespace sabre
 			}
 		}
 
-		if (auto tag_it = mn::map_lookup(decl->tags.table, KEYWORD_COMPUTE))
-		{
-			// if (mn::map_lookup(tag_it->value.args, KEYWORD_X) == nullptr)
-			// {
-			// 	Err err{};
-			// 	err.loc = decl->loc;
-			// 	err.msg = mn::strf("compute shader should have thread local count '@compute{{x = 1, y = 2, z = 3}}'");
-			// 	unit_err(self.unit, err);
-			// }
-			//
-			// if (mn::map_lookup(tag_it->value.args, KEYWORD_Y) == nullptr)
-			// {
-			// 	Err err{};
-			// 	err.loc = decl->loc;
-			// 	err.msg = mn::strf("compute shader should have thread local count '@compute{{x = 1, y = 2, z = 3}}'");
-			// 	unit_err(self.unit, err);
-			// }
-			//
-			// if (mn::map_lookup(tag_it->value.args, KEYWORD_Z) == nullptr)
-			// {
-			// 	Err err{};
-			// 	err.loc = decl->loc;
-			// 	err.msg = mn::strf("compute shader should have thread local count '@compute{{x = 1, y = 2, z = 3}}'");
-			// 	unit_err(self.unit, err);
-			// }
-
-			if (decl->func_decl.args.count > 0)
-			{
-				Err err{};
-				err.loc = decl->loc;
-				err.msg = mn::strf("compute shader can't have input arguments");
-				unit_err(self.unit, err);
-			}
-		}
-
 		size_t type_index = 0;
 		for (auto arg: decl->func_decl.args)
 		{
 			auto arg_type = type->as_func.sign.args.types[type_index];
+
 			if (arg_type->kind == Type::KIND_STRUCT)
 			{
-				_typer_check_entry_struct_input(self, arg_type);
+				_typer_check_entry_struct_input(self, arg_type, entry->mode);
 				type_index += arg.names.count;
 				continue;
 			}
@@ -3926,7 +3955,7 @@ namespace sabre
 				auto base_type = arg_type->array.base;
 				if (base_type->kind == Type::KIND_STRUCT)
 				{
-					_typer_check_entry_struct_input(self, base_type);
+					_typer_check_entry_struct_input(self, base_type, entry->mode);
 					type_index += arg.names.count;
 					continue;
 				}
@@ -3937,6 +3966,38 @@ namespace sabre
 				err_loc = mn::buf_top(arg.type.atoms).named.type_name.loc;
 			else if (arg.names.count > 0)
 				err_loc = arg.names[0].loc;
+
+			if (auto tag_it = mn::map_lookup(arg.tags.table, KEYWORD_SV_THREAD_ID))
+			{
+				if (type_is_equal(arg_type, type_uvec3) == false)
+				{
+					Err err{};
+					err.loc = err_loc;
+					err.msg = mn::strf("system thread id type is '{}', but it should be 'uvec3'", *arg_type);
+					unit_err(self.unit, err);
+					continue;
+				}
+
+				if (entry->mode != COMPILATION_MODE_COMPUTE)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system thread id is only available in compute shaders");
+					unit_err(self.unit, err);
+					continue;
+				}
+			}
+			else
+			{
+				if (entry->mode == COMPILATION_MODE_COMPUTE)
+				{
+					Err err{};
+					err.loc = err_loc;
+					err.msg = mn::strf("compute shader only supports 'system_thread_id' arguments");
+					unit_err(self.unit, err);
+					continue;
+				}
+			}
 
 			int api_config = SHADER_API_DEFAULT;
 			if (entry->mode == COMPILATION_MODE_GEOMETRY)
@@ -3981,7 +4042,7 @@ namespace sabre
 		// handle return type
 		if (return_type->kind == Type::KIND_STRUCT)
 		{
-			_typer_check_entry_struct_input(self, return_type);
+			_typer_check_entry_struct_input(self, return_type, entry->mode);
 		}
 		else
 		{
