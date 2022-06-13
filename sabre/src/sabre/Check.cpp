@@ -654,7 +654,17 @@ namespace sabre
 					res = named_type;
 
 					// check if type is templated and missing its templates
-					if (type_is_templated(res))
+					if (res == type_texture1d ||
+						res == type_texture2d ||
+						res == type_texture3d ||
+						res == type_texture_cube)
+					{
+						auto args_types = mn::buf_with_allocator<Type*>(mn::memory::tmp());
+						mn::buf_reserve(args_types, 1);
+						mn::buf_push(args_types, type_vec4);
+						res = _typer_template_instantiate(self, named_type, args_types, atom.named.type_name.loc, nullptr, false);
+					}
+					else if (type_is_templated(res))
 					{
 						auto sym = type_symbol(named_type);
 						Decl* decl = nullptr;

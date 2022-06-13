@@ -16,7 +16,7 @@ const backend: Backend;
 	glsl = "texture"
 	hlsl = "Sample"
 }
-func texture_sample(:Texture1D, :Sampler, :float): vec4
+func texture_sample<T: type>(:Texture1D<T>, :Sampler, :float): T
 
 @sample_func
 @hlsl_method
@@ -24,7 +24,7 @@ func texture_sample(:Texture1D, :Sampler, :float): vec4
 	glsl = "texture"
 	hlsl = "Sample"
 }
-func texture_sample(:Texture2D, :Sampler, :vec2): vec4
+func texture_sample<T: type>(:Texture2D<T>, :Sampler, :vec2): T
 
 @sample_func
 @hlsl_method
@@ -32,7 +32,7 @@ func texture_sample(:Texture2D, :Sampler, :vec2): vec4
 	glsl = "texture"
 	hlsl = "Sample"
 }
-func texture_sample(:Texture3D, :Sampler, :vec3): vec4
+func texture_sample<T: type>(:Texture3D<T>, :Sampler, :vec3): T
 
 @sample_func
 @hlsl_method
@@ -40,7 +40,7 @@ func texture_sample(:Texture3D, :Sampler, :vec3): vec4
 	glsl = "textureLod"
 	hlsl = "SampleLevel"
 }
-func texture_sample_level(:Texture1D, :Sampler, :float, :float): vec4
+func texture_sample_level<T: type>(:Texture1D<T>, :Sampler, :float, :float): T
 
 @sample_func
 @hlsl_method
@@ -48,7 +48,7 @@ func texture_sample_level(:Texture1D, :Sampler, :float, :float): vec4
 	glsl = "textureLod"
 	hlsl = "SampleLevel"
 }
-func texture_sample_level(:Texture2D, :Sampler, :vec2, :float): vec4
+func texture_sample_level<T: type>(:Texture2D<T>, :Sampler, :vec2, :float): T
 
 @sample_func
 @hlsl_method
@@ -56,7 +56,7 @@ func texture_sample_level(:Texture2D, :Sampler, :vec2, :float): vec4
 	glsl = "textureLod"
 	hlsl = "SampleLevel"
 }
-func texture_sample_level(:Texture3D, :Sampler, :vec3, :float): vec4
+func texture_sample_level<T: type>(:Texture3D<T>, :Sampler, :vec3, :float): T
 
 @sample_func
 @hlsl_method
@@ -64,7 +64,7 @@ func texture_sample_level(:Texture3D, :Sampler, :vec3, :float): vec4
 	glsl = "textureLod"
 	hlsl = "SampleLevel"
 }
-func texture_sample_level(:TextureCube, :Sampler, :vec3, :float): vec4
+func texture_sample_level<T: type>(:TextureCube<T>, :Sampler, :vec3, :float): T
 
 @hlsl_method
 @builtin {
@@ -557,13 +557,13 @@ func transpose(a: mat4): mat4
 
 if backend == .GLSL {
 	@builtin
-	func textureSize(:Texture1D): int
+	func textureSize<T: type>(:Texture1D<T>): int
 
 	@builtin
-	func textureSize(:Texture2D): ivec2
+	func textureSize<T: type>(:Texture2D<T>): ivec2
 
 	@builtin
-	func textureSize(:Texture3D): ivec3
+	func textureSize<T: type>(:Texture3D<T>): ivec3
 } else if backend == .HLSL {
 	@builtin
 	@hlsl_method
@@ -577,19 +577,19 @@ if backend == .GLSL {
 	@hlsl_method
 	func GetDimensions(:Texture3D, @in mip_level: uint, @out width, height, depth, number_of_levels: uint)
 
-	func textureSize(t: Texture1D): int {
+	func textureSize<T: type>(t: Texture1D<T>): int {
 		var width, number_of_levels: uint;
 		GetDimensions(t, 0: uint, width, number_of_levels);
 		return width: int;
 	}
 
-	func textureSize(t: Texture2D): ivec2 {
+	func textureSize<T: type>(t: Texture2D<T>): ivec2 {
 		var width, height, number_of_levels: uint;
 		GetDimensions(t, 0: uint, width, height, number_of_levels);
 		return {width: int, height: int};
 	}
 
-	func textureSize(t: Texture3D): ivec3 {
+	func textureSize<T: type>(t: Texture3D<T>): ivec3 {
 		var width, height, depth, number_of_levels: uint;
 		GetDimensions(t, 0: uint, width, height, depth, number_of_levels);
 		return {width: int, height: int, depth: int};

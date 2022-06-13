@@ -544,25 +544,51 @@ namespace sabre
 			break;
 		case Type::KIND_TEXTURE:
 			can_write_name = true;
-			if (type == type_texture1d)
+			if (type->template_base_type)
 			{
-				str = mn::strf(str, "sampler1D");
-			}
-			else if (type == type_texture2d)
-			{
-				str = mn::strf(str, "sampler2D");
-			}
-			else if (type == type_texture3d)
-			{
-				str = mn::strf(str, "sampler3D");
-			}
-			else if (type == type_texture_cube)
-			{
-				str = mn::strf(str, "samplerCube");
+				if (type->template_base_type == type_texture1d)
+				{
+					str = mn::strf(str, "sampler1D");
+				}
+				else if (type->template_base_type == type_texture2d)
+				{
+					str = mn::strf(str, "sampler2D");
+				}
+				else if (type->template_base_type == type_texture3d)
+				{
+					str = mn::strf(str, "sampler3D");
+				}
+				else if (type->template_base_type == type_texture_cube)
+				{
+					str = mn::strf(str, "samplerCube");
+				}
+				else
+				{
+					mn_unreachable();
+				}
 			}
 			else
 			{
-				mn_unreachable();
+				if (type == type_texture1d)
+				{
+					str = mn::strf(str, "sampler1D");
+				}
+				else if (type == type_texture2d)
+				{
+					str = mn::strf(str, "sampler2D");
+				}
+				else if (type == type_texture3d)
+				{
+					str = mn::strf(str, "sampler3D");
+				}
+				else if (type == type_texture_cube)
+				{
+					str = mn::strf(str, "samplerCube");
+				}
+				else
+				{
+					mn_unreachable();
+				}
 			}
 			break;
 		case Type::KIND_ARRAY:

@@ -1,0 +1,3 @@
+>> 	var pixel: vec4 = texture_sample(image, sampler, index.xy: vec2);
+>> 	                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+Error[templated_texture.sabre:19:20]: type mismatch expected 'vec4' but found 'int'

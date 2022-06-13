@@ -782,25 +782,60 @@ namespace sabre
 		}
 		case Type::KIND_TEXTURE:
 			can_write_name = true;
-			if (type == type_texture1d)
+			if (type->template_base_type)
 			{
-				str = mn::strf(str, "Texture1D<float4>");
-			}
-			else if (type == type_texture2d)
-			{
-				str = mn::strf(str, "Texture2D<float4>");
-			}
-			else if (type == type_texture3d)
-			{
-				str = mn::strf(str, "Texture3D<float4>");
-			}
-			else if (type == type_texture_cube)
-			{
-				str = mn::strf(str, "TextureCube<float4>");
+				if (type->template_base_type == type_texture1d)
+				{
+					str = mn::strf(str, "Texture1D");
+				}
+				else if (type->template_base_type == type_texture2d)
+				{
+					str = mn::strf(str, "Texture2D");
+				}
+				else if (type->template_base_type == type_texture3d)
+				{
+					str = mn::strf(str, "Texture3D");
+				}
+				else if (type->template_base_type == type_texture_cube)
+				{
+					str = mn::strf(str, "TextureCube");
+				}
+				else
+				{
+					mn_unreachable();
+				}
+
+				str = mn::strf(str, "<");
+				for (size_t i = 0; i < type->template_base_args.count; ++i)
+				{
+					if (i > 0)
+						str = mn::strf(", ");
+					str = _hlsl_write_field(self, str, type->template_base_args[i], "");
+				}
+				str = mn::strf(str, ">");
 			}
 			else
 			{
-				mn_unreachable();
+				if (type == type_texture1d)
+				{
+					str = mn::strf(str, "Texture1D<float4>");
+				}
+				else if (type == type_texture2d)
+				{
+					str = mn::strf(str, "Texture2D<float4>");
+				}
+				else if (type == type_texture3d)
+				{
+					str = mn::strf(str, "Texture3D<float4>");
+				}
+				else if (type == type_texture_cube)
+				{
+					str = mn::strf(str, "TextureCube<float4>");
+				}
+				else
+				{
+					mn_unreachable();
+				}
 			}
 			break;
 		case Type::KIND_ARRAY:

@@ -1,13 +1,14 @@
 package main
 
-type Numbers struct {
-	values: []int,
-}
+import "std"
 
-@read_write @buffer
-var numbers: Numbers;
+@uniform
+var image: Texture2D<int>;
 
-@compute{x = 10}
+@uniform
+var sampler: Sampler;
+
+@compute{x = 16, y = 16}
 func main(@system_thread_id index: uvec3) {
-	numbers.values[index.x] += 1;
+	var pixel: vec4 = std.texture_sample(image, sampler, index.xy: vec2);
 }

@@ -1,0 +1,20 @@
+package main
+
+@sample_func
+@hlsl_method
+@builtin {
+	glsl = "texture"
+	hlsl = "Sample"
+}
+func texture_sample<T: type>(:Texture2D<T>, :Sampler, :vec2): T
+
+@uniform
+var image: Texture2D<int>;
+
+@uniform
+var sampler: Sampler;
+
+@compute{x = 16, y = 16}
+func main(@system_thread_id index: uvec3) {
+	var pixel: vec4 = texture_sample(image, sampler, index.xy: vec2);
+}
