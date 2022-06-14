@@ -838,6 +838,64 @@ namespace sabre
 				}
 			}
 			break;
+		case Type::KIND_RW_TEXTURE:
+			can_write_name = true;
+			if (type->template_base_type)
+			{
+				if (type->template_base_type == type_rw_texture1d)
+				{
+					str = mn::strf(str, "RWTexture1D");
+				}
+				else if (type->template_base_type == type_rw_texture2d)
+				{
+					str = mn::strf(str, "RWTexture2D");
+				}
+				else if (type->template_base_type == type_rw_texture3d)
+				{
+					str = mn::strf(str, "RWTexture3D");
+				}
+				else if (type->template_base_type == type_rw_texture_cube)
+				{
+					str = mn::strf(str, "RWTextureCube");
+				}
+				else
+				{
+					mn_unreachable();
+				}
+
+				str = mn::strf(str, "<");
+				for (size_t i = 0; i < type->template_base_args.count; ++i)
+				{
+					if (i > 0)
+						str = mn::strf(", ");
+					str = _hlsl_write_field(self, str, type->template_base_args[i], "");
+				}
+				str = mn::strf(str, ">");
+			}
+			else
+			{
+				if (type == type_rw_texture1d)
+				{
+					str = mn::strf(str, "RWTexture1D<float4>");
+				}
+				else if (type == type_rw_texture2d)
+				{
+					str = mn::strf(str, "RWTexture2D<float4>");
+				}
+				else if (type == type_rw_texture3d)
+				{
+					str = mn::strf(str, "RWTexture3D<float4>");
+				}
+				else if (type == type_rw_texture_cube)
+				{
+					str = mn::strf(str, "RWTextureCube<float4>");
+				}
+				else
+				{
+					mn_unreachable();
+				}
+			}
+			break;
 		case Type::KIND_ARRAY:
 		{
 			auto str_name = mn::str_lit(name);

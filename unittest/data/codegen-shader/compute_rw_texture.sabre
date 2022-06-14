@@ -1,7 +1,5 @@
 package main
 
-import "std"
-
 var image: RWTexture2D<vec4>;
 
 @compute{x = 16, y = 16}

@@ -29,16 +29,7 @@ namespace sabre
 	}
 
 	inline static Type
-	_texture_builtin(TEXTURE_TYPE type)
-	{
-		Type self{};
-		self.kind = Type::KIND_TEXTURE;
-		self.texture.type = type;
-		return self;
-	}
-
-	inline static Type
-	_texture_builtin2(TEXTURE_TYPE type, Type* type_arg)
+	_texture_builtin(TEXTURE_TYPE type, Type* type_arg)
 	{
 		Type self{};
 		self.kind = Type::KIND_TEXTURE;
@@ -50,6 +41,18 @@ namespace sabre
 		return self;
 	}
 
+	inline static Type
+	_rw_texture_builtin(TEXTURE_TYPE type, Type* type_arg)
+	{
+		Type self{};
+		self.kind = Type::KIND_RW_TEXTURE;
+		self.texture.type = type;
+		self.template_args = mn::buf_with_allocator<Type*>(mn::memory::clib());
+		self.template_args_index = mn::buf_with_allocator<size_t>(mn::memory::clib());
+		mn::buf_push(self.template_args, type_arg);
+		mn::buf_push(self.template_args_index, 0);
+		return self;
+	}
 
 	inline static Type
 	_stream_type(Type::KIND kind, Type* type_arg)
@@ -91,13 +94,21 @@ namespace sabre
 	static Type _type_mat3 = _mat_builtin(type_float, 3, 48, 16);
 	static Type _type_mat4 = _mat_builtin(type_float, 4, 64, 16);
 	static Type _type_texture1d_typename { Type::KIND_TYPENAME, 0, 0 };
-	static Type _type_texture1d = _texture_builtin2(TEXTURE_TYPE_1D, &_type_texture1d_typename);
+	static Type _type_texture1d = _texture_builtin(TEXTURE_TYPE_1D, &_type_texture1d_typename);
 	static Type _type_texture2d_typename { Type::KIND_TYPENAME, 0, 0 };
-	static Type _type_texture2d = _texture_builtin2(TEXTURE_TYPE_2D, &_type_texture2d_typename);
+	static Type _type_texture2d = _texture_builtin(TEXTURE_TYPE_2D, &_type_texture2d_typename);
 	static Type _type_texture3d_typename { Type::KIND_TYPENAME, 0, 0 };
-	static Type _type_texture3d = _texture_builtin2(TEXTURE_TYPE_3D, &_type_texture3d_typename);
+	static Type _type_texture3d = _texture_builtin(TEXTURE_TYPE_3D, &_type_texture3d_typename);
 	static Type _type_texture_cube_typename { Type::KIND_TYPENAME, 0, 0 };
-	static Type _type_texture_cube = _texture_builtin2(TEXTURE_TYPE_CUBE, &_type_texture_cube_typename);
+	static Type _type_texture_cube = _texture_builtin(TEXTURE_TYPE_CUBE, &_type_texture_cube_typename);
+	static Type _type_rw_texture1d_typename { Type::KIND_TYPENAME, 0, 0 };
+	static Type _type_rw_texture1d = _rw_texture_builtin(TEXTURE_TYPE_1D, &_type_texture1d_typename);
+	static Type _type_rw_texture2d_typename { Type::KIND_TYPENAME, 0, 0 };
+	static Type _type_rw_texture2d = _rw_texture_builtin(TEXTURE_TYPE_2D, &_type_texture2d_typename);
+	static Type _type_rw_texture3d_typename { Type::KIND_TYPENAME, 0, 0 };
+	static Type _type_rw_texture3d = _rw_texture_builtin(TEXTURE_TYPE_3D, &_type_texture3d_typename);
+	static Type _type_rw_texture_cube_typename { Type::KIND_TYPENAME, 0, 0 };
+	static Type _type_rw_texture_cube = _rw_texture_builtin(TEXTURE_TYPE_CUBE, &_type_texture_cube_typename);
 	static Type _type_sampler {Type::KIND_SAMPLER, 0, 0};
 	static Type _type_triangle_stream_type_arg {Type::KIND_TYPENAME, 0, 0};
 	static Type _type_triangle_stream = _stream_type(Type::KIND_TRIANGLE_STREAM, &_type_triangle_stream_type_arg);
@@ -178,6 +189,10 @@ namespace sabre
 	Type* type_texture2d = &_type_texture2d;
 	Type* type_texture3d = &_type_texture3d;
 	Type* type_texture_cube = &_type_texture_cube;
+	Type* type_rw_texture1d = &_type_rw_texture1d;
+	Type* type_rw_texture2d = &_type_rw_texture2d;
+	Type* type_rw_texture3d = &_type_rw_texture3d;
+	Type* type_rw_texture_cube = &_type_rw_texture_cube;
 	Type* type_sampler = &_type_sampler;
 	Type* type_triangle_stream = &_type_triangle_stream;
 	Type* type_line_stream = &_type_line_stream;
@@ -291,6 +306,7 @@ namespace sabre
 		switch (base_type->kind)
 		{
 		case Type::KIND_TEXTURE:
+		case Type::KIND_RW_TEXTURE:
 		{
 			auto new_type = mn::alloc_zerod_from<Type>(self->arena);
 			new_type->kind = base_type->kind;

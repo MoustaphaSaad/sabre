@@ -209,6 +209,7 @@ namespace sabre
 			KIND_FUNC,
 			KIND_STRUCT,
 			KIND_TEXTURE,
+			KIND_RW_TEXTURE,
 			KIND_PACKAGE,
 			KIND_FUNC_OVERLOAD_SET,
 			KIND_ARRAY,
@@ -279,6 +280,11 @@ namespace sabre
 			{
 				TEXTURE_TYPE type;
 			} texture;
+
+			struct
+			{
+				TEXTURE_TYPE type;
+			} rw_texture;
 
 			struct
 			{
@@ -360,6 +366,10 @@ namespace sabre
 	SABRE_EXPORT extern Type* type_texture2d;
 	SABRE_EXPORT extern Type* type_texture3d;
 	SABRE_EXPORT extern Type* type_texture_cube;
+	SABRE_EXPORT extern Type* type_rw_texture1d;
+	SABRE_EXPORT extern Type* type_rw_texture2d;
+	SABRE_EXPORT extern Type* type_rw_texture3d;
+	SABRE_EXPORT extern Type* type_rw_texture_cube;
 	SABRE_EXPORT extern Type* type_sampler;
 	SABRE_EXPORT extern Type* type_triangle_stream;
 	SABRE_EXPORT extern Type* type_line_stream;
@@ -428,6 +438,14 @@ namespace sabre
 			return type_texture3d;
 		else if (str == "TextureCube")
 			return type_texture_cube;
+		else if (str == "RWTexture1D")
+			return type_rw_texture1d;
+		else if (str == "RWTexture2D")
+			return type_rw_texture2d;
+		else if (str == "RWTexture3D")
+			return type_rw_texture3d;
+		else if (str == "RWTextureCube")
+			return type_rw_texture_cube;
 		else if (str == "Sampler")
 			return type_sampler;
 		else if (str == "TriangleStream")
@@ -661,7 +679,8 @@ namespace sabre
 	{
 		return (
 			type_is_array(t) ||
-			type_is_matrix(t)
+			type_is_matrix(t) ||
+			t->kind == Type::KIND_RW_TEXTURE
 		);
 	}
 
@@ -1217,16 +1236,65 @@ namespace fmt
 				switch (t->texture.type)
 				{
 				case sabre::TEXTURE_TYPE_1D:
-					return format_to(ctx.out(), "Texture1D");
+					format_to(ctx.out(), "Texture1D");
+					break;
 				case sabre::TEXTURE_TYPE_2D:
-					return format_to(ctx.out(), "Texture2D");
+					format_to(ctx.out(), "Texture2D");
+					break;
 				case sabre::TEXTURE_TYPE_3D:
-					return format_to(ctx.out(), "Texture3D");
+					format_to(ctx.out(), "Texture3D");
+					break;
 				case sabre::TEXTURE_TYPE_CUBE:
-					return format_to(ctx.out(), "TextureCube");
+					format_to(ctx.out(), "TextureCube");
+					break;
 				default:
 					mn_unreachable();
 					return format_to(ctx.out(), "<UNKNOWN TYPE>");
+				}
+
+				if (t->full_template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
+					}
+					format_to(ctx.out(), ">");
+				}
+			}
+			else if (t->kind == sabre::Type::KIND_RW_TEXTURE)
+			{
+				switch (t->texture.type)
+				{
+				case sabre::TEXTURE_TYPE_1D:
+					format_to(ctx.out(), "RWTexture1D");
+					break;
+				case sabre::TEXTURE_TYPE_2D:
+					format_to(ctx.out(), "RWTexture2D");
+					break;
+				case sabre::TEXTURE_TYPE_3D:
+					format_to(ctx.out(), "RWTexture3D");
+					break;
+				case sabre::TEXTURE_TYPE_CUBE:
+					format_to(ctx.out(), "RWTextureCube");
+					break;
+				default:
+					mn_unreachable();
+					return format_to(ctx.out(), "<UNKNOWN TYPE>");
+				}
+
+				if (t->full_template_args.count > 0)
+				{
+					format_to(ctx.out(), "<");
+					for (size_t i = 0; i < t->full_template_args.count; ++i)
+					{
+						if (i > 0)
+							format_to(ctx.out(), ", ");
+						format_to(ctx.out(), "{}", *t->full_template_args[i]);
+					}
+					format_to(ctx.out(), ">");
 				}
 			}
 			else if (t->kind == sabre::Type::KIND_ARRAY)

@@ -6,6 +6,7 @@
 #include <mn/Log.h>
 #include <mn/Defer.h>
 #include <mn/Assert.h>
+#include <mn/Fixed_Buf.h>
 
 namespace sabre
 {
@@ -2084,6 +2085,8 @@ namespace sabre
 			return base_type;
 		}
 
+		auto allowed_index_types = mn::fixed_buf_new<Type*, 2>();
+
 		auto res = type_void;
 		size_t count = 0;
 		bool is_bounded = false;
@@ -2092,12 +2095,44 @@ namespace sabre
 			res = base_type->array.base;
 			count = base_type->array.count;
 			is_bounded = type_is_bounded_array(base_type);
+			mn::fixed_buf_push(allowed_index_types, type_int);
+			mn::fixed_buf_push(allowed_index_types, type_uint);
 		}
 		else if (type_is_matrix(base_type))
 		{
 			res = type_vectorize(base_type->mat.base, base_type->mat.width);
 			count = base_type->mat.width;
 			is_bounded = true;
+			mn::fixed_buf_push(allowed_index_types, type_int);
+			mn::fixed_buf_push(allowed_index_types, type_uint);
+		}
+		else if (base_type->kind == Type::KIND_RW_TEXTURE)
+		{
+			res = base_type->full_template_args[0];
+			if (base_type->texture.type == TEXTURE_TYPE_1D)
+			{
+				mn::fixed_buf_push(allowed_index_types, type_int);
+				mn::fixed_buf_push(allowed_index_types, type_uint);
+			}
+			else if (base_type->texture.type == TEXTURE_TYPE_2D)
+			{
+				mn::fixed_buf_push(allowed_index_types, type_ivec2);
+				mn::fixed_buf_push(allowed_index_types, type_uvec2);
+			}
+			else if (base_type->texture.type == TEXTURE_TYPE_3D)
+			{
+				mn::fixed_buf_push(allowed_index_types, type_ivec3);
+				mn::fixed_buf_push(allowed_index_types, type_uvec3);
+			}
+			else if (base_type->texture.type == TEXTURE_TYPE_CUBE)
+			{
+				mn::fixed_buf_push(allowed_index_types, type_ivec3);
+				mn::fixed_buf_push(allowed_index_types, type_uvec3);
+			}
+			else
+			{
+				mn_unreachable();
+			}
 		}
 		else
 		{
@@ -2105,12 +2140,30 @@ namespace sabre
 		}
 
 		auto index_type = _typer_resolve_expr(self, e->indexed.index);
-		if (type_is_equal(index_type, type_int) == false &&
-			type_is_equal(index_type, type_uint) == false)
+		bool index_is_allowed = false;
+		for (auto allowed_index_type: allowed_index_types)
 		{
+			if (type_is_equal(allowed_index_type, index_type))
+			{
+				index_is_allowed = true;
+				break;
+			}
+		}
+
+		if (index_is_allowed == false)
+		{
+			auto msg = mn::strf("index type should be ");
+			for (size_t i = 0; i < allowed_index_types.count; ++i)
+			{
+				if (i > 0)
+					msg = mn::strf(msg, ", or ");
+				msg = mn::strf(msg, "'{}'", *allowed_index_types[i]);
+			}
+			msg = mn::strf(msg, ", but we found '{}'", *index_type);
+
 			Err err{};
 			err.loc = e->indexed.index->loc;
-			err.msg = mn::strf("array index type should be an int or uint, but we found '{}'", *index_type);
+			err.msg = msg;
 			unit_err(self.unit, err);
 			return res;
 		}
@@ -2606,6 +2659,10 @@ namespace sabre
 			return depth == 0;
 		}
 		else if (type->kind == Type::KIND_TEXTURE)
+		{
+			return depth == 0;
+		}
+		else if (type->kind == Type::KIND_RW_TEXTURE)
 		{
 			return depth == 0;
 		}
