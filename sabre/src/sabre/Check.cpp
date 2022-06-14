@@ -3964,6 +3964,26 @@ namespace sabre
 				}
 			}
 
+			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_GROUP_ID))
+			{
+				is_supported_compute = true;
+				if (type_is_equal(struct_field.type, type_uvec3) == false)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("system group id type is '{}', but it should be 'uvec3'", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+
+				if (compilation_mode != COMPILATION_MODE_COMPUTE)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system group id is only available in compute shaders");
+					unit_err(self.unit, err);
+				}
+			}
+
 			if (compilation_mode == COMPILATION_MODE_COMPUTE)
 			{
 				if (is_supported_compute == false)
@@ -4054,13 +4074,33 @@ namespace sabre
 					continue;
 				}
 			}
+			else if (auto tag_it = mn::map_lookup(arg.tags.table, KEYWORD_SV_GROUP_ID))
+			{
+				if (type_is_equal(arg_type, type_uvec3) == false)
+				{
+					Err err{};
+					err.loc = err_loc;
+					err.msg = mn::strf("system group id type is '{}', but it should be 'uvec3'", *arg_type);
+					unit_err(self.unit, err);
+					continue;
+				}
+
+				if (entry->mode != COMPILATION_MODE_COMPUTE)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system group id is only available in compute shaders");
+					unit_err(self.unit, err);
+					continue;
+				}
+			}
 			else
 			{
 				if (entry->mode == COMPILATION_MODE_COMPUTE)
 				{
 					Err err{};
 					err.loc = err_loc;
-					err.msg = mn::strf("compute shader only supports 'system_thread_id' arguments");
+					err.msg = mn::strf("compute shader only supports 'system_thread_id', and 'system_group_id' arguments");
 					unit_err(self.unit, err);
 					continue;
 				}

@@ -2792,6 +2792,10 @@ namespace sabre
 					{
 						mn::print_to(self.out, ": SV_DispatchThreadID");
 					}
+					else if (mn::map_lookup(field.tags.table, KEYWORD_SV_GROUP_ID) != nullptr)
+					{
+						mn::print_to(self.out, ": SV_GroupThreadID");
+					}
 					else if (io_flags_it->value == ENTRY_IO_FLAG_PIXEL_OUT)
 					{
 						mn::print_to(self.out, ": SV_TARGET{}", i);
@@ -3201,6 +3205,8 @@ namespace sabre
 
 				if (mn::map_lookup(arg.tags.table, KEYWORD_SV_THREAD_ID))
 					mn::print_to(self.out, ": SV_DispatchThreadID");
+				else if (mn::map_lookup(arg.tags.table, KEYWORD_SV_GROUP_ID))
+					mn::print_to(self.out, ": SV_GroupThreadID");
 				++i;
 			}
 		}

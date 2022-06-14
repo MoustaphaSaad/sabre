@@ -2,7 +2,9 @@ package main
 
 var image: RWTexture2D<vec4>;
 
-@compute{x = 16, y = 16}
-func main(@system_thread_id index: uvec3) {
-	image[index.xy] = :vec4{index.xy: vec2 / 16, 1, 1};
+const IMAGE_SIZE = 16;
+
+@compute{x = IMAGE_SIZE, y = IMAGE_SIZE}
+func main(@system_thread_id global_index: uvec3, @system_group_id group_index: uvec3) {
+	image[global_index.xy] = :vec4{group_index.xy: vec2 / IMAGE_SIZE, 1, 1};
 }

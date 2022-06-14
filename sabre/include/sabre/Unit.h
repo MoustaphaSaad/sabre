@@ -39,6 +39,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_SV_DEPTH = "system_depth";
 	inline constexpr const char* KEYWORD_SV_PRIMITIVE_ID = "system_primitive_id";
 	inline constexpr const char* KEYWORD_SV_THREAD_ID = "system_thread_id";
+	inline constexpr const char* KEYWORD_SV_GROUP_ID = "system_group_id";
 	inline constexpr const char* KEYWORD_GLSL = "glsl";
 	inline constexpr const char* KEYWORD_REFLECT = "reflect";
 	inline constexpr const char* KEYWORD_HLSL = "hlsl";
