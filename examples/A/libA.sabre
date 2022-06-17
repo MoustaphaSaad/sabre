@@ -8,3 +8,5 @@ func foo(): int {
 }
 
 const magic = 123;
+
+var image: RWTexture2D<vec4>;

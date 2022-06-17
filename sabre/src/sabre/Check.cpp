@@ -2018,10 +2018,29 @@ namespace sabre
 			e->dot.rhs->atom.decl = symbol_decl(symbol);
 			_typer_resolve_symbol(self, symbol);
 			e->symbol = symbol;
-			if (symbol->kind == Symbol::KIND_CONST && symbol->const_sym.value != nullptr)
+			switch (symbol->kind)
 			{
-				e->const_value = symbol->const_sym.value->const_value;
-				e->mode = symbol->const_sym.value->mode;
+			case Symbol::KIND_CONST:
+				if (symbol->const_sym.value != nullptr)
+				{
+					e->const_value = symbol->const_sym.value->const_value;
+					e->mode = symbol->const_sym.value->mode;
+				}
+				break;
+			case Symbol::KIND_VAR:
+				if (symbol->var_sym.is_buffer && symbol->var_sym.is_read_write == false)
+				{
+					e->mode = ADDRESS_MODE_READ_ONLY;
+				}
+				else if (symbol->var_sym.is_uniform)
+				{
+					e->mode = ADDRESS_MODE_READ_ONLY;
+				}
+				else
+				{
+					e->mode = ADDRESS_MODE_VARIABLE;
+				}
+				break;
 			}
 			return symbol->type;
 		}

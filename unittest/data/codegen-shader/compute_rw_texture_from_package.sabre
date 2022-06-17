@@ -1,10 +1,10 @@
 package main
 
-import "A"
+import "Foo"
 
 const IMAGE_SIZE = 16;
 
 @compute{x = IMAGE_SIZE, y = IMAGE_SIZE}
 func main(@system_thread_id global_index: uvec3, @system_group_id group_index: uvec3) {
-	A.image[global_index.xy] = :vec4{group_index.xy: vec2 / IMAGE_SIZE, 1, 1};
+	foo.image[global_index.xy] = :vec4{group_index.xy: vec2 / IMAGE_SIZE, 1, 1};
 }
