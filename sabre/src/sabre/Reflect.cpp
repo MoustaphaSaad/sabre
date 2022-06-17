@@ -57,6 +57,7 @@ namespace sabre
 		case COMPILATION_MODE_VERTEX:
 		case COMPILATION_MODE_PIXEL:
 		case COMPILATION_MODE_GEOMETRY:
+		case COMPILATION_MODE_COMPUTE:
 			_generate_entry_shader_io(entry);
 			break;
 		case COMPILATION_MODE_LIBRARY:
