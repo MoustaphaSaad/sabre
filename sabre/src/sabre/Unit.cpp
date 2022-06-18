@@ -213,6 +213,23 @@ namespace sabre
 				return mn::str_lit("<UNKNOWN TYPE>");
 			}
 		}
+		else if (t->kind == Type::KIND_RW_TEXTURE)
+		{
+			switch (t->texture.type)
+			{
+			case TEXTURE_TYPE_1D:
+				return mn::str_lit("RWTexture1D");
+			case TEXTURE_TYPE_2D:
+				return mn::str_lit("RWTexture2D");
+			case TEXTURE_TYPE_3D:
+				return mn::str_lit("RWTexture3D");
+			case TEXTURE_TYPE_CUBE:
+				return mn::str_lit("RWTextureCube");
+			default:
+				mn_unreachable();
+				return mn::str_lit("<UNKNOWN TYPE>");
+			}
+		}
 		else if (t->kind == Type::KIND_ARRAY)
 		{
 			mn::Str name{};
@@ -270,7 +287,8 @@ namespace sabre
 			t == type_mat2 ||
 			t == type_mat3 ||
 			t == type_mat4 ||
-			t->kind == Type::KIND_TEXTURE)
+			t->kind == Type::KIND_TEXTURE ||
+			t->kind == Type::KIND_RW_TEXTURE)
 		{
 			return mn::str_lit("builtin");
 		}

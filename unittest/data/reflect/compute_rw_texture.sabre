@@ -1,0 +1,12 @@
+package main
+
+@uniform
+var dst: RWTexture2D<vec4>;
+
+@uniform
+var src: RWTexture2D<vec4>;
+
+@compute{x = 16, y = 16}
+func main(@system_thread_id index: uvec3) {
+	dst[index.xy] = src[index.xy];
+}

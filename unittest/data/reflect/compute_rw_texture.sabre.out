@@ -1,0 +1,1 @@
+{"package":"main", "entry":{"name":"main", "input_layout":[]}, "uniforms":[], "textures":[{"name":"src", "binding":0, "type":"RWTexture2D", "tags":{"uniform":{}}}, {"name":"dst", "binding":1, "type":"RWTexture2D", "tags":{"uniform":{}}}], "types":[{"name":"RWTexture2D", "raw_name":"RWTexture2D", "kind":"builtin", "aligned_size":0, "unaligned_size":0, "alignment":0, "tags":{}}]}
