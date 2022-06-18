@@ -2653,15 +2653,15 @@ namespace sabre
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				mn::print_to(self.out, "{}: register(t{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
+				mn::print_to(self.out, "{}: register(t{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.binding);
 			}
 			else if (type_is_sampler(sym->type))
 			{
-				mn::print_to(self.out, "{}: register(s{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.uniform_binding);
+				mn::print_to(self.out, "{}: register(s{})", _hlsl_write_field(self, sym->type, uniform_name), sym->var_sym.binding);
 			}
 			else
 			{
-				mn::print_to(self.out, "cbuffer {}: register(b{}) {{", uniform_block_name, sym->var_sym.uniform_binding);
+				mn::print_to(self.out, "cbuffer {}: register(b{}) {{", uniform_block_name, sym->var_sym.binding);
 				++self.indent;
 				{
 					auto type = sym->type;
@@ -2714,7 +2714,15 @@ namespace sabre
 			auto buffer_name = _hlsl_name(self, _hlsl_symbol_name(self, sym));
 			if (sym->var_sym.is_read_write)
 				mn::print_to(self.out, "RW");
-			mn::print_to(self.out, "ByteAddressBuffer {}", buffer_name);
+			mn::print_to(self.out, "ByteAddressBuffer {}: register(u{})", buffer_name, sym->var_sym.binding);
+		}
+		else if (sym->var_sym.is_image)
+		{
+			auto image_name = _hlsl_name(self, _hlsl_symbol_name(self, sym));
+			const char* register_name = "u";
+			if (sym->type->kind == Type::KIND_TEXTURE)
+				register_name = "t";
+			mn::print_to(self.out, "{}: register({}{})", _hlsl_write_field(self, sym->type, image_name), register_name, sym->var_sym.binding);
 		}
 		else
 		{

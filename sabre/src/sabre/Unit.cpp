@@ -758,6 +758,7 @@ namespace sabre
 		self->str_interner = mn::str_intern_new();
 		self->type_interner = type_interner_new();
 		self->backend = backend;
+		self->log_metrics = SABRE_LOG_METRICS;
 
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_UNIFORM));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILTIN));
@@ -790,6 +791,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_Z));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUILD_BACKEND));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_BUFFER));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_IMAGE));
 
 		unit_add_package(self, self->root_package);
 
@@ -799,12 +801,13 @@ namespace sabre
 	void
 	unit_free(Unit* self)
 	{
-		#if SABRE_LOG_METRICS
-		mn::log_info(
-			"Types: {}/{}, (used/reserved)bytes",
-			self->type_interner->arena->used_mem, self->type_interner->arena->total_mem
-		);
-		#endif
+		if (self->log_metrics)
+		{
+			mn::log_info(
+				"Types: {}/{}, (used/reserved)bytes",
+				self->type_interner->arena->used_mem, self->type_interner->arena->total_mem
+			);
+		}
 
 		mn::str_intern_free(self->str_interner);
 		type_interner_free(self->type_interner);
@@ -814,6 +817,8 @@ namespace sabre
 		mn::map_free(self->reachable_uniforms);
 		mn::map_free(self->reachable_textures);
 		mn::map_free(self->reachable_samplers);
+		mn::map_free(self->reachable_buffers);
+		mn::map_free(self->reachable_images);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
 		mn::buf_free(self->symbol_stack);
@@ -863,9 +868,9 @@ namespace sabre
 		}
 		auto end = _capture_timepoint();
 
-		#if SABRE_LOG_METRICS
-		mn::log_info("Total parse time: {}", end - start);
-		#endif
+		if (self->log_metrics)
+			mn::log_info("Total parse time: {}", end - start);
+
 		return has_errors == false;
 	}
 
@@ -881,9 +886,10 @@ namespace sabre
 				has_errors = true;
 		}
 		auto end = _capture_timepoint();
-		#if SABRE_LOG_METRICS
-		mn::log_info("Total checking time {}", end - start);
-		#endif
+
+		if (self->log_metrics)
+			mn::log_info("Total checking time {}", end - start);
+
 		return has_errors == false;
 	}
 
@@ -926,7 +932,7 @@ namespace sabre
 		for (auto symbol: entry->uniforms)
 		{
 			mn_assert(symbol->kind == Symbol::KIND_VAR);
-			auto binding = symbol->var_sym.uniform_binding;
+			auto binding = symbol->var_sym.binding;
 
 			auto json_uniform = mn::json::value_object_new();
 			if (symbol->package == self->root_package)
@@ -952,7 +958,7 @@ namespace sabre
 		for (auto symbol: entry->textures)
 		{
 			mn_assert(symbol->kind == Symbol::KIND_VAR);
-			auto binding = symbol->var_sym.uniform_binding;
+			auto binding = symbol->var_sym.binding;
 
 			auto json_texture = mn::json::value_object_new();
 			if (symbol->package == self->root_package)
@@ -968,6 +974,56 @@ namespace sabre
 			mn::json::value_object_insert(json_texture, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
 			mn::json::value_object_insert(json_texture, "tags", _decl_tags_to_json(symbol_decl(symbol)));
 			mn::json::value_array_push(json_textures, json_texture);
+
+			_push_type(types, symbol->type);
+		}
+
+		auto json_buffers = mn::json::value_array_new();
+		for (auto symbol: entry->buffers)
+		{
+			mn_assert(symbol->kind == Symbol::KIND_VAR);
+			auto binding = symbol->var_sym.binding;
+
+			auto json_buffer = mn::json::value_object_new();
+			if (symbol->package == self->root_package)
+			{
+				mn::json::value_object_insert(json_buffer, "name", mn::json::value_string_new(symbol->name));
+			}
+			else
+			{
+				auto buffer_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", symbol->package->name.str, symbol->name));
+				mn::json::value_object_insert(json_buffer, "name", buffer_name);
+			}
+			mn::json::value_object_insert(json_buffer, "binding", mn::json::value_number_new(binding));
+			mn::json::value_object_insert(json_buffer, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
+			mn::json::value_object_insert(json_buffer, "tags", _decl_tags_to_json(symbol_decl(symbol)));
+			mn::json::value_object_insert(json_buffer, "size", mn::json::value_number_new(symbol->type->unaligned_size));
+
+			mn::json::value_array_push(json_buffers, json_buffer);
+
+			_push_type(types, symbol->type);
+		}
+
+		auto json_images = mn::json::value_array_new();
+		for (auto symbol: entry->images)
+		{
+			mn_assert(symbol->kind == Symbol::KIND_VAR);
+			auto binding = symbol->var_sym.binding;
+
+			auto json_image = mn::json::value_object_new();
+			if (symbol->package == self->root_package)
+			{
+				mn::json::value_object_insert(json_image, "name", mn::json::value_string_new(symbol->name));
+			}
+			else
+			{
+				auto uniform_name = mn::json::value_string_new(mn::str_tmpf("{}.{}", symbol->package->name.str, symbol->name));
+				mn::json::value_object_insert(json_image, "name", uniform_name);
+			}
+			mn::json::value_object_insert(json_image, "binding", mn::json::value_number_new(binding));
+			mn::json::value_object_insert(json_image, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
+			mn::json::value_object_insert(json_image, "tags", _decl_tags_to_json(symbol_decl(symbol)));
+			mn::json::value_array_push(json_images, json_image);
 
 			_push_type(types, symbol->type);
 		}
@@ -1030,6 +1086,8 @@ namespace sabre
 		mn::json::value_object_insert(json_result, "entry", json_entry);
 		mn::json::value_object_insert(json_result, "uniforms", json_uniforms);
 		mn::json::value_object_insert(json_result, "textures", json_textures);
+		mn::json::value_object_insert(json_result, "buffers", json_buffers);
+		mn::json::value_object_insert(json_result, "images", json_images);
 		mn::json::value_object_insert(json_result, "types", json_types);
 
 		for (auto s: self->reflected_symbols)

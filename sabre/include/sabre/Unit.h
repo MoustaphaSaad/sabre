@@ -61,6 +61,7 @@ namespace sabre
 	inline constexpr const char* KEYWORD_Z = "z";
 	inline constexpr const char* KEYWORD_BUILD_BACKEND = "build_backend";
 	inline constexpr const char* KEYWORD_BUFFER = "buffer";
+	inline constexpr const char* KEYWORD_IMAGE = "image";
 
 	enum COMPILATION_STAGE
 	{
@@ -183,6 +184,8 @@ namespace sabre
 		mn::Buf<Symbol*> uniforms;
 		mn::Buf<Symbol*> textures;
 		mn::Buf<Symbol*> samplers;
+		mn::Buf<Symbol*> buffers;
+		mn::Buf<Symbol*> images;
 	};
 
 	// creates a new entry point instance
@@ -206,6 +209,8 @@ namespace sabre
 			mn::buf_free(self->uniforms);
 			mn::buf_free(self->textures);
 			mn::buf_free(self->samplers);
+			mn::buf_free(self->buffers);
+			mn::buf_free(self->images);
 			mn::free(self);
 		}
 	}
@@ -367,6 +372,10 @@ namespace sabre
 		mn::Map<int, Symbol*> reachable_textures;
 		// reachable samplers info
 		mn::Map<int, Symbol*> reachable_samplers;
+		// reachable buffers info
+		mn::Map<int, Symbol*> reachable_buffers;
+		// reachable images info
+		mn::Map<int, Symbol*> reachable_images;
 		// reflected symbols, they should be const because we write their values in json reflection info
 		mn::Buf<Symbol*> reflected_symbols;
 		// library collections, map from collection name to its path
@@ -379,6 +388,8 @@ namespace sabre
 		// backend mode of this unit, it's best to have match the actual backend codegen you'll
 		// be using because it's used in compile time if condition to do type checking
 		BACKEND_MODE backend;
+		// if enabled it will log memory consumption metrics for this unit
+		bool log_metrics;
 	};
 
 	SABRE_EXPORT Unit*

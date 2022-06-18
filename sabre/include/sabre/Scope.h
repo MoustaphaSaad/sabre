@@ -64,13 +64,15 @@ namespace sabre
 				Type_Sign sign;
 				Expr* value;
 
+				int binding;
+				bool binding_processed;
+				bool is_read_write;
 				// used when a variable refers is a uniform
-				int uniform_binding;
 				bool is_uniform;
-				bool uniform_binding_processed;
 				// used with compute shader buffers
 				bool is_buffer;
-				bool is_read_write;
+				// used with compute images
+				bool is_image;
 			} var_sym;
 
 			struct

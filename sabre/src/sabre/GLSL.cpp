@@ -1109,11 +1109,11 @@ namespace sabre
 
 			if (sym->type->kind == Type::KIND_TEXTURE)
 			{
-				mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.uniform_binding, _glsl_write_field(self, sym->type, uniform_name));
+				mn::print_to(self.out, "layout(binding = {}) uniform {}", sym->var_sym.binding, _glsl_write_field(self, sym->type, uniform_name));
 			}
 			else
 			{
-				mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", sym->var_sym.uniform_binding, uniform_block_name);
+				mn::print_to(self.out, "layout(binding = {}, std140) uniform {} {{", sym->var_sym.binding, uniform_block_name);
 				++self.indent;
 				{
 					auto type = sym->type;

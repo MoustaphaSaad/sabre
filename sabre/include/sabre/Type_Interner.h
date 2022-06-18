@@ -680,6 +680,7 @@ namespace sabre
 		return (
 			type_is_array(t) ||
 			type_is_matrix(t) ||
+			t->kind == Type::KIND_TEXTURE ||
 			t->kind == Type::KIND_RW_TEXTURE
 		);
 	}

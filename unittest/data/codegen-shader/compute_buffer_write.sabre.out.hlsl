@@ -5,7 +5,7 @@ struct main_Numbers {
 	int op4;
 	int values[10];
 };
-RWByteAddressBuffer main_numbers;
+RWByteAddressBuffer main_numbers: register(u0);
 void main_main() {
 	int _tmp_1 = int(main_numbers.Load(32));
 	int _tmp_2 = int(main_numbers.Load(36));

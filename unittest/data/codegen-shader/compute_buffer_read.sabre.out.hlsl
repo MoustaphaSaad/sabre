@@ -5,7 +5,7 @@ struct main_Numbers {
 	int op4;
 	int values[10];
 };
-ByteAddressBuffer main_numbers;
+ByteAddressBuffer main_numbers: register(u0);
 void main_main() {
 	float _tmp_1 = asfloat(main_numbers.Load(0));
 	float _tmp_2 = asfloat(main_numbers.Load(24));
