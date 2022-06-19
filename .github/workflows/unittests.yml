@@ -17,10 +17,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    
-    - name: Install UUID
-      run: sudo apt install uuid-dev
-      
+
     - name: Cache CPM Dependencies
       uses: actions/cache@v2
       with:
@@ -35,4 +32,4 @@ jobs:
 
     - name: Test
       run: build/bin/${{env.BUILD_TYPE}}/unittest
-      
+

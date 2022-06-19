@@ -1264,6 +1264,7 @@ namespace fmt
 					}
 					format_to(ctx.out(), ">");
 				}
+				return ctx.out();
 			}
 			else if (t->kind == sabre::Type::KIND_RW_TEXTURE)
 			{
@@ -1297,6 +1298,7 @@ namespace fmt
 					}
 					format_to(ctx.out(), ">");
 				}
+				return ctx.out();
 			}
 			else if (t->kind == sabre::Type::KIND_ARRAY)
 			{
