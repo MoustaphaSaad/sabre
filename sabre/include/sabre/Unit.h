@@ -372,10 +372,6 @@ namespace sabre
 		mn::Map<int, Symbol*> reachable_textures;
 		// reachable samplers info
 		mn::Map<int, Symbol*> reachable_samplers;
-		// reachable buffers info
-		mn::Map<int, Symbol*> reachable_buffers;
-		// reachable images info
-		mn::Map<int, Symbol*> reachable_images;
 		// reflected symbols, they should be const because we write their values in json reflection info
 		mn::Buf<Symbol*> reflected_symbols;
 		// library collections, map from collection name to its path

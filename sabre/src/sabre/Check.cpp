@@ -4430,16 +4430,16 @@ namespace sabre
 				value_expr->const_value.type == type_int)
 			{
 				sym->var_sym.binding = value_expr->const_value.as_int;
-				if (sym->var_sym.binding > self.buffer_binding_generator)
-					self.buffer_binding_generator = sym->var_sym.binding + 1;
+				if (sym->var_sym.binding > self.uniform_binding_generator)
+					self.uniform_binding_generator = sym->var_sym.binding + 1;
 			}
 		}
 		else
 		{
-			sym->var_sym.binding = self.buffer_binding_generator++;
+			sym->var_sym.binding = self.uniform_binding_generator++;
 		}
 
-		if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_buffers, sym->var_sym.binding))
+		if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_uniforms, sym->var_sym.binding))
 		{
 			auto old_sym = it->value;
 			auto old_loc = symbol_location(old_sym);
@@ -4456,7 +4456,7 @@ namespace sabre
 		}
 		else
 		{
-			mn::map_insert(self.unit->parent_unit->reachable_buffers, sym->var_sym.binding, sym);
+			mn::map_insert(self.unit->parent_unit->reachable_uniforms, sym->var_sym.binding, sym);
 			if (entry)
 				mn::buf_push(entry->buffers, sym);
 		}
@@ -4531,16 +4531,16 @@ namespace sabre
 					value_expr->const_value.type == type_int)
 				{
 					sym->var_sym.binding = value_expr->const_value.as_int;
-					if (sym->var_sym.binding > self.image_binding_generator)
-						self.image_binding_generator = sym->var_sym.binding + 1;
+					if (sym->var_sym.binding > self.texture_binding_generator)
+						self.texture_binding_generator = sym->var_sym.binding + 1;
 				}
 			}
 			else
 			{
-				sym->var_sym.binding = self.image_binding_generator++;
+				sym->var_sym.binding = self.texture_binding_generator++;
 			}
 
-			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_images, sym->var_sym.binding))
+			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.binding))
 			{
 				auto old_sym = it->value;
 				auto old_loc = symbol_location(old_sym);
@@ -4557,7 +4557,7 @@ namespace sabre
 			}
 			else
 			{
-				mn::map_insert(self.unit->parent_unit->reachable_images, sym->var_sym.binding, sym);
+				mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.binding, sym);
 				if (entry)
 					mn::buf_push(entry->images, sym);
 			}

@@ -817,8 +817,6 @@ namespace sabre
 		mn::map_free(self->reachable_uniforms);
 		mn::map_free(self->reachable_textures);
 		mn::map_free(self->reachable_samplers);
-		mn::map_free(self->reachable_buffers);
-		mn::map_free(self->reachable_images);
 		mn::buf_free(self->reflected_symbols);
 		destruct(self->library_collections);
 		mn::buf_free(self->symbol_stack);

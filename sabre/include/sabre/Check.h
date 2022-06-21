@@ -23,8 +23,6 @@ namespace sabre
 		int uniform_binding_generator;
 		int texture_binding_generator;
 		int sampler_binding_generator;
-		int buffer_binding_generator;
-		int image_binding_generator;
 	};
 
 	// creates a new type checker
