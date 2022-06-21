@@ -4482,85 +4482,42 @@ namespace sabre
 		auto decl = symbol_decl(sym);
 		auto image_tag_it = mn::map_lookup(decl->tags.table, KEYWORD_IMAGE);
 
-		if (sym->type->kind == Type::KIND_TEXTURE)
+		if (auto binding_it = mn::map_lookup(image_tag_it->value.args, KEYWORD_BINDING))
 		{
-			if (auto binding_it = mn::map_lookup(image_tag_it->value.args, KEYWORD_BINDING))
+			auto value_expr = binding_it->value.value;
+			if (value_expr->mode == ADDRESS_MODE_CONST &&
+				value_expr->const_value.type == type_int)
 			{
-				auto value_expr = binding_it->value.value;
-				if (value_expr->mode == ADDRESS_MODE_CONST &&
-					value_expr->const_value.type == type_int)
-				{
-					sym->var_sym.binding = value_expr->const_value.as_int;
-					if (sym->var_sym.binding > self.texture_binding_generator)
-						self.texture_binding_generator = sym->var_sym.binding + 1;
-				}
-			}
-			else
-			{
-				sym->var_sym.binding = self.texture_binding_generator++;
-			}
-
-			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.binding))
-			{
-				auto old_sym = it->value;
-				auto old_loc = symbol_location(old_sym);
-
-				Err err{};
-				err.loc = symbol_location(sym);
-				err.msg = mn::strf(
-					"texture binding point {} is shared with other texture defined in {}:{}",
-					sym->var_sym.binding,
-					old_loc.file->filepath,
-					old_loc.pos.line
-				);
-				unit_err(self.unit, err);
-			}
-			else
-			{
-				mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.binding, sym);
-				if (entry)
-					mn::buf_push(entry->textures, sym);
+				sym->var_sym.binding = value_expr->const_value.as_int;
+				if (sym->var_sym.binding > self.texture_binding_generator)
+					self.texture_binding_generator = sym->var_sym.binding + 1;
 			}
 		}
 		else
 		{
-			if (auto binding_it = mn::map_lookup(image_tag_it->value.args, KEYWORD_BINDING))
-			{
-				auto value_expr = binding_it->value.value;
-				if (value_expr->mode == ADDRESS_MODE_CONST &&
-					value_expr->const_value.type == type_int)
-				{
-					sym->var_sym.binding = value_expr->const_value.as_int;
-					if (sym->var_sym.binding > self.texture_binding_generator)
-						self.texture_binding_generator = sym->var_sym.binding + 1;
-				}
-			}
-			else
-			{
-				sym->var_sym.binding = self.texture_binding_generator++;
-			}
+			sym->var_sym.binding = self.texture_binding_generator++;
+		}
 
-			if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.binding))
-			{
-				auto old_sym = it->value;
-				auto old_loc = symbol_location(old_sym);
+		if (auto it = mn::map_lookup(self.unit->parent_unit->reachable_textures, sym->var_sym.binding))
+		{
+			auto old_sym = it->value;
+			auto old_loc = symbol_location(old_sym);
 
-				Err err{};
-				err.loc = symbol_location(sym);
-				err.msg = mn::strf(
-					"image binding point {} is shared with other image defined in {}:{}",
-					sym->var_sym.binding,
-					old_loc.file->filepath,
-					old_loc.pos.line
-				);
-				unit_err(self.unit, err);
-			}
-			else
-			{
-				mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.binding, sym);
-				if (entry)
-					mn::buf_push(entry->images, sym);
-			}
+			Err err{};
+			err.loc = symbol_location(sym);
+			err.msg = mn::strf(
+				"image binding point {} is shared with other image defined in {}:{}",
+				sym->var_sym.binding,
+				old_loc.file->filepath,
+				old_loc.pos.line
+			);
+			unit_err(self.unit, err);
+		}
+		else
+		{
+			mn::map_insert(self.unit->parent_unit->reachable_textures, sym->var_sym.binding, sym);
+			if (entry)
+				mn::buf_push(entry->images, sym);
 		}
 	}
 
