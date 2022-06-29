@@ -2743,6 +2743,10 @@ namespace sabre
 	inline static void
 	_hlsl_const_gen(HLSL& self, Symbol* sym, bool in_stmt)
 	{
+		// ignore constant strings they are only used in tag systems
+		if (sym->type == type_lit_string)
+			return;
+
 		if (sym->const_sym.value && in_stmt == false)
 			_hlsl_rewrite_complits_in_expr(self, sym->const_sym.value, true);
 

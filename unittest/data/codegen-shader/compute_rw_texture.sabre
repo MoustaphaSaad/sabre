@@ -1,5 +1,8 @@
 package main
 
+const RESOURCE_NAME = "image";
+
+@resource{ name = RESOURCE_NAME }
 var image: RWTexture2D<vec4>;
 
 const IMAGE_SIZE = 16;
