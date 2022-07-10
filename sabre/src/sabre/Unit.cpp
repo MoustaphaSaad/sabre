@@ -945,7 +945,8 @@ namespace sabre
 			mn::json::value_object_insert(json_uniform, "binding", mn::json::value_number_new(binding));
 			mn::json::value_object_insert(json_uniform, "type", mn::json::value_string_new(_type_to_reflect_json(symbol->type, false)));
 			mn::json::value_object_insert(json_uniform, "tags", _decl_tags_to_json(symbol_decl(symbol)));
-			mn::json::value_object_insert(json_uniform, "size", mn::json::value_number_new(symbol->type->unaligned_size));
+			mn::json::value_object_insert(json_uniform, "unaligned_size", mn::json::value_number_new(symbol->type->unaligned_size));
+			mn::json::value_object_insert(json_uniform, "aligned_size", mn::json::value_number_new(_type_aligned_size(symbol->type)));
 
 			mn::json::value_array_push(json_uniforms, json_uniform);
 
