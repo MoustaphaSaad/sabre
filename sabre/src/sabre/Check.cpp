@@ -4030,6 +4030,27 @@ namespace sabre
 				}
 			}
 
+			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_INSTANCE_ID))
+			{
+				if (struct_field.type != type_uint)
+				{
+					Err err{};
+					err.loc = struct_field.name.loc;
+					err.msg = mn::strf("system instance id type is '{}', but it should be 'uint'", *struct_field.type);
+					unit_err(self.unit, err);
+				}
+
+				if (compilation_mode != COMPILATION_MODE_VERTEX &&
+					compilation_mode != COMPILATION_MODE_PIXEL &&
+					compilation_mode != COMPILATION_MODE_GEOMETRY)
+				{
+					Err err{};
+					err.loc = tag_it->value.name.loc;
+					err.msg = mn::strf("system instance id is only available in vertex shaders");
+					unit_err(self.unit, err);
+				}
+			}
+
 			bool is_supported_compute = false;
 			if (auto tag_it = mn::map_lookup(field.tags.table, KEYWORD_SV_THREAD_ID))
 			{

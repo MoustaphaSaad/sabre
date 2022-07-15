@@ -768,6 +768,7 @@ namespace sabre
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_POSITION));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_DEPTH));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_PRIMITIVE_ID));
+		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_INSTANCE_ID));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_THREAD_ID));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_SV_GROUP_ID));
 		mn::set_insert(self->str_interner.strings, mn::str_lit(KEYWORD_GLSL));
@@ -914,6 +915,10 @@ namespace sabre
 			auto json_layout = mn::json::value_array_new();
 			for (const auto& [attribute_name, attribute]: entry->input_layout)
 			{
+				// ignore some of the builtin variables provided automatically to vertex shader
+				if (mn::map_lookup(attribute.tags->table, KEYWORD_SV_INSTANCE_ID) != nullptr)
+					continue;
+
 				auto json_attribute = mn::json::value_object_new();
 				mn::json::value_object_insert(json_attribute, "name", mn::json::value_string_new(attribute_name));
 				mn::json::value_object_insert(json_attribute, "type", mn::json::value_string_new(_type_to_reflect_json(attribute.type, false)));

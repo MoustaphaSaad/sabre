@@ -1750,6 +1750,12 @@ namespace sabre
 								field_index++;
 								continue;
 							}
+							if (mn::map_lookup(field.tags.table, KEYWORD_SV_INSTANCE_ID) != nullptr)
+							{
+								mn::buf_push(self.input_names, mn::str_lit("gl_InstanceID"));
+								field_index++;
+								continue;
+							}
 
 							auto type_field = arg_type->struct_type.fields[field_index++];
 							auto field_name = mn::strf("{}_{}", input_name, type_field.name.str);

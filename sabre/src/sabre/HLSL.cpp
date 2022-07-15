@@ -2800,6 +2800,10 @@ namespace sabre
 					{
 						mn::print_to(self.out, ": SV_PrimitiveID");
 					}
+					else if (mn::map_lookup(field.tags.table, KEYWORD_SV_INSTANCE_ID) != nullptr)
+					{
+						mn::print_to(self.out, ": SV_InstanceID");
+					}
 					else if (mn::map_lookup(field.tags.table, KEYWORD_SV_THREAD_ID) != nullptr)
 					{
 						mn::print_to(self.out, ": SV_DispatchThreadID");
