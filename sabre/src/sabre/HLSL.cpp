@@ -2712,9 +2712,13 @@ namespace sabre
 		else if (sym->var_sym.is_buffer)
 		{
 			auto buffer_name = _hlsl_name(self, _hlsl_symbol_name(self, sym));
+			const char* register_name = "t";
 			if (sym->var_sym.is_read_write)
+			{
+				register_name = "u";
 				mn::print_to(self.out, "RW");
-			mn::print_to(self.out, "ByteAddressBuffer {}: register(u{})", buffer_name, sym->var_sym.binding);
+			}
+			mn::print_to(self.out, "ByteAddressBuffer {}: register({}{})", buffer_name, register_name, sym->var_sym.binding);
 		}
 		else if (sym->var_sym.is_image)
 		{
