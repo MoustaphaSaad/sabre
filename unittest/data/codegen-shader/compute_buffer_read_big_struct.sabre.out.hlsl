@@ -27,7 +27,7 @@ void main_traverse() {
 					main_Node _tmp_1;
 					int3 _tmp_2 = (main_tree.Load3(0));
 					_tmp_1.min = _tmp_2;
-					int3 _tmp_3 = (main_tree.Load3(12));
+					int3 _tmp_3 = (main_tree.Load3(16));
 					_tmp_1.max = _tmp_3;
 					main_Node node = _tmp_1;
 					// for post statement

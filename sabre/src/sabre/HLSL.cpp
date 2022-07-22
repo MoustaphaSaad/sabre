@@ -1128,7 +1128,7 @@ namespace sabre
 			{
 				Buffer_Access_Info field_info{};
 				field_info.buffer_name_expr = info.buffer_name_expr;
-				field_info.compile_time_offset = field.unaligned_offset;
+				field_info.compile_time_offset = field.aligned_offset;
 				field_info.size = field.type->unaligned_size;
 				field_info.is_write = info.is_write;
 				auto field_loaded_name = _hlsl_gen_compute_buffer_load(self, nullptr, field_info, field.type);
