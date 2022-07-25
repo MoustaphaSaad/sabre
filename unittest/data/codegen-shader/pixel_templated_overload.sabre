@@ -1,0 +1,11 @@
+package main
+
+import "file-packages/B.sabre"
+
+type Input struct {}
+
+@pixel
+func main(input: Input): vec4 {
+	B.test();
+	return :vec4{};
+}

@@ -453,7 +453,7 @@ namespace sabre
 			return res;
 		}
 
-		auto res_str = mn::str_new();
+		auto res_str = mn::str_tmp();
 		switch (type->kind)
 		{
 		case Type::KIND_VOID: res_str = mn::str_lit("void"); break;
@@ -784,19 +784,19 @@ namespace sabre
 			can_write_name = true;
 			if (type->template_base_type)
 			{
-				if (type->template_base_type == type_texture1d)
+				if (type->texture.type == TEXTURE_TYPE_1D)
 				{
 					str = mn::strf(str, "Texture1D");
 				}
-				else if (type->template_base_type == type_texture2d)
+				else if (type->texture.type == TEXTURE_TYPE_2D)
 				{
 					str = mn::strf(str, "Texture2D");
 				}
-				else if (type->template_base_type == type_texture3d)
+				else if (type->texture.type == TEXTURE_TYPE_3D)
 				{
 					str = mn::strf(str, "Texture3D");
 				}
-				else if (type->template_base_type == type_texture_cube)
+				else if (type->texture.type == TEXTURE_TYPE_CUBE)
 				{
 					str = mn::strf(str, "TextureCube");
 				}
@@ -816,19 +816,19 @@ namespace sabre
 			}
 			else
 			{
-				if (type == type_texture1d)
+				if (type->texture.type == TEXTURE_TYPE_1D)
 				{
 					str = mn::strf(str, "Texture1D<float4>");
 				}
-				else if (type == type_texture2d)
+				else if (type->texture.type == TEXTURE_TYPE_2D)
 				{
 					str = mn::strf(str, "Texture2D<float4>");
 				}
-				else if (type == type_texture3d)
+				else if (type->texture.type == TEXTURE_TYPE_3D)
 				{
 					str = mn::strf(str, "Texture3D<float4>");
 				}
-				else if (type == type_texture_cube)
+				else if (type->texture.type == TEXTURE_TYPE_CUBE)
 				{
 					str = mn::strf(str, "TextureCube<float4>");
 				}
@@ -2632,11 +2632,9 @@ namespace sabre
 		for (auto arg: d->func_decl.args)
 		{
 			auto arg_type = t->as_func.sign.args.types[i];
-			for (auto name: arg.names)
+			if (arg.names.count == 0)
 			{
-				if (i > 0)
-					mn::print_to(self.out, ", ");
-
+				auto name = _hlsl_tmp_name(self);
 				if (mn::map_lookup(arg.tags.table, KEYWORD_POINT))
 					mn::print_to(self.out, "point ");
 				else if (mn::map_lookup(arg.tags.table, KEYWORD_LINE))
@@ -2651,8 +2649,33 @@ namespace sabre
 				else if (mn::map_lookup(arg.tags.table, KEYWORD_INOUT))
 					mn::print_to(self.out, "inout ");
 
-				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+				mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name));
 				++i;
+			}
+			else
+			{
+				for (auto name: arg.names)
+				{
+					if (i > 0)
+						mn::print_to(self.out, ", ");
+
+					if (mn::map_lookup(arg.tags.table, KEYWORD_POINT))
+						mn::print_to(self.out, "point ");
+					else if (mn::map_lookup(arg.tags.table, KEYWORD_LINE))
+						mn::print_to(self.out, "line ");
+					else if (mn::map_lookup(arg.tags.table, KEYWORD_TRIANGLE))
+						mn::print_to(self.out, "triangle ");
+
+					if (mn::map_lookup(arg.tags.table, KEYWORD_IN))
+						mn::print_to(self.out, "in ");
+					else if (mn::map_lookup(arg.tags.table, KEYWORD_OUT))
+						mn::print_to(self.out, "out ");
+					else if (mn::map_lookup(arg.tags.table, KEYWORD_INOUT))
+						mn::print_to(self.out, "inout ");
+
+					mn::print_to(self.out, "{}", _hlsl_write_field(self, arg_type, name.str));
+					++i;
+				}
 			}
 		}
 		mn::print_to(self.out, ")");

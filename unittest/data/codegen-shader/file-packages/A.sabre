@@ -1,0 +1,4 @@
+package A
+
+func foo<T: type>(:Texture2D<T>): T { return :T{}; }
+func foo<T: type>(:Texture3D<T>): T { return :T{}; }

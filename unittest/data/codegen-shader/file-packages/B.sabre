@@ -1,0 +1,10 @@
+package B
+import "A.sabre"
+
+var texture_3d: Texture3D;
+var texture_2d: Texture2D;
+
+func test() {
+	A.foo(texture_3d);
+	A.foo(texture_2d);
+}
